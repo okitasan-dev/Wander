@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f6b4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Wander — local history around you</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#1f2421;--muted:#6b706b;--accent:#2f6b4f;--accent-ink:#fff;--warm:#b5651d;--line:#e3ddd0;--chip:#efe9dc}
+@media (prefers-color-scheme:dark){:root{--bg:#121513;--card:#1c211e;--ink:#ecebe6;--muted:#9aa29b;--accent:#6fbf93;--accent-ink:#0d1a12;--warm:#e0a060;--line:#2c332e;--chip:#262d28}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Noto Sans JP","Noto Sans SC",sans-serif;background:var(--bg);color:var(--ink);
+  padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
+h1{font-size:20px;margin:0;letter-spacing:.2px}
+h1 span{color:var(--warm)}
+#status{font-size:13px;color:var(--muted);margin-top:2px;min-height:1.2em}
+.bar{display:flex;gap:8px;margin-top:10px}
+button,.btn{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.on{background:var(--warm);border-color:var(--warm);color:#fff}
+.bar button{flex:1;justify-content:center}
+main{padding:12px 12px 40px;max-width:720px;margin:0 auto}
+details.settings{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:12px}
+details.settings summary{cursor:pointer;color:var(--muted);font-size:14px}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.row label{font-size:14px;color:var(--muted);min-width:90px}
+select,input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]{flex:1;min-width:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:13px;padding:5px 10px;border-radius:999px;background:var(--chip);border:none;color:var(--ink)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:18px 4px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:0 12px}
+.card.speaking{outline:2px solid var(--warm)}
+.card .thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;grid-column:2;grid-row:1 / span 2;background:var(--chip)}
+.card h3{margin:0;font-size:17px;line-height:1.25}
+.sub{font-size:14px;color:var(--muted)}
+.meta{font-size:13px;color:var(--accent);font-weight:600;margin-top:2px}
+.meta .new{background:var(--warm);color:#fff;border-radius:6px;padding:0 6px;margin-left:6px;font-size:11px;vertical-align:1px}
+.facts{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.facts span{font-size:12px;background:var(--chip);border-radius:6px;padding:2px 7px}
+.text{grid-column:1 / -1;margin:8px 0 0;font-size:15px}
+.text .lang{font-size:12px;color:var(--muted)}
+.actions{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.actions button,.actions a{font-size:13px;padding:6px 11px}
+.chk{font-size:14px;display:inline-flex;align-items:center;gap:4px}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.src{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
+.inscr{grid-column:1 / -1;margin:8px 0 0;padding:6px 10px;border-left:3px solid var(--warm);font-size:14px;font-style:italic;background:var(--chip);border-radius:0 8px 8px 0}
+.empty{color:var(--muted);text-align:center;padding:30px 10px}
+.hero{text-align:center;padding:30px 10px}
+.hero p{color:var(--muted)}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:10px 16px 30px}
+footer a{color:var(--muted)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px;margin-right:4px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Wander <span>·</span> <small style="font-weight:400;font-size:14px;color:var(--muted)">history around you</small></h1>
+  <div id="status">Tap <b>Start</b> to find history near you.</div>
+  <div class="bar">
+    <button id="gpsBtn" class="primary">📍 Start</button>
+    <button id="tourBtn">🎧 Tour mode</button>
+    <button id="refreshBtn" aria-label="Refresh">↻</button>
+  </div>
+</header>
+
+<main>
+  <details class="settings" id="settings">
+    <summary>Settings &amp; manual location</summary>
+    <div class="row">
+      <label for="radius">Search radius</label>
+      <select id="radius">
+        <option value="300">300 m</option>
+        <option value="600">600 m</option>
+        <option value="1000">1 km</option>
+        <option value="2000">2 km</option>
+        <option value="5000">5 km</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="ulang">Your language</label>
+      <select id="ulang"></select>
+    </div>
+    <div class="row">
+      <label for="tourDist">Tour: read at</label>
+      <select id="tourDist">
+        <option value="60">60 m</option>
+        <option value="100">100 m</option>
+        <option value="150">150 m</option>
+        <option value="250">250 m</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Sources</label>
+      <span class="chk"><input type="checkbox" id="srcWiki" checked disabled> Wikipedia</span>
+      <span class="chk"><input type="checkbox" id="srcOsm"> OSM plaques &amp; landmarks</span>
+      <span class="chk"><input type="checkbox" id="srcWd"> Heritage registers</span>
+    </div>
+    <form class="row" id="placeForm">
+      <input type="text" id="placeInput" placeholder="Place name, “lat, lon” or a Maps link" autocomplete="off">
+      <button type="submit">Go</button>
+    </form>
+    <div class="chips">
+      <button class="chip" data-ll="35.0037,135.7788">Gion, Kyoto</button>
+      <button class="chip" data-ll="48.8575,2.3600">Le Marais, Paris</button>
+      <button class="chip" data-ll="38.7115,-9.1300">Alfama, Lisbon</button>
+      <button class="chip" data-ll="41.3839,2.1763">Barri Gòtic, Barcelona</button>
+      <button class="chip" data-ll="50.0875,14.4213">Old Town, Prague</button>
+    </div>
+  </details>
+
+  <div id="areaWrap"></div>
+  <div id="listWrap">
+    <div class="hero">
+      <div style="font-size:44px">🧭</div>
+      <p>Wander finds places of historical interest around you, searching the <b>local-language</b> Wikipedia first, where neighbourhood history is richest, and gives you short factoids you can read or listen to while you walk.</p>
+      <p>Turn on <b>Tour mode</b> to have each place read aloud as you get close.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (Nominatim) ·
+  Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA) · Facts from <a href="https://www.wikidata.org/">Wikidata</a>
+</footer>
+
+<script>
+"use strict";
+/* ---------- config ---------- */
+const COUNTRY_LANGS = {
+  jp:['ja'], cn:['zh'], tw:['zh'], hk:['zh'], mo:['zh','pt'], kr:['ko'], kp:['ko'], mn:['mn'],
+  fr:['fr'], mc:['fr'], de:['de'], at:['de'], ch:['de','fr'], li:['de'], lu:['lb','fr'],
+  it:['it'], sm:['it'], va:['it'], es:['es'], ad:['ca'], pt:['pt'], br:['pt'], ao:['pt'], mz:['pt'], cv:['pt'],
+  mx:['es'], ar:['es'], co:['es'], cl:['es'], pe:['es'], ve:['es'], ec:['es'], gt:['es'], cu:['es'], bo:['es'],
+  do:['es'], hn:['es'], py:['es'], sv:['es'], ni:['es'], cr:['es'], pa:['es'], uy:['es'], pr:['es'],
+  nl:['nl'], be:['nl','fr'], ru:['ru'], by:['be','ru'], ua:['uk'], pl:['pl'], cz:['cs'], sk:['sk'], hu:['hu'],
+  ro:['ro'], md:['ro'], bg:['bg'], gr:['el'], cy:['el','tr'], tr:['tr'], il:['he'],
+  se:['sv'], no:['no'], dk:['da'], fi:['fi'], is:['is'], fo:['fo'], gl:['kl','da'], ee:['et'], lv:['lv'], lt:['lt'],
+  hr:['hr'], rs:['sr'], si:['sl'], ba:['bs','sr'], me:['sr'], mk:['mk'], al:['sq'], xk:['sq'],
+  ge:['ka'], am:['hy'], az:['az'], kz:['kk','ru'], uz:['uz'], kg:['ky','ru'], tj:['tg'], tm:['tk'],
+  ir:['fa'], af:['fa','ps'], pk:['ur'], in:['hi'], bd:['bn'], lk:['si','ta'], np:['ne'], bt:['dz'], mv:['dv'],
+  th:['th'], vn:['vi'], kh:['km'], la:['lo'], mm:['my'], my:['ms'], bn:['ms'], id:['id'], ph:['tl'], sg:['zh','ms'],
+  eg:['ar'], sa:['ar'], ae:['ar'], qa:['ar'], kw:['ar'], bh:['ar'], om:['ar'], ye:['ar'], jo:['ar'], lb:['ar','fr'],
+  sy:['ar'], iq:['ar'], ps:['ar'], ly:['ar'], tn:['ar','fr'], dz:['ar','fr'], ma:['ar','fr'], sd:['ar'], mr:['ar','fr'],
+  et:['am'], er:['ti'], so:['so'], ke:['sw'], tz:['sw'], ug:['sw'], rw:['rw','fr'], mg:['mg','fr'],
+  sn:['fr'], ci:['fr'], ml:['fr'], bf:['fr'], ne:['fr'], cm:['fr'], cd:['fr'], cg:['fr'], ga:['fr'], ht:['ht','fr'],
+  za:['af'], na:['af'], mt:['mt'], ie:['ga'], ca:['en'], us:['en'], gb:['en'], au:['en'], nz:['en','mi']
+};
+// ISO3166-2 subdivisions where the local language differs from the national default
+const REGION_LANGS = {
+  'ES-CT':['ca','es'], 'ES-IB':['ca','es'], 'ES-VC':['ca','es'], 'ES-PV':['eu','es'], 'ES-NC':['es','eu'], 'ES-GA':['gl','es'],
+  'GB-WLS':['cy'], 'GB-SCT':['en','gd'], 'CA-QC':['fr'], 'CA-NB':['en','fr'],
+  'BE-VLG':['nl'], 'BE-WAL':['fr'], 'BE-BRU':['fr','nl'],
+  'CH-GE':['fr'], 'CH-VD':['fr'], 'CH-NE':['fr'], 'CH-JU':['fr'], 'CH-FR':['fr','de'], 'CH-VS':['fr','de'], 'CH-TI':['it'], 'CH-GR':['de','rm'],
+  'IT-BZ':['de','it'], 'IT-AO':['it','fr'], 'FI-01':['sv'], 'FR-2A':['fr','co'], 'FR-2B':['fr','co'],
+  'IN-TN':['ta'], 'IN-KA':['kn'], 'IN-KL':['ml'], 'IN-MH':['mr'], 'IN-WB':['bn'], 'IN-TG':['te'], 'IN-AP':['te'],
+  'IN-GJ':['gu'], 'IN-PB':['pa'], 'IN-OR':['or'], 'IN-AS':['as'], 'IN-GA':['kok','mr'],
+  'CN-XZ':['zh','bo'], 'CN-XJ':['zh','ug'], 'RU-TA':['ru','tt'], 'US-HI':['en'], 'US-PR':['es']
+};
+const UI_LANGS = ['en','es','fr','de','it','pt','nl','sv','da','no','fi','pl','cs','ru','uk','tr','el','he','ar','fa','hi','ja','zh','ko','vi','th','id'];
+
+/* ---------- state ---------- */
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem('wander.'+k); return v==null?d:JSON.parse(v);}catch(e){return d} },
+  set(k,v){ try{ localStorage.setItem('wander.'+k, JSON.stringify(v)); }catch(e){} }
+};
+const navLang = (navigator.language||'en').split('-')[0].toLowerCase();
+const state = {
+  pos:null, lastLoad:null, lastLoadTime:0, loading:false, watchId:null, manual:false,
+  items:new Map(), area:[], areaKey:'', place:'', langs:[],
+  userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
+  radius: store.get('radius', 1000), tourDist: store.get('tourDist', 100),
+  tour:false, heard:new Set(), expanded:new Set(), showOrig:new Set(), speakingKey:null,
+  loads:0, wakeLock:null,
+  useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
+};
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const toRad = d => d*Math.PI/180;
+function hav(a,b){ const R=6371000, dLat=toRad(b.lat-a.lat), dLon=toRad(b.lon-a.lon);
+  const x=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+function bearing(a,b){ const y=Math.sin(toRad(b.lon-a.lon))*Math.cos(toRad(b.lat));
+  const x=Math.cos(toRad(a.lat))*Math.sin(toRad(b.lat))-Math.sin(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.cos(toRad(b.lon-a.lon));
+  return (Math.atan2(y,x)*180/Math.PI+360)%360; }
+function dirLabel(deg){ const arrows=['↑','↗','→','↘','↓','↙','←','↖'], names=['N','NE','E','SE','S','SW','W','NW']; const i=Math.round(deg/45)%8; return arrows[i]+' '+names[i]; }
+function fmtDist(m){ return m<1000 ? Math.round(m/10)*10+' m' : (m/1000).toFixed(m<10000?1:0)+' km'; }
+let langNames; try{ langNames = new Intl.DisplayNames(['en'],{type:'language'}); }catch(e){ langNames=null; }
+const langName = l => { try{ return (langNames && langNames.of(l)) || l; }catch(e){ return l; } };
+function trimText(s, n){
+  s = (s||'').trim(); if(s.length<=n) return s;
+  const slice = s.slice(0,n); let idx=-1;
+  for(const p of ['. ','。','！','？','! ','? ','۔ ','। ']){ idx=Math.max(idx, slice.lastIndexOf(p)); }
+  return idx > n*0.4 ? slice.slice(0,idx+1) : slice.replace(/\s+\S*$/,'')+'…';
+}
+async function fetchJSON(url, ms=15000){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(), ms);
+  try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+  finally{ clearTimeout(t); }
+}
+function setStatus(html){ $('#status').innerHTML = html; }
+
+/* ---------- Nominatim (OSM) — max 1 request/second ---------- */
+let lastNomi = 0;
+async function nominatim(path, params){
+  const wait = lastNomi + 1100 - Date.now(); if(wait>0) await sleep(wait);
+  lastNomi = Date.now();
+  const q = new URLSearchParams({format:'jsonv2', 'accept-language':state.userLang, ...params});
+  return fetchJSON(`https://nominatim.openstreetmap.org/${path}?${q}`);
+}
+function langsFor(addr){
+  const cc=(addr.country_code||'').toLowerCase();
+  const local = REGION_LANGS[addr['ISO3166-2-lvl6']] || REGION_LANGS[addr['ISO3166-2-lvl4']] || COUNTRY_LANGS[cc] || ['en'];
+  return [...new Set([...local.slice(0,2), state.userLang])];
+}
+
+/* ---------- Wikipedia ---------- */
+function wikiURL(lang, params){
+  return `https://${lang}.wikipedia.org/w/api.php?` + new URLSearchParams({format:'json', formatversion:'2', origin:'*', ...params});
+}
+async function geosearch(lang, lat, lon, radius){
+  const d = await fetchJSON(wikiURL(lang, {
+    action:'query', generator:'geosearch', ggscoord:`${lat}|${lon}`, ggsradius:String(Math.min(radius,10000)), ggslimit:'20',
+    prop:'extracts|coordinates|pageprops|pageimages|langlinks|info',
+    exintro:'1', explaintext:'1', exlimit:'20',
+    colimit:'max', ppprop:'wikibase_item', piprop:'thumbnail', pithumbsize:'200', pilimit:'20',
+    lllang:state.userLang, lllimit:'max', inprop:'url'
+  }));
+  return (d.query && d.query.pages) || [];
+}
+async function extractsFor(lang, titles, chars){
+  const out = {};
+  for(let i=0;i<titles.length;i+=20){
+    const batch = titles.slice(i,i+20);
+    const d = await fetchJSON(wikiURL(lang, {action:'query', titles:batch.join('|'), redirects:'1', prop:'extracts|info|pageimages',
+      exintro:'1', explaintext:'1', exlimit:'20', inprop:'url', piprop:'thumbnail', pithumbsize:'200', pilimit:'20'}));
+    const map = {}; batch.forEach(t=>map[t]=t);
+    (d.query?.normalized||[]).forEach(n=>{ for(const k in map) if(map[k]===n.from) map[k]=n.to; });
+    (d.query?.redirects||[]).forEach(n=>{ for(const k in map) if(map[k]===n.from) map[k]=n.to; });
+    const pages = {}; (d.query?.pages||[]).forEach(p=>{ if(!p.missing) pages[p.title]=p; });
+    for(const k in map){ const p=pages[map[k]]; if(p) out[k]={title:p.title, extract:p.extract||'', url:p.fullurl, thumb:p.thumbnail?.source}; }
+  }
+  return out;
+}
+
+/* ---------- Area intro (neighbourhood + city) ---------- */
+async function loadArea(lat, lon){
+  const z14 = await nominatim('reverse', {lat, lon, zoom:'14', addressdetails:'1', extratags:'1'});
+  const a = z14.address || {};
+  state.langs = langsFor(a);
+  const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
+  const city = a.city || a.town || a.village || a.municipality || a.county;
+  state.place = [hood, city, a.country].filter(Boolean).join(', ');
+  const key = (hood||'')+'|'+(city||'');
+  if(key === state.areaKey) return;
+  state.areaKey = key;
+  const qids = [z14.extratags?.wikidata];
+  try{ const z10 = await nominatim('reverse', {lat, lon, zoom:'10', extratags:'1'}); qids.push(z10.extratags?.wikidata); }catch(e){}
+  const ids = [...new Set(qids.filter(Boolean))];
+  if(!ids.length){ state.area=[]; return; }
+  const sites = state.langs.map(l=>l.replace(/-/g,'_')+'wiki').join('|');
+  const wd = await fetchJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&props=sitelinks&sitefilter=${sites}&ids=${ids.join('|')}`);
+  const area = ids.map(q=>({key:'area:'+q, qid:q, versions:{}}));
+  await Promise.all(state.langs.map(async lang=>{
+    const titles = area.map(it=>wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title).filter(Boolean);
+    if(!titles.length) return;
+    const ex = await extractsFor(lang, titles).catch(()=>({}));
+    area.forEach(it=>{ const t=wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title; if(t && ex[t]){ it.versions[lang]=ex[t]; it.thumb = it.thumb || ex[t].thumb; } });
+  }));
+  state.area = area.filter(it=>Object.keys(it.versions).length);
+}
+
+/* ---------- Nearby places ---------- */
+async function loadNearby(lat, lon){
+  const ul = state.userLang;
+  const results = await Promise.allSettled(state.langs.map(l=>geosearch(l, lat, lon, state.radius).then(p=>({lang:l, pages:p}))));
+  let added = 0;
+  for(const r of results){
+    if(r.status!=='fulfilled') continue;
+    const {lang, pages} = r.value;
+    for(const p of pages){
+      if(!p.coordinates || !p.coordinates.length) continue;
+      const qid = p.pageprops?.wikibase_item;
+      const key = qid || `${lang}:${p.title}`;
+      let it = state.items.get(key);
+      if(!it){ it = {key, qid, versions:{}, lat:p.coordinates[0].lat, lon:p.coordinates[0].lon, isNew: state.loads>0, addedAt:Date.now()}; state.items.set(key,it); added++; }
+      it.versions[lang] = {title:p.title, extract:p.extract||'', url:p.fullurl};
+      delete it.src;  // now backed by a Wikipedia article
+      if(p.thumbnail && !it.thumb) it.thumb = p.thumbnail.source;
+      const ll = (p.langlinks||[]).find(x=>x.lang===ul);
+      if(lang!==ul && ll) it.userTitle = ll.title || ll['*'];
+    }
+  }
+  // Fetch the user-language summary for local-language finds that have a translation article
+  const need = [...state.items.values()].filter(it=>it.userTitle && !it.versions[ul] && !it.triedUser);
+  need.forEach(it=>it.triedUser=true);
+  if(need.length){
+    const ex = await extractsFor(ul, need.map(it=>it.userTitle)).catch(()=>({}));
+    need.forEach(it=>{ const v=ex[it.userTitle]; if(v){ it.versions[ul]={title:v.title, extract:v.extract, url:v.url}; if(!it.thumb && v.thumb) it.thumb=v.thumb; } });
+  }
+  state.loads++;
+  return added;
+}
+
+/* ---------- OpenStreetMap: plaques, memorials, ruins, artworks (Overpass API) ---------- */
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
+function osmKind(t){
+  if(t.memorial) return t.memorial==='stolperstein' ? 'Stolperstein (Holocaust memorial stone)' : cap(t.memorial.replace(/_/g,' '));
+  if(t.historic && t.historic!=='yes') return cap(t.historic.replace(/_/g,' '));
+  if(t.tourism) return cap(t.tourism.replace(/_/g,' '));
+  if(t.heritage) return 'Heritage site';
+  return 'Historic place';
+}
+async function fetchOSM(lat, lon){
+  const r = Math.min(state.radius, 1500);
+  const q = `[out:json][timeout:20];(
+    nwr(around:${r},${lat},${lon})[historic][historic!=no];
+    nwr(around:${r},${lat},${lon})[heritage][name];
+    nwr(around:${r},${lat},${lon})[tourism~"^(museum|artwork|attraction)$"][name];
+  );out center tags 120;`;
+  for(const base of OVERPASS){
+    try{ const d = await fetchJSON(base+'?data='+encodeURIComponent(q), 25000); return d.elements||[]; }catch(e){}
+  }
+  return [];
+}
+function mergeOSM(elements){
+  const ul = state.userLang, local = state.langs.find(l=>l!==ul) || ul;
+  for(const el of elements){
+    const t = el.tags||{};
+    const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+    if(lat==null) continue;
+    const inscription = t['inscription:'+ul] || t.inscription || '';
+    const name = t.name || '';
+    const userName = t['name:'+ul] || '';
+    if(!name && !userName && !inscription) continue;
+    const facts = [osmKind(t)];
+    const sd = t.start_date || t['construction_date'];
+    if(sd && /^\d{3,4}/.test(sd)) facts.push('Est. '+sd.slice(0,4).replace(/^0+/,''));
+    if(t.architect) facts.push('Architect: '+t.architect);
+    if(t.artist_name) facts.push('Artist: '+t.artist_name);
+    if(t.heritage && t['heritage:operator']) facts.push('🏛 Listed ('+t['heritage:operator']+')');
+    const existing = t.wikidata && state.items.get(t.wikidata);
+    if(existing){   // already known from Wikipedia/Wikidata: just add the plaque text & facts
+      if(inscription && !existing.inscription){ existing.inscription = inscription; existing.inscrLang = t['inscription:'+ul] ? ul : local; }
+      existing.facts = [...new Set([...(existing.facts||[]), ...facts.slice(1)])];
+      continue;
+    }
+    const key = t.wikidata || `osm:${el.type}/${el.id}`;
+    if(state.items.has(key)) continue;
+    // skip unnamed duplicates of something already listed within 40 m with the same name
+    if(name && [...state.items.values()].some(it=>Object.values(it.versions).some(v=>v.title===name) && it.lat!=null && hav(it,{lat,lon})<40)) continue;
+    const url = `https://www.openstreetmap.org/${el.type}/${el.id}`;
+    const versions = {};
+    const desc = t['description:'+ul] || '';
+    if(name) versions[local] = {title:name, extract: t.description || '', url};
+    if(userName || desc || !name) versions[ul] = {title: userName || name || facts[0], extract: desc, url};
+    state.items.set(key, {key, qid:t.wikidata, src:'OpenStreetMap', versions, lat, lon, facts,
+      inscription, inscrLang: t['inscription:'+ul] ? ul : local, isNew: state.loads>1, addedAt:Date.now(), factsLoaded: !t.wikidata});
+  }
+}
+
+/* ---------- Wikidata: heritage-listed places without a Wikipedia article ---------- */
+async function fetchWDAround(lat, lon){
+  const km = (Math.min(state.radius, 3000)/1000).toFixed(2);
+  const langs = [...new Set([state.userLang, ...state.langs, 'en'])].join(',');
+  const q = `SELECT ?item ?itemLabel ?itemDescription ?coord ?typeLabel ?herLabel ?img WHERE {
+    SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${km}". }
+    ?item wdt:P1435 ?her.
+    OPTIONAL { ?item wdt:P31 ?type. }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${langs}". }
+  } LIMIT 150`;
+  try{ const d = await fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q), 25000); return d.results.bindings; }
+  catch(e){ return []; }
+}
+function mergeWD(rows){
+  const ul = state.userLang;
+  const seen = {};
+  for(const b of rows){
+    const qid = b.item.value.split('/').pop();
+    const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.coord.value); if(!m) continue;
+    const label = b.itemLabel?.value, her = b.herLabel?.value, type = b.typeLabel?.value;
+    const f = seen[qid] || (seen[qid] = {qid, lat:+m[2], lon:+m[1], label, desc:b.itemDescription?.value||'', lang:b.itemLabel?.['xml:lang'], facts:new Set()});
+    if(type && !/^Q\d+$/.test(type)) f.facts.add(cap(type));
+    if(her && !/^Q\d+$/.test(her)) f.facts.add('🏛 '+her);
+  }
+  for(const f of Object.values(seen)){
+    const existing = state.items.get(f.qid);
+    if(existing){ existing.facts = [...new Set([...(existing.facts||[]), ...f.facts])]; continue; }
+    if(!f.label || /^Q\d+$/.test(f.label)) continue;
+    const lang = f.lang || ul;
+    state.items.set(f.qid, {key:f.qid, qid:f.qid, src:'Wikidata heritage register', lat:f.lat, lon:f.lon,
+      versions:{[lang]:{title:f.label, extract:'', url:'https://www.wikidata.org/wiki/'+f.qid}},
+      facts:[...(f.desc?[cap(f.desc)]:[]), ...f.facts], isNew: state.loads>1, addedAt:Date.now()});
+  }
+}
+
+/* ---------- Wikidata factoids ---------- */
+function fmtTime(t, prec){
+  const m = /^([+-]?)(\d+)-/.exec(t||''); if(!m) return null;
+  let y = parseInt(m[2],10); const bce = m[1]==='-'; const suf = bce?' BCE':'';
+  prec = parseInt(prec,10);
+  if(prec>=9) return y+suf;
+  if(prec===8) return (Math.floor(y/10)*10)+'s'+suf;
+  if(prec===7){ const c=Math.ceil(y/100)||1; const o=(c%100>10&&c%100<14)?'th':({1:'st',2:'nd',3:'rd'}[c%10]||'th'); return c+o+' century'+suf; }
+  return null;
+}
+async function loadFacts(){
+  const need = [...state.items.values()].filter(it=>it.qid && !it.factsLoaded).slice(0,40);
+  if(!need.length) return;
+  need.forEach(it=>it.factsLoaded=true);
+  const q = `SELECT ?item ?typeLabel ?t ?p ?archLabel ?styleLabel ?herLabel WHERE {
+    VALUES ?item { ${need.map(i=>'wd:'+i.qid).join(' ')} }
+    OPTIONAL { ?item wdt:P31 ?type. }
+    OPTIONAL { ?item p:P571/psv:P571 [ wikibase:timeValue ?t; wikibase:timePrecision ?p ]. }
+    OPTIONAL { ?item wdt:P84 ?arch. }
+    OPTIONAL { ?item wdt:P149 ?style. }
+    OPTIONAL { ?item wdt:P1435 ?her. }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${state.userLang},en". }
+  }`;
+  try{
+    const d = await fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q), 20000);
+    const by = {};
+    for(const b of d.results.bindings){
+      const id = b.item.value.split('/').pop(); const f = by[id] || (by[id]={type:new Set(), arch:new Set(), style:new Set(), her:new Set(), built:null});
+      const lab = k => b[k] && !/^Q\d+$/.test(b[k].value) ? b[k].value : null;
+      if(lab('typeLabel')) f.type.add(lab('typeLabel'));
+      if(lab('archLabel')) f.arch.add(lab('archLabel'));
+      if(lab('styleLabel')) f.style.add(lab('styleLabel'));
+      if(lab('herLabel')) f.her.add(lab('herLabel'));
+      if(!f.built && b.t) f.built = fmtTime(b.t.value, b.p && b.p.value);
+    }
+    for(const it of need){
+      const f = by[it.qid]; if(!f) continue;
+      const facts = [];
+      const type=[...f.type][0]; if(type) facts.push(type.charAt(0).toUpperCase()+type.slice(1));
+      if(f.built) facts.push('Est. '+f.built);
+      const ar=[...f.arch].slice(0,2); if(ar.length) facts.push('Architect: '+ar.join(', '));
+      const st=[...f.style][0]; if(st) facts.push('Style: '+st);
+      const h=[...f.her][0]; if(h) facts.push('🏛 '+h);
+      it.facts = [...new Set([...facts, ...(it.facts||[])])];
+    }
+  }catch(e){ /* factoids are optional */ }
+  render();
+}
+
+/* ---------- refresh cycle ---------- */
+async function refresh(force){
+  if(!state.pos || state.loading) return;
+  const {lat, lon} = state.pos;
+  state.loading = true;
+  setStatus('<span class="spin"></span>Looking around…');
+  try{
+    await loadArea(lat, lon);
+    setStatus(`<span class="spin"></span>${esc(state.place)} · searching ${state.langs.map(langName).join(' + ')} Wikipedia…`);
+    const extra = Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
+    const added = await loadNearby(lat, lon);
+    state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
+    render();
+    setStatus(`<span class="spin"></span>${esc(state.place)} · checking plaques &amp; heritage registers…`);
+    const [wdRows, osmEls] = await extra;
+    mergeWD(wdRows); mergeOSM(osmEls);
+    if(added && state.loads>1 && !state.tour && navigator.vibrate) navigator.vibrate(40);
+    loadFacts();
+  }catch(e){
+    setStatus('⚠️ Could not load: '+esc(e.message)+' — check your connection and tap ↻');
+    state.loading=false; return;
+  }
+  state.loading = false;
+  updateStatus(); render(); tourCheck();
+}
+function updateStatus(){
+  if(!state.pos) return;
+  const acc = state.pos.acc ? ` · ±${Math.round(state.pos.acc)} m` : '';
+  const src = state.manual ? ' · manual location' : (state.watchId!=null ? ' · following GPS' : '');
+  setStatus(`📍 ${esc(state.place||'Unknown area')}${acc}${src}<br>Sources: ${state.langs.map(l=>esc(langName(l))).join(' + ')} Wikipedia`);
+}
+function onFix(lat, lon, acc){
+  state.pos = {lat, lon, acc};
+  const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
+  if(moved > Math.max(120, state.radius/4) && Date.now()-state.lastLoadTime > 15000) refresh();
+  else { updateStatus(); renderSoon(); tourCheck(); }
+}
+
+/* ---------- GPS ---------- */
+function startGPS(){
+  if(!('geolocation' in navigator)){ setStatus('This browser has no location access. Use Settings → manual location.'); return; }
+  if(!window.isSecureContext){ setStatus('⚠️ GPS needs the page to be opened over https://. Use Settings → manual location, or host the file (see notes).'); $('#settings').open=true; return; }
+  stopGPS(); state.manual=false;
+  setStatus('<span class="spin"></span>Getting your location…');
+  state.watchId = navigator.geolocation.watchPosition(
+    p => onFix(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
+    err => { setStatus('⚠️ Location: '+esc(err.message)+'. You can type a place in Settings.'); $('#settings').open=true; },
+    {enableHighAccuracy:true, maximumAge:10000, timeout:30000}
+  );
+  $('#gpsBtn').textContent='📍 Following'; $('#gpsBtn').classList.add('on'); $('#gpsBtn').classList.remove('primary');
+}
+function stopGPS(){
+  if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId=null;
+  $('#gpsBtn').textContent='📍 Use GPS'; $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
+}
+function setManual(lat, lon){
+  stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.heard.clear(); state.loads=0;
+  onFix(lat, lon, null);
+  $('#settings').open=false; window.scrollTo({top:0});
+}
+
+/* ---------- speech / tour mode ---------- */
+const synth = window.speechSynthesis;
+function pickVoice(lang){
+  if(!synth) return null; const vs = synth.getVoices();
+  return vs.find(v=>v.lang.toLowerCase().startsWith(lang) && v.localService) || vs.find(v=>v.lang.toLowerCase().startsWith(lang)) || null;
+}
+function bestVersion(it){
+  const ul=state.userLang;
+  if(it.versions[ul] && it.versions[ul].extract) return {v:it.versions[ul], lang:ul};
+  const l = state.langs.find(l=>it.versions[l]) || Object.keys(it.versions)[0];
+  return {v:it.versions[l], lang:l};
+}
+function speak(text, lang, key){
+  if(!synth){ setStatus('Speech is not supported in this browser.'); return; }
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang; const v = pickVoice(lang); if(v) u.voice = v; u.rate = 1;
+  u.onend = u.onerror = () => { if(state.speakingKey===key){ state.speakingKey=null; renderSoon(); } setTimeout(tourCheck, 1500); };
+  state.speakingKey = key; renderSoon();
+  synth.speak(u);
+}
+function speakItem(it, intro){
+  const {v, lang} = bestVersion(it); if(!v) return;
+  const d = state.pos && it.lat!=null ? hav(state.pos,it) : null;
+  const DIRS = {N:'north',NE:'north-east',E:'east',SE:'south-east',S:'south',SW:'south-west',W:'west',NW:'north-west'};
+  const lead = intro || (d!=null ? `${v.title}, about ${fmtDist(d)} ${DIRS[dirLabel(bearing(state.pos,it)).split(' ')[1]]}. ` : v.title+'. ');
+  let body = trimText(v.extract||'', 700), bodyLang = lang;
+  if(!body && it.inscription){ body = it.inscription; bodyLang = it.inscrLang || lang; }
+  else if(!body && it.facts && it.facts.length) body = it.facts.slice(0,2).join('. ') + '.';
+  speak(lead + body, bodyLang, it.key);
+}
+function tourCheck(){
+  if(!state.tour || !state.pos || (synth && (synth.speaking || synth.pending))) return;
+  let best=null, bd=Infinity;
+  for(const it of state.items.values()){
+    if(state.heard.has(it.key) || it.lat==null) continue;
+    const d = hav(state.pos, it); if(d<=state.tourDist && d<bd){ best=it; bd=d; }
+  }
+  if(best){ state.heard.add(best.key); if(navigator.vibrate) navigator.vibrate([80,60,80]); speakItem(best); }
+}
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator){ state.wakeLock = await navigator.wakeLock.request('screen'); }
+    else if(!on && state.wakeLock){ await state.wakeLock.release(); state.wakeLock=null; }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(state.tour && document.visibilityState==='visible') keepAwake(true); });
+function toggleTour(){
+  state.tour = !state.tour;
+  const b=$('#tourBtn'); b.classList.toggle('on', state.tour); b.textContent = state.tour ? '🎧 Touring' : '🎧 Tour mode';
+  if(state.tour){
+    keepAwake(true);
+    if(state.watchId==null && !state.manual) startGPS();
+    const a = state.area[0];
+    if(a){ const {v} = bestVersion(a); speakItem(a, `You are in ${v ? v.title : 'a new area'}. `); }
+    else speak('Tour mode on. I will read out places as you get close.', 'en', 'tour');
+  } else { keepAwake(false); if(synth) synth.cancel(); state.speakingKey=null; renderSoon(); }
+}
+
+/* ---------- rendering ---------- */
+function translateLink(lang, title){
+  const host = lang.replace(/-/g,'--') + '-wikipedia-org.translate.goog';
+  return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g,'_'))}?_x_tr_sl=${lang}&_x_tr_tl=${state.userLang}&_x_tr_hl=${state.userLang}`;
+}
+function cardHTML(it, opts={}){
+  const ul = state.userLang;
+  const localLang = state.langs.find(l=>l!==ul && it.versions[l]);
+  const lv = localLang ? it.versions[localLang] : null;
+  const uv = it.versions[ul];
+  const head = lv || uv || Object.values(it.versions)[0]; if(!head) return '';
+  const sub = lv && uv && uv.title!==lv.title ? uv.title : '';
+  const orig = state.showOrig.has(it.key);
+  const useUser = uv && uv.extract && !orig;
+  const bodyV = useUser ? uv : (lv || uv);
+  const bodyLang = useUser ? ul : (localLang || ul);
+  const full = bodyV.extract || '';
+  const limit = opts.area ? 520 : 280;
+  const expanded = state.expanded.has(it.key);
+  const text = expanded ? full : trimText(full, limit);
+  const d = state.pos && it.lat!=null ? hav(state.pos, it) : null;
+  const meta = d!=null ? `${dirLabel(bearing(state.pos,it))} · ${fmtDist(d)}` : '';
+  const isNew = it.isNew && Date.now()-it.addedAt < 180000;
+  const facts = (it.facts||[]).map(f=>`<span>${esc(f)}</span>`).join('');
+  const k = esc(it.key);
+  let actions = `<button data-act="speak" data-key="${k}">${state.speakingKey===it.key?'⏹ Stop':'🔊 Listen'}</button>`;
+  if(full.length > text.length || expanded) actions += `<button data-act="more" data-key="${k}">${expanded?'Less':'More'}</button>`;
+  if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
+  if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">🌐 Translate</a>`;
+  const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
+  if(it.src && foreignText) actions += `<a class="btn" target="_blank" rel="noopener" href="https://translate.google.com/?sl=auto&tl=${ul}&op=translate&text=${encodeURIComponent(foreignText.slice(0,1500))}">🌐 Translate</a>`;
+  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
+  if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">🚶 Walk</a>`;
+  const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
+  return `<article class="card${state.speakingKey===it.key?' speaking':''}">
+    <div>
+      <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
+      ${sub?`<div class="sub">${esc(sub)}</div>`:''}
+      ${meta?`<div class="meta">${meta}${isNew?'<span class="new">NEW</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
+    </div>
+    ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
+    ${facts?`<div class="facts">${facts}</div>`:''}
+    ${text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
+    ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}">✍️ ${esc(it.inscription)}</blockquote>`:''}
+    <div class="actions">${actions}</div>
+  </article>`;
+}
+function render(){
+  if(!state.pos) return;
+  const area = state.area.map(it=>cardHTML(it,{area:true})).join('');
+  $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
+  const items = [...state.items.values()]
+    .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it)}))
+    .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d).map(x=>x.it);
+  $('#listWrap').innerHTML = items.length
+    ? `<h2>Nearby · ${items.length} place${items.length>1?'s':''}</h2>` + items.map(it=>cardHTML(it)).join('')
+    : (state.loading ? '' : `<div class="empty">Nothing with a Wikipedia article within ${fmtDist(state.radius)}. Try a bigger radius in Settings.</div>`);
+}
+let rt=null; function renderSoon(){ if(rt) return; rt=setTimeout(()=>{rt=null; render();}, 400); }
+function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key===key); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const key = b.dataset.key, it = findItem(key); if(!it) return;
+  if(b.dataset.act==='speak'){ if(state.speakingKey===key){ synth && synth.cancel(); state.speakingKey=null; renderSoon(); } else { state.heard.add(key); speakItem(it); } }
+  if(b.dataset.act==='more'){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
+  if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
+});
+$('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
+$('#tourBtn').onclick = toggleTour;
+$('#refreshBtn').onclick = ()=>{ if(!state.pos){ startGPS(); return; } state.areaKey=''; state.lastLoadTime=0; refresh(true); };
+$('#radius').value = String(state.radius);
+$('#radius').onchange = e=>{ state.radius=+e.target.value; store.set('radius',state.radius); state.lastLoadTime=0; refresh(); };
+$('#srcOsm').checked = state.useOsm; $('#srcWd').checked = state.useWd;
+$('#srcOsm').onchange = e=>{ state.useOsm=e.target.checked; store.set('useOsm',state.useOsm); if(!state.useOsm) for(const [k,it] of state.items) if(it.src==='OpenStreetMap') state.items.delete(k); state.lastLoadTime=0; refresh(); };
+$('#srcWd').onchange = e=>{ state.useWd=e.target.checked; store.set('useWd',state.useWd); if(!state.useWd) for(const [k,it] of state.items) if(it.src&&it.src.startsWith('Wikidata')) state.items.delete(k); state.lastLoadTime=0; refresh(); };
+$('#tourDist').value = String(state.tourDist);
+$('#tourDist').onchange = e=>{ state.tourDist=+e.target.value; store.set('tourDist',state.tourDist); };
+const ulSel = $('#ulang');
+ulSel.innerHTML = UI_LANGS.map(l=>`<option value="${l}">${esc(langName(l))}</option>`).join('');
+ulSel.value = state.userLang;
+ulSel.onchange = e=>{ state.userLang=e.target.value; store.set('userLang',state.userLang); state.items.clear(); state.areaKey=''; state.loads=0; state.lastLoadTime=0; refresh(); };
+document.querySelectorAll('.chip[data-ll]').forEach(c=>c.onclick=()=>{ const [a,b]=c.dataset.ll.split(',').map(Number); setManual(a,b); });
+$('#placeForm').onsubmit = async e=>{
+  e.preventDefault();
+  const v = $('#placeInput').value.trim(); if(!v) return;
+  const m = /(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/.exec(v) || /[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/.exec(v);
+  if(m){ setManual(parseFloat(m[1]), parseFloat(m[2])); return; }
+  setStatus('<span class="spin"></span>Finding “'+esc(v)+'”…');
+  try{
+    const r = await nominatim('search', {q:v, limit:'1'});
+    if(r && r[0]) setManual(parseFloat(r[0].lat), parseFloat(r[0].lon));
+    else setStatus('Could not find “'+esc(v)+'”.');
+  }catch(err){ setStatus('⚠️ Search failed: '+esc(err.message)); }
+};
+if(synth && synth.onvoiceschanged!==undefined) synth.onvoiceschanged = ()=>{};
+// Keep distances fresh even when standing still
+setInterval(()=>{ if(state.pos) renderSoon(); }, 30000);
+</script>
+</body>
+</html>
