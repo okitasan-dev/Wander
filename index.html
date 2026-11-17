@@ -7,14 +7,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Wander — local history around you</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
   --ground:#E6E9E4; --surface:#F3F4F0; --raise:#FFFFFF; --ink:#132A2C; --muted:#5B6D6C; --rule:rgba(19,42,44,.13);
   --brass:#8A672B; --brass-hi:#A8823F; --brass-soft:rgba(138,103,43,.10); --on-brass:#FFF9EC;
   --patina:#2B6C61; --you:#1C8B7B; --shadow:0 10px 30px rgba(19,42,44,.16);
-  --serif:"Bodoni Moda","Noto Serif JP","Noto Serif SC","Noto Serif",Didot,Georgia,serif;
+  --serif:"Source Serif 4","Noto Serif JP","Noto Serif SC","Noto Serif",Didot,Georgia,serif;
   --sans:"Schibsted Grotesk",-apple-system,BlinkMacSystemFont,"Noto Sans JP","Noto Sans",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root{
@@ -34,7 +34,7 @@ svg{flex:none}
 .top{position:sticky;top:0;z-index:600;background:var(--ground);padding:calc(env(safe-area-inset-top) + 12px) 20px 12px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px}
 .brand{display:flex;align-items:center;gap:8px;flex:none}
 .brand .mark{color:var(--brass);display:flex}
-.brand .word{font:italic 500 24px/1 var(--serif);letter-spacing:.01em}
+.brand .word{font:italic 600 24px/1 var(--serif);letter-spacing:.01em}
 #status{font-size:13px;line-height:1.35;color:var(--muted);min-width:0;flex:1;border-left:1px solid var(--rule);padding-left:14px}
 #status .place{display:block;color:var(--ink);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status .sub2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -65,12 +65,12 @@ svg{flex:none}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--raise);color:var(--ink);box-shadow:var(--shadow)}
 .leaflet-popup-content-wrapper{border-radius:12px}
 .leaflet-popup-content{margin:12px 14px;font-size:14px;line-height:1.4}
-.leaflet-popup-content b{font:500 16px/1.25 var(--serif)}
+.leaflet-popup-content b{font:600 16px/1.25 var(--serif)}
 .leaflet-popup-content button{display:block;margin-top:8px;color:var(--brass);font-weight:500;font-size:13px;padding:0}
 .leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
 
 /* medallions: map pins and list numbers share one form */
-.pin,.num{display:inline-grid;place-items:center;border-radius:50%;font:600 13px/1 var(--serif);font-variant-numeric:lining-nums}
+.pin,.num{display:inline-grid;place-items:center;border-radius:50%;font:700 13px/1 var(--serif);font-variant-numeric:lining-nums}
 .pin{width:28px;height:28px;box-shadow:0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface);transition:transform .2s}
 .num{width:26px;height:26px;margin-right:10px;flex:none;vertical-align:3px}
 .wiki{background:var(--brass);color:var(--on-brass)}
@@ -78,19 +78,29 @@ svg{flex:none}
 .wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
 .pin.osm,.pin.wd{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
 .you-dot{border-radius:50%}
+.pin.far{opacity:.55}
+.pin.inview{transform:scale(1.35);opacity:1;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--brass),0 3px 10px rgba(0,0,0,.4)}
 
 /* sections */
 main{max-width:760px;margin:0 auto}
 h2{font:500 13px/1.3 var(--sans);color:var(--muted);margin:0;padding:26px 20px 10px;display:flex;justify-content:space-between;align-items:baseline}
 h2 span{font-weight:400}
+h2.band{padding-top:30px}
+h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 
 /* entries */
 .card{display:grid;grid-template-columns:1fr auto;gap:0 16px;padding:18px 20px 20px;border-top:1px solid var(--rule);position:relative}
 .card.flash{background:var(--brass-soft);transition:background .4s}
-.card h3{margin:0;font:500 21px/1.22 var(--serif);letter-spacing:-.005em;display:flex;align-items:flex-start}
+.card h3{margin:0;font:600 21px/1.25 var(--serif);letter-spacing:-.005em;display:flex;align-items:flex-start}
 .card .sub{font-size:14px;color:var(--muted);margin-top:3px}
-.card .meta{font-size:13px;color:var(--brass);font-weight:500;margin-top:5px;font-variant-numeric:tabular-nums}
-.card .meta .dir{color:var(--muted);font-weight:400;margin-left:6px}
+.card .meta{font-size:13px;color:var(--brass);font-weight:500;margin-top:5px}
+.card .meta .walk{color:var(--muted);font-weight:400}
+.card .meta .dir{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-weight:400;margin-left:8px}
+.arw{transform:rotate(var(--r,0deg));flex:none}
+.card.inview{background:var(--brass-soft)}
+.card.inview::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brass)}
+.card.inview .meta .dir{color:var(--brass);font-weight:600}
+.card.far h3{font-size:19px}
 .card .meta .new{color:var(--on-brass);background:var(--brass);border-radius:4px;padding:1px 6px;margin-left:8px;font-size:11px}
 .card .src{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px}
 .card .thumb{width:76px;height:76px;border-radius:6px;object-fit:cover;grid-column:2;grid-row:1 / span 2;background:var(--surface)}
@@ -107,7 +117,7 @@ h2 span{font-weight:400}
 
 /* area frontispiece */
 .card.area{border-top:0;padding-top:4px}
-.card.area h3{font:500 32px/1.1 var(--serif);letter-spacing:-.01em}
+.card.area h3{font:600 32px/1.12 var(--serif);letter-spacing:-.01em}
 .card.area .text{font-size:16px}
 .card.area .thumb{width:88px;height:88px}
 
@@ -118,7 +128,7 @@ h2 span{font-weight:400}
 .factgrid>div{padding:10px 0;border-bottom:1px solid var(--rule)}
 .factgrid .wide{grid-column:1 / -1}
 .factgrid dt{font-size:12px;color:var(--muted);margin-bottom:2px}
-.factgrid dd{margin:0;font:500 17px/1.3 var(--serif);font-variant-numeric:lining-nums}
+.factgrid dd{margin:0;font:600 17px/1.3 var(--serif);font-variant-numeric:lining-nums}
 .factgrid dd small{font:400 12px var(--sans);color:var(--muted);margin-left:4px}
 .gather{grid-column:1 / -1;font-size:13px;color:var(--muted);margin:12px 0 0}
 .more{grid-column:1 / -1}
@@ -126,18 +136,18 @@ h2 span{font-weight:400}
 .timeline{list-style:none;margin:0;padding:0}
 .timeline li{display:grid;grid-template-columns:68px 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--rule);font-size:15px;line-height:1.5}
 .timeline li:last-child{border-bottom:1px solid var(--rule)}
-.timeline .yr{font:500 18px/1.25 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
+.timeline .yr{font:600 18px/1.25 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
 .xlate{display:inline-block;margin-top:8px;font-size:13px;font-weight:500;color:var(--brass);text-decoration:none}
 .people{list-style:none;margin:0;padding:0}
 .people li{padding:8px 0;border-top:1px solid var(--rule)}
 .people li:last-child{border-bottom:1px solid var(--rule)}
-.people .pn{display:block;font:500 17px/1.3 var(--serif)}
+.people .pn{display:block;font:600 17px/1.3 var(--serif)}
 .people .pd{display:block;font-size:13px;color:var(--muted)}
 
 /* hero */
 .hero{padding:56px 24px 40px;max-width:560px}
 .hero .mark{color:var(--brass);margin-bottom:22px}
-.hero h1{font:400 40px/1.08 var(--serif);letter-spacing:-.015em;margin:0 0 18px}
+.hero h1{font:500 40px/1.1 var(--serif);letter-spacing:-.015em;margin:0 0 18px}
 .hero p{color:var(--muted);margin:0 0 12px;font-size:16px;max-width:46ch}
 .empty{color:var(--muted);padding:36px 20px;border-top:1px solid var(--rule)}
 
@@ -152,6 +162,24 @@ h2 span{font-weight:400}
 .dock button.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--brass)}
 @media (prefers-reduced-motion:no-preference){.dock button.on::after{animation:blink 2s ease-in-out infinite}@keyframes blink{50%{opacity:.25}}}
 
+/* look mode panel */
+.look{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 82px);z-index:890;width:min(440px,calc(100% - 24px));
+  background:var(--raise);border:1px solid var(--rule);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
+.look[hidden]{display:none}
+.look-head{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.look-head .rose{flex:none;color:var(--brass)}
+.look-head .rose g{transform-origin:16px 16px;transform:rotate(var(--n,0deg))}
+.look-head b{font:600 18px/1.2 var(--serif);color:var(--ink)}
+.look-head .rng{margin-left:auto;text-align:right}
+.look ol{list-style:none;margin:8px 0 0;padding:0}
+.look li button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 0;border-top:1px solid var(--rule)}
+.look .num{margin:0}
+.look li .t{flex:1;min-width:0;font:600 16px/1.25 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.look li .d{font-size:13px;color:var(--brass);font-weight:500}
+.look .hint{margin:8px 0 0;padding-top:9px;border-top:1px solid var(--rule);font-size:14px;line-height:1.45;color:var(--muted)}
+.look .hint b{color:var(--ink);font-weight:600}
+body.looking{padding-bottom:calc(env(safe-area-inset-bottom) + 300px)}
+
 /* settings sheet */
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000}
 .sheet>summary{display:none}
@@ -159,7 +187,7 @@ h2 span{font-weight:400}
 .sheet-body{position:relative;max-width:560px;margin:0 auto;background:var(--raise);border-radius:22px 22px 0 0;box-shadow:var(--shadow);
   padding:10px 22px calc(env(safe-area-inset-bottom) + 22px);max-height:82vh;overflow:auto}
 .sheet-body .grab{width:38px;height:4px;border-radius:2px;background:var(--rule);margin:2px auto 12px}
-.sheet-body h3{font:500 24px/1.2 var(--serif);margin:0 0 6px}
+.sheet-body h3{font:600 24px/1.2 var(--serif);margin:0 0 6px}
 .row{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
 .row label,.row .lbl{font-size:14px;color:var(--muted);flex:0 0 110px}
 select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
@@ -199,7 +227,7 @@ footer a{color:var(--muted)}
       <div class="mark" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></div>
       <h1>The history around you, as you walk.</h1>
       <p>Wander reads the local-language Wikipedia first, where neighbourhood history runs deepest, then street plaques and heritage registers, and turns them into short notes you can read.</p>
-      <p>Tap Start to see the history around you.</p>
+      <p>Tap Start to see the history around you. Standing on a corner? Tap Look and point your phone to see what is in front of you.</p>
     </div>
   </section>
 </main>
@@ -210,9 +238,19 @@ footer a{color:var(--muted)}
 
 <nav class="dock" aria-label="Controls">
   <button id="gpsBtn" class="primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Start</span></button>
+  <button id="lookBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13.4 13.4 8.5 15.5 10.6 10.6Z" fill="currentColor" fill-opacity=".25"/></svg><span>Look</span></button>
   <button id="refreshBtn" class="icon" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
   <button id="settingsBtn" class="icon" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
 </nav>
+
+<div class="look" id="look" hidden aria-live="polite">
+  <div class="look-head">
+    <svg class="rose" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" stroke-width="1.2"/><g><path d="M16 4 19 16 16 14.5 13 16Z" fill="currentColor"/><path d="M16 28 19 16 16 17.5 13 16Z" fill="currentColor" fill-opacity=".3"/></g></svg>
+    <b id="lookFacing">Finding your heading…</b>
+    <span class="rng" id="lookRange"></span>
+  </div>
+  <div id="lookBody"></div>
+</div>
 
 <details class="sheet" id="settings">
   <summary>Settings</summary>
@@ -227,6 +265,15 @@ footer a{color:var(--muted)}
         <option value="1609">1 mi</option>
         <option value="3219">2 mi</option>
         <option value="4828">3 mi</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="sight">Sight range</label>
+      <select id="sight">
+        <option value="46">150 ft</option>
+        <option value="91">300 ft</option>
+        <option value="152">500 ft</option>
+        <option value="305">1,000 ft</option>
       </select>
     </div>
     <div class="row">
@@ -304,7 +351,7 @@ const state = {
   pos:null, lastLoad:null, lastLoadTime:0, loading:false, watchId:null, manual:false,
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
-  radius: store.get('radius', 805),
+  radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(),
   expanded:new Set(), collapsed:new Set(), showOrig:new Set(),
   loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
@@ -320,7 +367,10 @@ function hav(a,b){ const R=6371000, dLat=toRad(b.lat-a.lat), dLon=toRad(b.lon-a.
 function bearing(a,b){ const y=Math.sin(toRad(b.lon-a.lon))*Math.cos(toRad(b.lat));
   const x=Math.cos(toRad(a.lat))*Math.sin(toRad(b.lat))-Math.sin(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.cos(toRad(b.lon-a.lon));
   return (Math.atan2(y,x)*180/Math.PI+360)%360; }
-function dirLabel(deg){ const arrows=['↑','↗','→','↘','↓','↙','←','↖'], names=['N','NE','E','SE','S','SW','W','NW']; const i=Math.round(deg/45)%8; return arrows[i]+' '+names[i]; }
+const compassName = deg => ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8];
+const arrowSVG = deg => `<svg class="arw" width="12" height="12" viewBox="0 0 12 12" style="--r:${Math.round(deg)}deg" aria-hidden="true"><path d="M6 .8 10.2 10.6 6 8.4 1.8 10.6Z" fill="currentColor"/></svg>`;
+const WALK = 402;                       // ¼ mile, about five minutes on foot
+const walkMin = m => Math.max(1, Math.round(m/80));
 const FT = 3.28084;
 function fmtDist(m){ const ft = m*FT, mi = m/1609.344;
   return ft<1000 ? Math.round(ft/10)*10+' ft' : mi.toFixed(mi<10?1:0)+' mi'; }
@@ -894,7 +944,7 @@ function bestVersion(it){
 }
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
-const M = { map:null, me:null, acc:null, ring:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
+const M = { map:null, me:null, acc:null, ring:null, sight:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
 const srcClass = it => !it.src ? 'wiki' : (it.src==='OpenStreetMap' ? 'osm' : 'wd');
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
@@ -904,6 +954,7 @@ function initMap(){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(M.map);
   L.control.zoom({position:'bottomright'}).addTo(M.map);
   M.ring = L.circle([state.pos.lat, state.pos.lon], {radius:state.radius, color:cssv('--brass'), weight:1, dashArray:'4 6', fill:false, interactive:false}).addTo(M.map);
+  M.sight = L.circle([state.pos.lat, state.pos.lon], {radius:state.sight, color:cssv('--you'), weight:1, fillColor:cssv('--you'), fillOpacity:.07, interactive:false}).addTo(M.map);
   M.acc = L.circle([state.pos.lat, state.pos.lon], {radius:state.pos.acc||0, color:cssv('--you'), weight:0, fillOpacity:.12, interactive:false}).addTo(M.map);
   M.map.createPane('me'); M.map.getPane('me').style.zIndex = 650;
   M.me = L.circleMarker([state.pos.lat, state.pos.lon], {pane:'me', radius:8, color:cssv('--surface'), weight:3, fillColor:cssv('--you'), fillOpacity:1}).addTo(M.map).bindPopup('You are here');
@@ -920,7 +971,7 @@ function updateMap(ordered){
   if(!state.pos) return;
   initMap(); if(!M.map) return;
   const ll = [state.pos.lat, state.pos.lon];
-  M.me.setLatLng(ll); M.acc.setLatLng(ll).setRadius(state.pos.acc||0); M.ring.setLatLng(ll).setRadius(state.radius);
+  M.me.setLatLng(ll); M.acc.setLatLng(ll).setRadius(state.pos.acc||0); M.ring.setLatLng(ll).setRadius(state.radius); M.sight.setLatLng(ll).setRadius(state.sight);
   if(M.follow){
     M.programmatic = true;
     const c = M.map.getCenter();
@@ -937,7 +988,7 @@ function updateMap(ordered){
   const keep = new Set();
   ordered.forEach((it, i)=>{
     keep.add(it.key);
-    const n = i+1, cls = srcClass(it);
+    const n = i+1, cls = srcClass(it) + (hav(state.pos, it) > Math.max(WALK, state.sight) ? ' far' : '');
     const sig = n+'|'+cls;
     let p = M.pins.get(it.key);
     const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-12]});
@@ -969,6 +1020,99 @@ function scrollToCard(key){
   el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'), 1600);
 }
 
+/* ---------- Look mode: point the phone to see what is in front of you ---------- */
+const LOOK_HALF = 25;   // degrees either side of where the phone points
+const look = {on:false, heading:null, sx:0, sy:0, evt:null, raf:0, last:null, html:'', wedge:null, slow:false, timer:null};
+const relAngle = (b, h) => ((b - h + 540) % 360) - 180;
+const relName = rel => Math.abs(rel) <= LOOK_HALF ? 'ahead' : Math.abs(rel) > 135 ? 'behind you' : rel > 0 ? 'to your right' : 'to your left';
+function headingFrom(e){
+  if(typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) return e.webkitCompassHeading;   // iOS
+  if(!e.absolute || e.alpha==null || e.beta==null || e.gamma==null) return null;
+  const r = Math.PI/180, cZ=Math.cos(e.alpha*r), sZ=Math.sin(e.alpha*r), cX=Math.cos(e.beta*r), sX=Math.sin(e.beta*r), cY=Math.cos(e.gamma*r), sY=Math.sin(e.gamma*r);
+  // Where the top edge points (phone held flat) plus where the camera points (phone held up): works at any tilt.
+  const east = -cX*sZ - cZ*sY - sZ*sX*cY, north = cX*cZ - sZ*sY + cZ*sX*cY;
+  if(Math.hypot(east, north) < 1e-3) return null;
+  return (Math.atan2(east, north)/r + 360) % 360;
+}
+function onOrient(e){
+  const h = headingFrom(e); if(h==null) return;
+  const a = h*Math.PI/180;
+  if(look.heading==null){ look.sx=Math.sin(a); look.sy=Math.cos(a); }
+  else { look.sx = look.sx*.75 + Math.sin(a)*.25; look.sy = look.sy*.75 + Math.cos(a)*.25; }   // smooth out compass jitter
+  look.heading = (Math.atan2(look.sx, look.sy)*180/Math.PI + 360) % 360;
+  if(!look.raf) look.raf = requestAnimationFrame(()=>{ look.raf=0; lookApply(); });
+}
+async function startLook(){
+  const DOE = window.DeviceOrientationEvent;
+  if(DOE && typeof DOE.requestPermission === 'function'){   // iOS asks first
+    try{ if(await DOE.requestPermission() !== 'granted'){ setStatus('Look needs motion and orientation access. Allow it in your browser settings and try again.'); return; } }
+    catch(e){ setStatus('Could not get compass access: '+esc(e.message)); return; }
+  }
+  look.on = true; look.heading = null; look.slow = false; look.html = '';
+  look.evt = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+  window.addEventListener(look.evt, onOrient);
+  $('#lookBtn').classList.add('on'); document.body.classList.add('looking'); $('#look').hidden = false;
+  if(state.watchId==null && !state.manual) startGPS();
+  clearTimeout(look.timer); look.timer = setTimeout(()=>{ look.slow = true; lookApply(true); }, 3000);
+  lookApply(true);
+}
+function stopLook(){
+  look.on = false; look.heading = null; clearTimeout(look.timer);
+  if(look.evt) window.removeEventListener(look.evt, onOrient);
+  $('#lookBtn').classList.remove('on'); document.body.classList.remove('looking'); $('#look').hidden = true;
+  if(look.wedge){ look.wedge.remove(); look.wedge = null; }
+  lookApply(true);
+}
+function offset(pos, deg, m){   // a point m metres from pos on bearing deg
+  const t = deg*Math.PI/180;
+  return [pos.lat + m*Math.cos(t)/111320, pos.lon + m*Math.sin(t)/(111320*Math.cos(pos.lat*Math.PI/180))];
+}
+/* Highlight what the phone points at; turn each card's arrow to match. Cheap enough to run on every compass update. */
+function lookApply(force){
+  const h = look.on ? look.heading : null;
+  if(!force && h!=null && look.last!=null && Math.abs(relAngle(h, look.last)) < 2) return;
+  look.last = h;
+  const rows = state.nearby, ahead = [];
+  rows.forEach((r, i)=>{
+    const rel = h==null ? null : relAngle(r.b, h);
+    const seen = rel!=null && r.d <= state.sight && (Math.abs(rel) <= LOOK_HALF || r.d < 20);
+    if(seen) ahead.push({r, n:i+1});
+    const c = state.cards.get(r.it.key);
+    if(c){
+      c.el.classList.toggle('inview', seen);
+      if(c.arw) c.arw.style.setProperty('--r', Math.round(rel==null ? r.b : rel)+'deg');
+      if(c.dl) c.dl.textContent = rel==null ? compassName(r.b) : relName(rel);
+    }
+    const p = M.pins.get(r.it.key), pe = p && p.getElement() && p.getElement().querySelector('.pin');
+    if(pe){ pe.classList.toggle('inview', seen); p.setZIndexOffset(seen ? 1000 : -(i+1)); }
+  });
+  // map wedge showing where the phone points
+  if(M.map && state.pos && h!=null){
+    const pts = [[state.pos.lat, state.pos.lon]];
+    for(let a=-LOOK_HALF; a<=LOOK_HALF; a+=5) pts.push(offset(state.pos, h+a, state.sight));
+    if(look.wedge) look.wedge.setLatLngs(pts);
+    else look.wedge = L.polygon(pts, {color:cssv('--brass'), weight:1, fillColor:cssv('--brass'), fillOpacity:.22, interactive:false}).addTo(M.map);
+  }
+  if(!look.on) return;
+  // the panel
+  $('#look .rose g').style.setProperty('--n', (h==null ? 0 : -h)+'deg');
+  const name = it => { const {v} = bestVersion(it); return esc(v ? v.title : ''); };
+  let facing = h==null ? 'Finding your heading…' : `Facing ${compassName(h)}`, body = '';
+  if(!state.pos) body = `<p class="hint">Waiting for your location…</p>`;
+  else if(h==null) body = `<p class="hint">${look.slow ? 'No compass reading yet. On iPhone, allow motion and orientation access when asked. On a computer, Look is not available.' : 'Hold your phone flat, or point it down the street.'}</p>`;
+  else if(ahead.length){
+    body = '<ol>' + ahead.slice(0,3).map(({r,n})=>`<li><button data-card="${esc(r.it.key)}"><span class="num ${srcClass(r.it)}">${n}</span><span class="t">${name(r.it)}</span><span class="d">${fmtDist(r.d)}</span></button></li>`).join('') + '</ol>'
+      + (ahead.length>3 ? `<p class="hint">And ${ahead.length-3} more this way.</p>` : '');
+  } else if(rows.length){
+    const near = rows[0], rel = relAngle(near.b, h);
+    body = near.d <= state.sight
+      ? `<p class="hint">Nothing in sight this way. <b>${name(near.it)}</b> is ${fmtDist(near.d)} ${relName(rel)}.</p>`
+      : `<p class="hint">Nothing within ${sightLabel()}. The closest is <b>${name(near.it)}</b>, ${fmtDist(near.d)} ${relName(rel)}.</p>`;
+  } else body = `<p class="hint">${state.loading ? 'Looking for places…' : 'No places found nearby yet.'}</p>`;
+  const html = facing + '|' + body;
+  if(html !== look.html){ look.html = html; $('#lookFacing').textContent = facing; $('#lookBody').innerHTML = body; $('#lookRange').textContent = `within ${sightLabel()}`; }
+}
+
 /* ---------- rendering ---------- */
 function translateLink(lang, title){
   const host = lang.replace(/-/g,'--') + '-wikipedia-org.translate.goog';
@@ -990,7 +1134,9 @@ function cardHTML(it, opts={}){
   const expanded = state.expanded.has(it.key);
   const text = expanded ? full : trimText(full, limit);
   const d = state.pos && it.lat!=null ? hav(state.pos, it) : null;
-  const meta = d!=null ? `${fmtDist(d)}<span class="dir">${dirLabel(bearing(state.pos,it))}</span>` : '';
+  const b = d!=null ? bearing(state.pos, it) : 0;
+  const walk = d!=null && d > state.sight ? ` · ${walkMin(d)} min walk` : '';
+  const meta = d!=null ? `${fmtDist(d)}<span class="walk">${walk}</span><span class="dir">${arrowSVG(b)}<span class="dl">${compassName(b)}</span></span>` : '';
   const isNew = it.isNew && Date.now()-it.addedAt < 180000;
   const facts = (it.facts||[]).map(f=>`<span>${esc(f)}</span>`).join('');
   const k = esc(it.key);
@@ -1004,7 +1150,7 @@ function cardHTML(it, opts={}){
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">Directions</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
-  return `<article class="card${opts.area?' area':''}" data-key="${k}">
+  return `<article class="card${opts.area?' area':''}${opts.band===2?' far':''}" data-key="${k}">
     <div>
       <h3 lang="${esc(localLang||ul)}">${num}${esc(head.title)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
@@ -1067,14 +1213,31 @@ function render(){
   try{ initMap(); }catch(e){ console.warn('map init', e); }
   const area = state.area.map((it,i)=>areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
-  const items = [...state.items.values()]
-    .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it)}))
-    .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d).map(x=>x.it);
-  $('#listWrap').innerHTML = items.length
-    ? `<h2>Nearby <span>${items.length} place${items.length>1?'s':''}</span></h2>` + items.map((it,i)=>cardHTML(it,{num:i+1})).join('')
+  const rows = [...state.items.values()]
+    .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
+    .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d);
+  rows.forEach(r=>{ r.band = bandOf(r.d); });
+  state.nearby = rows;
+  let html = '', band = -1;
+  rows.forEach((r, i)=>{
+    if(r.band !== band){ band = r.band; html += bandHead(band, rows.filter(x=>x.band===band).length); }
+    html += cardHTML(r.it, {num:i+1, band:r.band});
+  });
+  $('#listWrap').innerHTML = rows.length ? html
     : (state.loading ? '' : `<div class="empty">Nothing with a Wikipedia article within ${radiusLabel()}. Try a bigger radius in Settings.</div>`);
+  state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
+  const items = rows.map(r=>r.it);
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
+  lookApply(true);
 }
+/* Distance bands: what you can see, what is a short walk, and the rest */
+function bandOf(d){ return d <= state.sight ? 0 : d <= Math.max(WALK, state.sight) ? 1 : 2; }
+function bandHead(band, n){
+  const title = ['In sight', 'A short walk', 'Further afield'][band];
+  const note = [`within ${sightLabel()}`, 'within ¼ mi, about 5 min', `up to ${radiusLabel()}`][band];
+  return `<h2 class="band"><b>${title}</b><span>${note} · ${n} place${n>1?'s':''}</span></h2>`;
+}
+function sightLabel(){ const o = $('#sight') && $('#sight').selectedOptions[0]; return o ? o.textContent : fmtDist(state.sight); }
 function radiusLabel(){ const o = $('#radius') && $('#radius').selectedOptions[0]; return o ? o.textContent : fmtDist(state.radius); }
 let rt=null; function renderSoon(){ if(rt) return; rt=setTimeout(()=>{rt=null; render();}, 400); }
 function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key===key); }
@@ -1097,6 +1260,8 @@ document.addEventListener('click', e=>{
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
+$('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
+$('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card); });
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
 $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
 $('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
@@ -1106,6 +1271,9 @@ $('#refreshBtn').onclick = ()=>{ if(!state.pos){ startGPS(); return; } state.are
 { const opts = [...$('#radius').options].map(o=>+o.value);
   if(!opts.includes(state.radius)){ state.radius = opts.reduce((a,b)=>Math.abs(b-state.radius)<Math.abs(a-state.radius)?b:a); store.set('radius',state.radius); } }
 $('#radius').value = String(state.radius);
+$('#sight').value = String(state.sight);
+if($('#sight').value !== String(state.sight)){ state.sight = 152; $('#sight').value = '152'; }
+$('#sight').onchange = e=>{ state.sight=+e.target.value; store.set('sight',state.sight); look.html=''; render(); };
 $('#radius').onchange = e=>{ state.radius=+e.target.value; store.set('radius',state.radius); state.lastLoadTime=0; refresh(); };
 $('#srcOsm').checked = state.useOsm; $('#srcWd').checked = state.useWd;
 $('#srcOsm').onchange = e=>{ state.useOsm=e.target.checked; store.set('useOsm',state.useOsm); if(!state.useOsm) for(const [k,it] of state.items) if(it.src==='OpenStreetMap') state.items.delete(k); state.lastLoadTime=0; refresh(); };
