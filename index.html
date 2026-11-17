@@ -77,12 +77,7 @@ svg{flex:none}
 .osm{background:var(--patina);color:#fff;box-shadow:inset 0 0 0 2px var(--brass)}
 .wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
 .pin.osm,.pin.wd{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
-.pin.speaking{transform:scale(1.3)}
 .you-dot{border-radius:50%}
-@media (prefers-reduced-motion:no-preference){
-  .pin.speaking{animation:ring 1.6s ease-out infinite}
-  @keyframes ring{0%{box-shadow:0 0 0 0 var(--brass),0 0 0 2px var(--surface)}100%{box-shadow:0 0 0 14px transparent,0 0 0 2px var(--surface)}}
-}
 
 /* sections */
 main{max-width:760px;margin:0 auto}
@@ -91,8 +86,6 @@ h2 span{font-weight:400}
 
 /* entries */
 .card{display:grid;grid-template-columns:1fr auto;gap:0 16px;padding:18px 20px 20px;border-top:1px solid var(--rule);position:relative}
-.card.speaking{background:var(--brass-soft)}
-.card.speaking::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brass)}
 .card.flash{background:var(--brass-soft);transition:background .4s}
 .card h3{margin:0;font:500 21px/1.22 var(--serif);letter-spacing:-.005em;display:flex;align-items:flex-start}
 .card .sub{font-size:14px;color:var(--muted);margin-top:3px}
@@ -111,8 +104,6 @@ h2 span{font-weight:400}
 .inscr .cap{display:block;font:500 11px/1 var(--sans);color:var(--brass);letter-spacing:.04em;margin-bottom:8px}
 .actions{grid-column:1 / -1;display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin-top:14px}
 .actions button,.actions a{font-size:13.5px;font-weight:500;color:var(--brass);padding:4px 0}
-.actions .listen{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--brass);border-radius:999px;padding:6px 14px 6px 11px}
-.card.speaking .actions .listen{background:var(--brass);color:var(--on-brass)}
 
 /* area frontispiece */
 .card.area{border-top:0;padding-top:4px}
@@ -207,8 +198,8 @@ footer a{color:var(--muted)}
     <div class="hero">
       <div class="mark" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></div>
       <h1>The history around you, as you walk.</h1>
-      <p>Wander reads the local-language Wikipedia first, where neighbourhood history runs deepest, then street plaques and heritage registers, and turns them into short notes you can read or hear.</p>
-      <p>Tap Start, or turn on Tour to hear each place as you reach it.</p>
+      <p>Wander reads the local-language Wikipedia first, where neighbourhood history runs deepest, then street plaques and heritage registers, and turns them into short notes you can read.</p>
+      <p>Tap Start to see the history around you.</p>
     </div>
   </section>
 </main>
@@ -219,7 +210,6 @@ footer a{color:var(--muted)}
 
 <nav class="dock" aria-label="Controls">
   <button id="gpsBtn" class="primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Start</span></button>
-  <button id="tourBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg><span>Tour</span></button>
   <button id="refreshBtn" class="icon" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
   <button id="settingsBtn" class="icon" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
 </nav>
@@ -242,15 +232,6 @@ footer a{color:var(--muted)}
     <div class="row">
       <label for="ulang">Your language</label>
       <select id="ulang"></select>
-    </div>
-    <div class="row">
-      <label for="tourDist">Read aloud within</label>
-      <select id="tourDist">
-        <option value="60">60 m</option>
-        <option value="100">100 m</option>
-        <option value="150">150 m</option>
-        <option value="250">250 m</option>
-      </select>
     </div>
     <div class="row">
       <span class="lbl">Sources</span>
@@ -278,10 +259,6 @@ footer a{color:var(--muted)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 "use strict";
-const ICON = {
-  play:'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>',
-  stop:'<svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1.2" fill="currentColor"/></svg>'
-};
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 /* ---------- config ---------- */
@@ -327,9 +304,9 @@ const state = {
   pos:null, lastLoad:null, lastLoadTime:0, loading:false, watchId:null, manual:false,
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
-  radius: store.get('radius', 1000), tourDist: store.get('tourDist', 100),
-  tour:false, heard:new Set(), expanded:new Set(), collapsed:new Set(), showOrig:new Set(), speakingKey:null,
-  loads:0, wakeLock:null,
+  radius: store.get('radius', 1000),
+  expanded:new Set(), collapsed:new Set(), showOrig:new Set(),
+  loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
 };
 
@@ -851,14 +828,14 @@ async function refresh(force){
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Checking plaques and heritage registers…</span>`);
     const [wdRows, osmEls] = await extra;
     mergeWD(wdRows); mergeOSM(osmEls);
-    if(added && state.loads>1 && !state.tour && navigator.vibrate) navigator.vibrate(40);
+    if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
     loadFacts();
   }catch(e){
     setStatus('Could not load: '+esc(e.message)+' — check your connection and tap ↻');
     state.loading=false; return;
   }
   state.loading = false;
-  updateStatus(); render(); tourCheck();
+  updateStatus(); render();
 }
 function updateStatus(){
   if(!state.pos) return;
@@ -869,7 +846,7 @@ function onFix(lat, lon, acc){
   state.pos = {lat, lon, acc};
   const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
   if(moved > Math.max(120, state.radius/4) && Date.now()-state.lastLoadTime > 15000) refresh();
-  else { updateStatus(); renderSoon(); tourCheck(); }
+  else { updateStatus(); renderSoon(); }
 }
 
 /* ---------- GPS ---------- */
@@ -891,71 +868,19 @@ function stopGPS(){
   label('#gpsBtn','Use GPS'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
 }
 function setManual(lat, lon){
-  stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.heard.clear(); state.loads=0;
+  stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
   M.follow = true; if($('#recenterBtn')) $('#recenterBtn').style.display='none';
   for(const p of M.pins.values()) p.remove(); M.pins.clear();
   onFix(lat, lon, null);
   $('#settings').open=false; window.scrollTo({top:0});
 }
 
-/* ---------- speech / tour mode ---------- */
-const synth = window.speechSynthesis;
-function pickVoice(lang){
-  if(!synth) return null; const vs = synth.getVoices();
-  return vs.find(v=>v.lang.toLowerCase().startsWith(lang) && v.localService) || vs.find(v=>v.lang.toLowerCase().startsWith(lang)) || null;
-}
+/* ---------- text helpers ---------- */
 function bestVersion(it){
   const ul=state.userLang;
   if(it.versions[ul] && it.versions[ul].extract) return {v:it.versions[ul], lang:ul};
   const l = state.langs.find(l=>it.versions[l]) || Object.keys(it.versions)[0];
   return {v:it.versions[l], lang:l};
-}
-function speak(text, lang, key){
-  if(!synth){ setStatus('Speech is not supported in this browser.'); return; }
-  synth.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang; const v = pickVoice(lang); if(v) u.voice = v; u.rate = 1;
-  u.onend = u.onerror = () => { if(state.speakingKey===key){ state.speakingKey=null; renderSoon(); } setTimeout(tourCheck, 1500); };
-  state.speakingKey = key; renderSoon();
-  synth.speak(u);
-}
-function speakItem(it, intro){
-  const {v, lang} = bestVersion(it); if(!v) return;
-  const d = state.pos && it.lat!=null ? hav(state.pos,it) : null;
-  const DIRS = {N:'north',NE:'north-east',E:'east',SE:'south-east',S:'south',SW:'south-west',W:'west',NW:'north-west'};
-  const lead = intro || (d!=null ? `${v.title}, about ${fmtDist(d)} ${DIRS[dirLabel(bearing(state.pos,it)).split(' ')[1]]}. ` : v.title+'. ');
-  let body = trimText(v.extract||'', 700), bodyLang = lang;
-  if(body && it.more && it.more.hist && it.more.histLang===lang) body += ' ' + it.more.hist.slice(0,2).map(h=>h.s).join(' ');
-  if(!body && it.inscription){ body = it.inscription; bodyLang = it.inscrLang || lang; }
-  else if(!body && it.facts && it.facts.length) body = it.facts.slice(0,2).join('. ') + '.';
-  speak(lead + body, bodyLang, it.key);
-}
-function tourCheck(){
-  if(!state.tour || !state.pos || (synth && (synth.speaking || synth.pending))) return;
-  let best=null, bd=Infinity;
-  for(const it of state.items.values()){
-    if(state.heard.has(it.key) || it.lat==null) continue;
-    const d = hav(state.pos, it); if(d<=state.tourDist && d<bd){ best=it; bd=d; }
-  }
-  if(best){ state.heard.add(best.key); if(navigator.vibrate) navigator.vibrate([80,60,80]); speakItem(best); }
-}
-async function keepAwake(on){
-  try{
-    if(on && 'wakeLock' in navigator){ state.wakeLock = await navigator.wakeLock.request('screen'); }
-    else if(!on && state.wakeLock){ await state.wakeLock.release(); state.wakeLock=null; }
-  }catch(e){}
-}
-document.addEventListener('visibilitychange', ()=>{ if(state.tour && document.visibilityState==='visible') keepAwake(true); });
-function toggleTour(){
-  state.tour = !state.tour;
-  const b=$('#tourBtn'); b.classList.toggle('on', state.tour); label('#tourBtn', state.tour ? 'Touring' : 'Tour');
-  if(state.tour){
-    keepAwake(true);
-    if(state.watchId==null && !state.manual) startGPS();
-    const a = state.area[0];
-    if(a){ speakArea(a, true); }
-    else speak('Tour mode on. I will read out places as you get close.', 'en', 'tour');
-  } else { keepAwake(false); if(synth) synth.cancel(); state.speakingKey=null; renderSoon(); }
 }
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
@@ -1002,16 +927,16 @@ function updateMap(ordered){
   const keep = new Set();
   ordered.forEach((it, i)=>{
     keep.add(it.key);
-    const n = i+1, cls = srcClass(it) + (state.speakingKey===it.key ? ' speaking' : '');
+    const n = i+1, cls = srcClass(it);
     const sig = n+'|'+cls;
     let p = M.pins.get(it.key);
     const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-12]});
     if(!p){
-      p = L.marker([it.lat, it.lon], {icon:icon(), zIndexOffset: state.speakingKey===it.key ? 1000 : -n}).addTo(M.map);
+      p = L.marker([it.lat, it.lon], {icon:icon(), zIndexOffset: -n}).addTo(M.map);
       p.on('click', ()=>{ const cur = state.items.get(it.key) || it; const {v} = bestVersion(cur);
         p.unbindPopup(); p.bindPopup(`<b>${p.num}. ${esc(v ? v.title : '')}</b><br><button data-goto="${esc(it.key)}">Show details</button>`).openPopup(); });
       p.sig = sig; p.num = n; M.pins.set(it.key, p);
-    } else if(p.sig !== sig){ p.setIcon(icon()); p.setZIndexOffset(state.speakingKey===it.key ? 1000 : -n); p.sig = sig; p.num = n; }
+    } else if(p.sig !== sig){ p.setIcon(icon()); p.setZIndexOffset(-n); p.sig = sig; p.num = n; }
   });
   for(const [k,p] of M.pins) if(!keep.has(k)){ p.remove(); M.pins.delete(k); }
 }
@@ -1059,8 +984,7 @@ function cardHTML(it, opts={}){
   const isNew = it.isNew && Date.now()-it.addedAt < 180000;
   const facts = (it.facts||[]).map(f=>`<span>${esc(f)}</span>`).join('');
   const k = esc(it.key);
-  let actions = `<button class="listen" data-act="speak" data-key="${k}">${state.speakingKey===it.key?ICON.stop+'Stop':ICON.play+'Listen'}</button>`;
-  actions += `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
+  let actions = `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
@@ -1070,7 +994,7 @@ function cardHTML(it, opts={}){
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">Directions</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
-  return `<article class="card${opts.area?' area':''}${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
+  return `<article class="card${opts.area?' area':''}" data-key="${k}">
     <div>
       <h3 lang="${esc(localLang||ul)}">${num}${esc(head.title)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
@@ -1110,12 +1034,11 @@ function areaHTML(it, idx){
     }
   }
   const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
-  let actions = `<button class="listen" data-act="speak" data-key="${k}">${state.speakingKey===it.key?ICON.stop+'Stop':ICON.play+'Listen'}</button>`;
-  actions += `<button data-act="areatoggle" data-key="${k}" data-idx="${idx}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
+  let actions = `<button data-act="areatoggle" data-key="${k}" data-idx="${idx}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   if(lv && !(uv && uv.extract)) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
-  return `<article class="card area${idx>0?' secondary':''}${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
+  return `<article class="card area${idx>0?' secondary':''}" data-key="${k}">
     <div>
       <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
@@ -1128,13 +1051,6 @@ function areaHTML(it, idx){
     ${more?`<div class="more">${more}</div>`:''}
     <div class="actions">${actions}</div>
   </article>`;
-}
-function speakArea(it, arriving){
-  const {v, lang} = bestVersion(it); if(!v) return;
-  const d = it.details || {};
-  const parts = [arriving ? `You are in ${v.title}.` : `${v.title}.`, trimText(v.extract||'', 380)];
-  if(d.hist && d.histLang===lang) parts.push(...d.hist.slice(0,3).map(h=>h.s));
-  speak(parts.join(' '), lang, it.key);
 }
 function render(){
   if(!state.pos) return;
@@ -1156,7 +1072,6 @@ function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key=
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b) return;
   const key = b.dataset.key, it = findItem(key); if(!it) return;
-  if(b.dataset.act==='speak'){ if(state.speakingKey===key){ synth && synth.cancel(); state.speakingKey=null; renderSoon(); } else { state.heard.add(key); key.startsWith('area:') ? speakArea(it) : speakItem(it); } }
   if(b.dataset.act==='areatoggle'){
     const set = b.dataset.idx==='0' ? state.collapsed : state.expanded;
     set.has(key) ? set.delete(key) : set.add(key); render();
@@ -1171,7 +1086,6 @@ document.addEventListener('click', e=>{
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
-$('#tourBtn').onclick = toggleTour;
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
 $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
 $('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
@@ -1183,8 +1097,6 @@ $('#radius').onchange = e=>{ state.radius=+e.target.value; store.set('radius',st
 $('#srcOsm').checked = state.useOsm; $('#srcWd').checked = state.useWd;
 $('#srcOsm').onchange = e=>{ state.useOsm=e.target.checked; store.set('useOsm',state.useOsm); if(!state.useOsm) for(const [k,it] of state.items) if(it.src==='OpenStreetMap') state.items.delete(k); state.lastLoadTime=0; refresh(); };
 $('#srcWd').onchange = e=>{ state.useWd=e.target.checked; store.set('useWd',state.useWd); if(!state.useWd) for(const [k,it] of state.items) if(it.src&&it.src.startsWith('Wikidata')) state.items.delete(k); state.lastLoadTime=0; refresh(); };
-$('#tourDist').value = String(state.tourDist);
-$('#tourDist').onchange = e=>{ state.tourDist=+e.target.value; store.set('tourDist',state.tourDist); };
 const ulSel = $('#ulang');
 ulSel.innerHTML = UI_LANGS.map(l=>`<option value="${l}">${esc(langName(l))}</option>`).join('');
 ulSel.value = state.userLang;
@@ -1202,7 +1114,6 @@ $('#placeForm').onsubmit = async e=>{
     else setStatus('Could not find “'+esc(v)+'”.');
   }catch(err){ setStatus('Search failed: '+esc(err.message)); }
 };
-if(synth && synth.onvoiceschanged!==undefined) synth.onvoiceschanged = ()=>{};
 // Keep distances fresh even when standing still
 setInterval(()=>{ if(state.pos) renderSoon(); }, 30000);
 </script>
