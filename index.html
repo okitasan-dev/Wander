@@ -118,6 +118,7 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 .card.area h3{font:600 32px/1.12 var(--serif);letter-spacing:-.01em}
 .card.area .text{font-size:16px}
 .card.area .thumb{width:88px;height:88px}
+.card.area:not(.open) .actions{margin-top:10px}
 
 .card.area .desc{font-size:14px;color:var(--muted);margin-top:4px}
 .card.area.secondary{border-top:1px solid var(--rule);padding-top:18px}
@@ -136,11 +137,12 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 .timeline li:last-child{border-bottom:1px solid var(--rule)}
 .timeline .yr{font:600 18px/1.25 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
 .xlate{display:inline-block;margin-top:8px;font-size:13px;font-weight:500;color:var(--brass);text-decoration:none}
-.people{list-style:none;margin:0;padding:0}
-.people li{padding:8px 0;border-top:1px solid var(--rule)}
-.people li:last-child{border-bottom:1px solid var(--rule)}
-.people .pn{display:block;font:600 17px/1.3 var(--serif)}
-.people .pd{display:block;font-size:13px;color:var(--muted)}
+.factoids{list-style:none;margin:0;padding:0}
+.factoids li{position:relative;padding:10px 0 10px 18px;border-top:1px solid var(--rule);font-size:15px;line-height:1.5}
+.factoids li:last-child{border-bottom:1px solid var(--rule)}
+.factoids li::before{content:"";position:absolute;left:2px;top:19px;width:6px;height:6px;border-radius:50%;background:var(--brass)}
+.factoids i{font-family:var(--serif);font-size:16px}
+.factoids .lang{font-size:12px;color:var(--muted)}
 
 /* hero */
 .hero{padding:56px 24px 40px;max-width:560px}
@@ -347,7 +349,7 @@ const state = {
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
   radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(),
-  expanded:new Set(), collapsed:new Set(), showOrig:new Set(),
+  expanded:new Set(), showOrig:new Set(),
   loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
 };
@@ -547,12 +549,14 @@ async function loadAreaDetails(area){
     OPTIONAL { ?item wdt:P1435 ?her }
     ${L} }`;
   const qPop = `SELECT ?item ?pop ?pd WHERE { ${V} ?item p:P1082 ?s. ?s ps:P1082 ?pop; wikibase:rank ?r. FILTER(?r != wikibase:DeprecatedRank) OPTIONAL { ?s pq:P585 ?pd } }`;
-  const qTwin = `SELECT ?item ?tLabel WHERE { ${V} ?item wdt:P190 ?t. ${L} } LIMIT 60`;
-  const qPeople = q => `SELECT ?p ?pLabel ?pDescription ?b ?d WHERE {
-    { SELECT ?p ?links WHERE { ?p wdt:P19 wd:${q}; wdt:P31 wd:Q5; wikibase:sitelinks ?links. } ORDER BY DESC(?links) LIMIT 3 }
-    OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p wdt:P570 ?d } ${L} } ORDER BY DESC(?links)`;
+  const qMisc = `SELECT ?item ?kind ?v ?vLabel WHERE { ${V}
+    { BIND("twin" AS ?kind) ?item wdt:P190 ?v. }
+    UNION { BIND("nick" AS ?kind) ?item wdt:P1449 ?v. FILTER(LANG(?v) IN ("${ul}", "en")) }
+    UNION { BIND("motto" AS ?kind) ?item wdt:P1451 ?v. }
+    UNION { BIND("water" AS ?kind) ?item wdt:P206 ?v. }
+    ${L} } LIMIT 120`;
   const safe = p => p.catch(()=>[]);
-  const [basics, pops, twins, ...people] = await Promise.all([safe(sparql(qBasics)), safe(sparql(qPop)), safe(sparql(qTwin)), ...ids.map(q=>safe(sparql(qPeople(q))))]);
+  const [basics, pops, misc, ...facts] = await Promise.all([safe(sparql(qBasics)), safe(sparql(qPop)), safe(sparql(qMisc)), ...ids.map(q=>safe(sparql(qFactoids(q, 'area', ul))))]);
   // history text: the reader's language first, then the local language
   const texts = await Promise.all(area.map(async a=>{
     const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>a.versions[l]);
@@ -569,27 +573,99 @@ async function loadAreaDetails(area){
     const inc = first('inc'), rec = first('rec');
     if(inc){ const t = fmtTime(inc.value, (first('incP')||{}).value); if(t) d.facts.push(['Founded', esc(t)]); }
     else if(rec){ const t = fmtTime(rec.value, (first('recP')||{}).value); if(t) d.facts.push(['First recorded', esc(t)]); }
+    const misc1 = (kind) => misc.filter(b=>b.item.value.endsWith('/'+id) && b.kind.value===kind);
     const P = pops.filter(b=>b.item.value.endsWith('/'+id)).map(b=>({n:+b.pop.value, y:b.pd ? b.pd.value.slice(0,4).replace(/^\+/,'') : ''}));
     if(P.length){ P.sort((a,b)=>(b.y||'').localeCompare(a.y||'')); const p = P[0]; d.pop = p.n;
       d.facts.push(['Population', `${esc(fmtNum(p.n, true))}${p.y?` <small>${esc(p.y)}</small>`:''}`]); }
     const ar = first('areaAmt'); if(ar){ const q = toImperial(Math.abs(+ar.value), unitOf((first('areaUnit')||{}).value)); d.facts.push(['Area', esc(fmtNum(q.n))+(q.u?' '+q.u:'')]); }
     const el = first('elevAmt'); if(el){ const q = toImperial(+el.value, unitOf((first('elevUnit')||{}).value)||'m'); d.facts.push(['Elevation', esc(fmtNum(q.n))+' '+q.u]); }
-    const named = [...new Set(B.map(b=>b.namedLabel && b.namedLabel.value).filter(v=>v && !isQ(v)))].slice(0,2);
+    const selfName = ((bestVersion(a).v||{}).title||'').toLowerCase();
+    const named = [...new Set(B.map(b=>b.namedLabel && b.namedLabel.value).filter(v=>v && !isQ(v) && v.toLowerCase()!==selfName))].slice(0,2);
     if(named.length) d.facts.push(['Named after', esc(named.join(', '))]);
     const her = [...new Set(B.map(b=>b.herLabel && b.herLabel.value).filter(v=>v && !isQ(v)))][0];
     if(her) d.facts.push(['Heritage', esc(cap(her))]);
-    const tw = [...new Set(twins.filter(b=>b.item.value.endsWith('/'+id)).map(b=>b.tLabel && b.tLabel.value).filter(v=>v && !isQ(v)))];
+    const tw = [...new Set(misc1('twin').map(b=>b.vLabel && b.vLabel.value).filter(v=>v && !isQ(v)))];
     if(tw.length) d.facts.push(['Twinned with', esc(tw.slice(0,4).join(', '))+(tw.length>4?` <small>+${tw.length-4}</small>`:'')]);
-    const pi = ids.indexOf(id);
-    d.people = (pi>=0 ? people[pi] : []).filter(b=>b.pLabel && !isQ(b.pLabel.value)).map(b=>{
-      const yr = v => v ? fmtTime(v.value, 9) : '';
-      const by = yr(b.b), dy = yr(b.d);
-      return {name:b.pLabel.value, life: by ? (dy ? `${by}–${dy}` : `born ${by}`) : '', desc:(b.pDescription||{}).value||''};
-    });
+    // "Did you know": things that make the place distinctive, most striking first
+    const F = [], areaQ = ar ? toImperial(Math.abs(+ar.value), unitOf((first('areaUnit')||{}).value)) : null;
+    const nick = [...new Set(misc1('nick').map(b=>b.v.value))].slice(0,2);
+    if(nick.length) F.push(`Nicknamed ${nick.map(n=>`“${esc(n)}”`).join(' or ')}.`);
+    const dated = P.filter(p=>p.y).sort((a,b)=>a.y.localeCompare(b.y));
+    if(dated.length>1){
+      const a = dated[0], z = dated[dated.length-1], r = z.n/a.n;
+      if(+z.y - +a.y >= 30 && a.n > 0){
+        if(r >= 1.15) F.push(`Its population has grown from ${esc(fmtNum(a.n, true))} in ${esc(a.y)} to ${esc(fmtNum(z.n, true))} in ${esc(z.y)}.`);
+        else if(r <= .87) F.push(`Its population has fallen from ${esc(fmtNum(a.n, true))} in ${esc(a.y)} to ${esc(fmtNum(z.n, true))} in ${esc(z.y)}.`);
+        else F.push(`Its population has held steady at around ${esc(fmtNum(z.n, true))} since ${esc(a.y)}.`);
+      }
+    }
+    const sqmi = !areaQ ? 0 : areaQ.u==='sq mi' ? areaQ.n : areaQ.u==='acres' ? areaQ.n/640 : areaQ.u==='sq ft' ? areaQ.n/27878400 : 0;
+    if(d.pop && sqmi >= .05) F.push(`About ${esc(fmtNum(Math.round(d.pop/sqmi/100)*100 || Math.round(d.pop/sqmi)))} people live in each square mile.`);
+    const water = [...new Set(misc1('water').map(b=>b.vLabel && b.vLabel.value).filter(v=>v && !isQ(v)))].slice(0,3);
+    if(water.length) F.push(ul==='en' ? `Lies on ${joinAnd(water.map(w=>/^(Lake|Loch|Lago|Mount) /.test(w) ? esc(w) : 'the '+esc(w)))}.` : `On the water: ${joinAnd(water.map(esc))}.`);
+    F.push(...factoidList(facts[ids.indexOf(id)] || [], (bestVersion(a).v||{}).title));
+    const motto = misc1('motto')[0];
+    if(motto){ const ml = motto.v['xml:lang'] || ''; F.push(`Its motto is <span lang="${esc(ml)}">“${esc(motto.v.value)}”</span>${ml && ml!==ul ? ` <span class="lang">(${esc(langName(ml))})</span>` : ''}.`); }
+    d.factoids = F.slice(0, 9);
     if(texts[i]){ d.hist = texts[i].rows; d.histLang = texts[i].lang; }
     a.details = d;
   });
 }
+
+/* ---------- "Did you know" factoids from Wikidata ---------- */
+const joinAnd = L => L.length < 2 ? (L[0]||'') : L.slice(0,-1).join(', ') + ' and ' + L[L.length-1];
+/* One query per place: each part picks the best-known few items (by number of Wikipedia editions). */
+function qFactoids(q, kind, ul){
+  const top = (rel, pred) => `{ SELECT ("${rel}" AS ?rel) ?x ?links WHERE { ?x ${pred} wd:${q}; wikibase:sitelinks ?links. FILTER(?links > 0) } ORDER BY DESC(?links) LIMIT 3 }`;
+  const count = (rel, pred) => `{ SELECT ("${rel}#" AS ?rel) (COUNT(DISTINCT ?x) AS ?n) WHERE { ?x ${pred} wd:${q} } }`;
+  const parts = [
+    top('set', 'wdt:P840'), count('set', 'wdt:P840'),          // works set here
+    top('film', 'wdt:P915'), count('film', 'wdt:P915'),        // filmed here
+    top('named', 'wdt:P138'),                                   // named after this place
+    `{ SELECT ("event" AS ?rel) ?x ?links (MIN(?t) AS ?date) WHERE { ?x wdt:P276 wd:${q}; wdt:P585 ?t; wikibase:sitelinks ?links. FILTER(?links > 1) } GROUP BY ?x ?links ORDER BY DESC(?links) LIMIT 3 }`,
+    `{ SELECT ("depict" AS ?rel) ?x ?links (SAMPLE(?c) AS ?by) WHERE { ?x wdt:P180 wd:${q}; wdt:P170 ?c; wikibase:sitelinks ?links. FILTER(?links > 0) } GROUP BY ?x ?links ORDER BY DESC(?links) LIMIT 3 }`
+  ];
+  if(kind==='area') parts.push(
+    `{ SELECT ("oldest" AS ?rel) ?x ?date ?prec WHERE { ?x wdt:P131 wd:${q}; wdt:P625 []; p:P571/psv:P571 [ wikibase:timeValue ?date; wikibase:timePrecision ?prec ]. FILTER(?prec >= 7) } ORDER BY ?date LIMIT 1 }`,
+    `{ SELECT ("tallest" AS ?rel) ?x ?amt ?unit WHERE { ?x wdt:P131 wd:${q}; wdt:P625 []; p:P2048/psv:P2048 [ wikibase:quantityAmount ?amt; wikibase:quantityUnit ?unit ]. } ORDER BY DESC(?amt) LIMIT 1 }`,
+    `{ SELECT ("heritage#" AS ?rel) (COUNT(DISTINCT ?x) AS ?n) WHERE { ?x wdt:P131 wd:${q}; wdt:P1435 []. } }`);
+  else parts.push(
+    top('lived', 'wdt:P551'),                                  // residents
+    top('buried', 'wdt:P119'), count('buried', 'wdt:P119'),    // burials
+    top('died', 'wdt:P20'),                                    // died here
+    `{ SELECT ("home" AS ?rel) ?x ?links WHERE { wd:${q} wdt:P466 ?x. ?x wikibase:sitelinks ?links. } ORDER BY DESC(?links) LIMIT 3 }`);   // occupants
+  return `SELECT ?rel ?x ?xLabel ?links ?n ?date ?prec ?amt ?unit ?by ?byLabel WHERE {
+    ${parts.join('\n    UNION ')}
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${ul},en". } }`;
+}
+/* Turn factoid rows into short sentences (HTML). */
+function factoidList(rows, self){
+  const by = {}, real = v => v && !isQ(v) && !/^https?:/.test(v);
+  const same = v => self && (v.toLowerCase()===self.toLowerCase() || v.toLowerCase().startsWith(self.toLowerCase()+' ('));
+  for(const r of rows) (by[r.rel.value] = by[r.rel.value] || []).push(r);
+  const items = rel => { const seen = new Set(); return (by[rel]||[]).filter(r=>r.xLabel && real(r.xLabel.value) && !(rel==='named' && same(r.xLabel.value)))
+    .sort((a,b)=>(+(b.links||{}).value||0)-(+(a.links||{}).value||0)).filter(r=>!seen.has(r.xLabel.value) && seen.add(r.xLabel.value)); };
+  const count = rel => { const r = (by[rel+'#']||[])[0]; return r && r.n ? +r.n.value : 0; };
+  const work = s => `<i>${esc(s)}</i>`, out = [];
+  const list = (rel, fmt, one, many) => { const L = items(rel); if(!L.length) return; const n = count(rel), l = joinAnd(L.map(fmt)); out.push(n > L.length ? many(fmtNum(n), l) : one(l)); };
+  list('set', r=>work(r.xLabel.value), l=>`The setting of ${l}.`, (n,l)=>`The setting of ${n} books, films and other works, including ${l}.`);
+  list('film', r=>work(r.xLabel.value), l=>`A filming location for ${l}.`, (n,l)=>`A filming location for ${n} films and shows, including ${l}.`);
+  list('event', r=>{ const y = r.date ? fmtTime(r.date.value, 9) : ''; return esc(r.xLabel.value) + (y && !r.xLabel.value.includes(y) ? ` (${esc(y)})` : ''); }, l=>`Scene of ${l}.`);
+  list('depict', r=>work(r.xLabel.value) + (r.byLabel && real(r.byLabel.value) ? ` by ${esc(r.byLabel.value)}` : ''), l=>`Pictured in ${l}.`);
+  list('lived', r=>esc(r.xLabel.value), l=>`Once home to ${l}.`);
+  list('home', r=>esc(r.xLabel.value), l=>`Home to ${l}.`);
+  list('buried', r=>esc(r.xLabel.value), l=>`The final resting place of ${l}.`, (n,l)=>`The final resting place of ${n} notable people, including ${l}.`);
+  list('died', r=>esc(r.xLabel.value), l=>`Where ${l} died.`);
+  list('named', r=>esc(r.xLabel.value), l=>`Gave its name to ${l}.`);
+  const old = items('oldest')[0];
+  if(old && yearNum(old.date.value) <= new Date().getFullYear() - 75){ const y = fmtTime(old.date.value, old.prec && old.prec.value); if(y) out.push(`Among its oldest landmarks is ${esc(old.xLabel.value)}, from ${esc(y)}.`); }
+  const tall = items('tallest')[0];
+  if(tall && tall.amt){ const q = toImperial(+tall.amt.value, unitOf(tall.unit && tall.unit.value)); if(q.u==='ft') out.push(`Among its tallest structures is ${esc(tall.xLabel.value)}, at ${esc(fmtNum(q.n))} ft.`); }
+  const her = count('heritage');
+  if(her >= 3) out.push(`At least ${esc(fmtNum(her))} heritage-listed places lie within its borders.`);
+  return out;
+}
+const factoidsHTML = F => F && F.length ? `<h4>Did you know</h4><ul class="factoids">${F.map(f=>`<li>${f}</li>`).join('')}</ul>` : '';
 
 /* ---------- Per-place fact sheet (loaded when "More" is tapped) ---------- */
 const yearNum = t => { const m = /^([+-]?)(\d+)-/.exec(t||''); return m ? (m[1]==='-' ? -m[2] : +m[2]) : null; };
@@ -651,9 +727,10 @@ function osmFacts(t, m){
 async function loadPlaceDetails(it){
   if(it.more) return;
   it.more = {loading:true}; render();
-  const ul = state.userLang, m = {facts:[], hist:[], histLang:null, events:[]};
+  const ul = state.userLang, m = {facts:[], hist:[], histLang:null, events:[], factoids:[]};
   const jobs = [];
   if(it.qid) jobs.push(sparql(qPlace(it.qid, ul)).then(rows=>placeFacts(rows, m)).catch(()=>{}));
+  if(it.qid) jobs.push(sparql(qFactoids(it.qid, 'place', ul)).then(rows=>{ m.factoids = factoidList(rows, (bestVersion(it).v||{}).title).slice(0, 7); }).catch(()=>{}));
   if(!it.src){
     const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>it.versions[l] && /wikipedia\.org/.test(it.versions[l].url||''));
     jobs.push((async()=>{
@@ -688,6 +765,7 @@ function placeDetailsHTML(it){
   if(m.events.length){
     h += `<h4>Milestones</h4><ol class="timeline">${m.events.sort((a,b)=>a.y-b.y).slice(0,6).map(e=>`<li><span class="yr">${esc(e.label)}</span><span>${esc(e.s)}</span></li>`).join('')}</ol>`;
   }
+  h += factoidsHTML(m.factoids);
   if(!h) h = `<p class="gather">No further facts are recorded for this place yet.</p>`;
   return `<div class="more">${h}</div>`;
 }
@@ -1162,39 +1240,39 @@ function areaHTML(it, idx){
   const head = lv || uv; if(!head) return '';
   const sub = lv && uv && uv.title!==lv.title ? uv.title : '';
   const k = esc(it.key), d = it.details || {};
-  const open = idx===0 ? !state.collapsed.has(it.key) : state.expanded.has(it.key);
+  const open = state.expanded.has(it.key);
+  const headline = `<div>
+      <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
+      ${sub?`<div class="sub">${esc(sub)}</div>`:''}
+      ${open && d.desc?`<div class="desc">${esc(cap(d.desc))}</div>`:''}
+    </div>
+    ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}`;
+  const toggle = `<button data-act="areatoggle" data-key="${k}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
+  // Collapsed: just the name and picture
+  if(!open) return `<article class="card area${idx>0?' secondary':''}" data-key="${k}">${headline}<div class="actions">${toggle}</div></article>`;
   const orig = state.showOrig.has(it.key);
   const bodyV = (uv && uv.extract && !orig) ? uv : (lv || uv);
   const bodyLang = bodyV===uv ? ul : localLang;
-  const intro = trimText(bodyV.extract||'', open ? 420 : 200);
+  const intro = bodyV.extract || '';
   const facts = (d.facts||[]).map(([l,v])=>`<div${v.replace(/<[^>]+>/g,'').length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('');
   let more = '';
-  if(open){
-    if(d.hist && d.hist.length){
-      const foreign = d.histLang!==ul;
-      more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
-        <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
-      if(foreign) more += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(d.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(d.hist.map(h=>h.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
-    }
-    if(d.people && d.people.length){
-      more += `<h4>Born here</h4><ul class="people">${d.people.map(p=>`<li><span class="pn">${esc(p.name)}</span><span class="pd">${esc([p.life, p.desc].filter(Boolean).join(', '))}</span></li>`).join('')}</ul>`;
-    }
+  if(d.hist && d.hist.length){
+    const foreign = d.histLang!==ul;
+    more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
+      <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
+    if(foreign) more += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(d.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(d.hist.map(h=>h.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
   }
+  more += factoidsHTML(d.factoids);
   const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
-  let actions = `<button data-act="areatoggle" data-key="${k}" data-idx="${idx}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
+  let actions = toggle;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   if(lv && !(uv && uv.extract)) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
-  return `<article class="card area${idx>0?' secondary':''}" data-key="${k}">
-    <div>
-      <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
-      ${sub?`<div class="sub">${esc(sub)}</div>`:''}
-      ${d.desc?`<div class="desc">${esc(cap(d.desc))}</div>`:''}
-    </div>
-    ${it.thumb && idx===0?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
+  return `<article class="card area open${idx>0?' secondary':''}" data-key="${k}">
+    ${headline}
+    ${intro?`<p class="text" lang="${esc(bodyLang)}">${esc(intro)}${bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
-    ${intro?`<p class="text" lang="${esc(bodyLang)}">${esc(intro)}${bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
     ${more?`<div class="more">${more}</div>`:''}
     <div class="actions">${actions}</div>
   </article>`;
@@ -1238,14 +1316,13 @@ document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b) return;
   const key = b.dataset.key, it = findItem(key); if(!it) return;
   if(b.dataset.act==='areatoggle'){
-    const set = b.dataset.idx==='0' ? state.collapsed : state.expanded;
-    set.has(key) ? set.delete(key) : set.add(key); render();
+    state.expanded.has(key) ? state.expanded.delete(key) : state.expanded.add(key); render();
   }
   if(b.dataset.act==='more'){
     const opening = !state.expanded.has(key);
     opening ? state.expanded.add(key) : state.expanded.delete(key);
     render();
-    if(opening && !it.more && !key.startsWith('area:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[]}; render(); });
+    if(opening && !it.more && !key.startsWith('area:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[], factoids:[]}; render(); });
   }
   if(b.dataset.act==='map'){ showOnMap(it); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
