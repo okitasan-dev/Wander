@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0C2123" media="(prefers-color-scheme: dark)">
+<title>Wander</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#E6E9E4; --surface:#F3F4F0; --raise:#FFFFFF; --ink:#132A2C; --muted:#5B6D6C; --rule:rgba(19,42,44,.13);
+  --brass:#8A672B; --brass-hi:#A8823F; --brass-soft:rgba(138,103,43,.10); --on-brass:#FFF9EC;
+  --patina:#2B6C61; --shadow:0 10px 30px rgba(19,42,44,.16);
+  --serif:"Source Serif 4","Noto Serif JP","Noto Serif SC","Noto Serif",Didot,Georgia,serif;
+  --sans:"Schibsted Grotesk",-apple-system,BlinkMacSystemFont,"Noto Sans JP","Noto Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --ground:#0C2123; --surface:#122D30; --raise:#17373A; --ink:#E8EEE7; --muted:#8FA7A3; --rule:rgba(232,238,231,.11);
+  --brass:#D0AE70; --brass-hi:#E3C68E; --brass-soft:rgba(208,174,112,.11); --on-brass:#1E180B;
+  --patina:#5FB3A3; --shadow:0 12px 34px rgba(0,0,0,.45);
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:400 16px/1.55 var(--sans);background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
+  padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+a{color:var(--brass)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
+main{max-width:760px;margin:0 auto;padding-bottom:40px}
+
+/* back to the main page */
+.home{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:12px;z-index:50;display:inline-flex;align-items:center;gap:7px;padding:8px 13px 8px 10px;
+  border-radius:999px;background:color-mix(in srgb,var(--raise) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 2px 10px rgba(0,0,0,.14);border:1px solid var(--rule);color:var(--ink);text-decoration:none;font:italic 600 17px/1 var(--serif)}
+.home svg{color:var(--brass)}
+
+/* hero */
+.hero{margin:0;position:relative;background:var(--surface)}
+.hero img{display:block;width:100%;max-height:62vh;object-fit:cover}
+.hero .credit{position:absolute;right:8px;bottom:8px;max-width:70%;font-size:11px;line-height:1.3;color:#fff;background:rgba(0,0,0,.45);padding:3px 7px;border-radius:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.nohero{height:calc(env(safe-area-inset-top) + 64px)}
+
+/* heading */
+.head{padding:22px 20px 4px}
+.kind{font-size:13px;color:var(--muted);margin-bottom:6px}
+h1{font:600 36px/1.1 var(--serif);letter-spacing:-.01em;margin:0}
+.sub{font-size:15px;color:var(--muted);margin-top:6px}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.links a,.links button{font-size:14px;font-weight:500;color:var(--ink);text-decoration:none;padding:8px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--surface)}
+
+/* sections */
+section{padding:0 20px}
+h2{font:500 13px/1.3 var(--sans);color:var(--muted);margin:30px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+h2 span{font-weight:400}
+.summary p{margin:14px 0 0;font-size:17px;line-height:1.65;max-width:64ch}
+.summary p:first-child{margin-top:18px}
+.lang{font-size:12px;color:var(--muted)}
+.xlate{display:inline-block;margin-top:10px;font-size:14px;font-weight:500;color:var(--brass);text-decoration:none}
+.gather{font-size:14px;color:var(--muted);margin:12px 0 0}
+.spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--brass);border-top-color:transparent;border-radius:50%;margin-right:7px;vertical-align:-1px}
+@media (prefers-reduced-motion:no-preference){.spin{animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}}
+.factgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;margin:0;border-top:1px solid var(--rule)}
+.factgrid>div{padding:10px 0;border-bottom:1px solid var(--rule)}
+.factgrid .wide{grid-column:1 / -1}
+.factgrid dt{font-size:12px;color:var(--muted);margin-bottom:2px}
+.factgrid dd{margin:0;font:600 17px/1.3 var(--serif);font-variant-numeric:lining-nums}
+.factgrid dd small{font:400 12px var(--sans);color:var(--muted);margin-left:4px}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{display:grid;grid-template-columns:72px 1fr;gap:12px;padding:11px 0;border-top:1px solid var(--rule);font-size:15.5px;line-height:1.55}
+.timeline li:last-child{border-bottom:1px solid var(--rule)}
+.timeline .yr{font:600 18px/1.3 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
+.factoids{list-style:none;margin:0;padding:0}
+.factoids li{position:relative;padding:11px 0 11px 18px;border-top:1px solid var(--rule);font-size:15.5px;line-height:1.55}
+.factoids li:last-child{border-bottom:1px solid var(--rule)}
+.factoids li::before{content:"";position:absolute;left:2px;top:20px;width:6px;height:6px;border-radius:50%;background:var(--brass)}
+.factoids i{font-family:var(--serif);font-size:16.5px}
+.factoids h4{display:none}
+
+/* gallery */
+.gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0 -20px}
+@media (min-width:600px){.gallery{grid-template-columns:repeat(4,minmax(0,1fr));margin:0}}
+.gallery button{position:relative;aspect-ratio:1;padding:0;overflow:hidden;background:var(--surface)}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery .yr{position:absolute;left:5px;bottom:5px;font:600 12px/1 var(--sans);color:#fff;background:rgba(0,0,0,.55);padding:3px 6px;border-radius:4px;font-variant-numeric:lining-nums}
+
+/* lightbox */
+.lightbox{position:fixed;inset:0;z-index:100;background:rgba(5,12,13,.94);display:flex;flex-direction:column;color:#EEF2EE}
+.lightbox[hidden]{display:none}
+.lb-top{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 10px) 12px 6px}
+.lb-top button{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.lb-count{font-size:13px;color:#B9C6C3}
+.lb-img{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.lb-img img{max-width:100%;max-height:100%;object-fit:contain}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;color:#fff;display:grid;place-items:center;background:rgba(0,0,0,.25)}
+.lb-prev{left:0;border-radius:0 10px 10px 0}.lb-next{right:0;border-radius:10px 0 0 10px}
+.lb-cap{padding:12px 18px calc(env(safe-area-inset-bottom) + 16px);font-size:14px;line-height:1.5;max-height:34vh;overflow:auto}
+.lb-cap .d{font:600 15px var(--serif);color:#E3C68E;margin-right:8px}
+.lb-cap .cr{display:block;margin-top:6px;font-size:12px;color:#B9C6C3}
+.lb-cap a{color:#E3C68E}
+
+/* credits */
+.credits{font-size:13px;color:var(--muted);line-height:1.5}
+.credits a{color:var(--muted)}
+.credits details{margin-top:8px}
+.credits summary{cursor:pointer;color:var(--ink)}
+.credits ol{padding-left:20px;margin:8px 0 0}
+.credits li{margin:4px 0}
+.err{padding:120px 24px 40px;max-width:520px}
+.err h1{font-size:28px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<a class="home" href="./"><svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="16" cy="16" r="14.5"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" stroke="none"/></svg>Wander</a>
+<main id="page">
+  <figure class="hero" id="hero" hidden><img id="heroImg" alt=""><a class="credit" id="heroCredit" target="_blank" rel="noopener"></a></figure>
+  <div class="nohero" id="nohero"></div>
+  <div class="head">
+    <div class="kind" id="kind"></div>
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+    <div class="links" id="links"></div>
+  </div>
+  <section class="summary" id="summary"><p class="gather"><span class="spin"></span>Reading about this place…</p></section>
+  <section id="facts"></section>
+  <section id="history"></section>
+  <section id="trivia"></section>
+  <section id="gallery"></section>
+  <section class="credits" id="credits"></section>
+</main>
+
+<div class="lightbox" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photo">
+  <div class="lb-top"><span class="lb-count" id="lbCount"></span><button id="lbClose" aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="lb-img"><img id="lbImg" alt=""><button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button class="lb-nav lb-next" id="lbNext" aria-label="Next photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script src="common.js"></script>
+<script>
+"use strict";
+/* Wander place page: richer detail about one place, opened from a card title on the main page.
+   URL: place.html?id=<Wikidata ID>&lang=<reader's language>&local=<local language>&t=<title>&kind=area */
+const $ = s => document.querySelector(s);
+const P = new URLSearchParams(location.search);
+const clean = v => (v||'').toLowerCase().replace(/[^a-z-]/g, '');
+const QID = /^Q\d+$/.test(P.get('id')||'') ? P.get('id') : null;
+const state = { userLang: clean(P.get('lang')) || 'en', local: clean(P.get('local')), kind: P.get('kind')==='area' ? 'area' : 'place' };
+const LANGS = [...new Set([state.userLang, state.local, 'en'].filter(Boolean))];
+const textOf = html => { const d = document.createElement('div'); d.innerHTML = html || ''; return (d.textContent || '').replace(/\s+/g, ' ').trim(); };
+const yearIn = s => { const m = /(?:^|\D)(1[0-9]{3}|20[0-9]{2})(?!\d)/.exec(s||''); const y = m ? +m[1] : null; return y && y <= new Date().getFullYear() ? y : null; };
+const section = (id, title, html, note='') => { $('#'+id).innerHTML = html ? `<h2>${esc(title)}${note?`<span>${note}</span>`:''}</h2>${html}` : ''; };
+
+/* ---------- the Wikidata item: names, image, Commons category, articles ---------- */
+async function loadItem(){
+  try{
+    const d = await fetchJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&ids=${QID}&props=labels|descriptions|claims|sitelinks&languages=${LANGS.join('|')}`);
+    const e = d.entities && d.entities[QID]; if(!e || e.missing!==undefined) throw new Error('not found');
+    const pick = o => { for(const l of LANGS) if(o && o[l]) return o[l].value; const any = o && Object.values(o)[0]; return any ? any.value : ''; };
+    const claim = p => ((e.claims||{})[p]||[]).map(c=>c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value).filter(Boolean);
+    const coord = claim('P625')[0];
+    const articles = {};
+    for(const l of LANGS){ const s = (e.sitelinks||{})[l.replace(/-/g,'_')+'wiki']; if(s) articles[l] = s.title; }
+    return { label: pick(e.labels), localLabel: state.local && e.labels && e.labels[state.local] ? e.labels[state.local].value : '', desc: pick(e.descriptions),
+      image: claim('P18')[0] || '', cat: claim('P373')[0] || '', coord: coord ? [coord.latitude, coord.longitude] : null, articles };
+  }catch(err){
+    // Fallback: the same basics from the query service
+    const rows = await sparql(`SELECT ?k ?v WHERE {
+      { BIND("label" AS ?k) wd:${QID} rdfs:label ?v. FILTER(LANG(?v) IN (${LANGS.map(l=>`"${l}"`).join(',')})) }
+      UNION { BIND("desc" AS ?k) wd:${QID} schema:description ?v. FILTER(LANG(?v) IN (${LANGS.map(l=>`"${l}"`).join(',')})) }
+      UNION { BIND("image" AS ?k) wd:${QID} wdt:P18 ?v. } UNION { BIND("cat" AS ?k) wd:${QID} wdt:P373 ?v. }
+      UNION { BIND("coord" AS ?k) wd:${QID} wdt:P625 ?v. }
+      UNION { BIND("site" AS ?k) ?v schema:about wd:${QID}; schema:isPartOf ?w. FILTER(?w IN (${LANGS.map(l=>`<https://${l}.wikipedia.org/>`).join(',')})) } }`);
+    const by = k => rows.filter(r=>r.k.value===k).map(r=>r.v);
+    const inLang = k => { const L = by(k); for(const l of LANGS){ const r = L.find(v=>v['xml:lang']===l); if(r) return r.value; } return L[0] ? L[0].value : ''; };
+    const articles = {};
+    by('site').forEach(v=>{ const m = /^https:\/\/([a-z-]+)\.wikipedia\.org\/wiki\/(.+)$/.exec(v.value); if(m) articles[m[1]] = decodeURIComponent(m[2]).replace(/_/g,' '); });
+    const pt = (by('coord')[0]||{}).value, cm = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(pt||'');
+    const img = (by('image')[0]||{}).value || '';
+    const local = by('label').find(v=>v['xml:lang']===state.local);
+    if(!rows.length) throw err;
+    return { label: inLang('label'), localLabel: local ? local.value : '', desc: inLang('desc'), image: img ? decodeURIComponent(img.split('/').pop()).replace(/_/g,' ') : '',
+      cat: (by('cat')[0]||{}).value || '', coord: cm ? [+cm[2], +cm[1]] : null, articles };
+  }
+}
+
+/* ---------- Commons images with their credits ---------- */
+const IMG_SKIP = /logo|icon|flag|coat[ _]of[ _]arms|signature|symbol|pictogram|locator|location[ _]map|disambig|commons-|wiki|stub|question[ _]book|edit-clear|padlock/i;
+async function imageInfo(params, host){
+  const base = host || 'https://commons.wikimedia.org/w/api.php?';
+  const d = await fetchJSON(base + new URLSearchParams({action:'query', format:'json', formatversion:'2', origin:'*', prop:'imageinfo',
+    iiprop:'url|extmetadata|mime|size', iiurlwidth:'500', iiextmetadatafilter:'ImageDescription|Artist|Credit|LicenseShortName|LicenseUrl|DateTimeOriginal|ObjectName|AttributionRequired', ...params}), 20000);
+  return ((d.query && d.query.pages) || []).map(p=>{
+    const ii = p.imageinfo && p.imageinfo[0]; if(!ii) return null;
+    const md = ii.extmetadata || {}, v = k => md[k] ? md[k].value : '';
+    const date = textOf(v('DateTimeOriginal'));
+    return { title: p.title, thumb: ii.thumburl || ii.url, url: ii.url, w: ii.width, h: ii.height, mime: ii.mime, page: ii.descriptionurl,
+      caption: textOf(v('ImageDescription')) || textOf(v('ObjectName')) || p.title.replace(/^File:/,'').replace(/\.\w+$/,''),
+      artist: textOf(v('Artist')) || textOf(v('Credit')), license: textOf(v('LicenseShortName')), licenseUrl: v('LicenseUrl'), date, year: yearIn(date) };
+  }).filter(Boolean);
+}
+const usable = f => /image\/(jpeg|png|webp|tiff|gif)/.test(f.mime) && f.w >= 320 && f.h >= 200 && !IMG_SKIP.test(f.title);
+// Wikimedia only serves standard thumbnail widths (250, 330, 500, 960, 1280, 1920…); other widths are refused
+const bigURL = f => f.w > 1280 && /\/\d+px-/.test(f.thumb) ? f.thumb.replace(/\/\d+px-/, '/1280px-') : f.url;
+const creditText = f => [f.artist, f.license].filter(Boolean).join(' · ');
+
+/* ---------- rendering pieces ---------- */
+function renderHead(item){
+  const title = item.label || P.get('t') || 'Untitled';
+  document.title = `${title} · Wander`;
+  $('#title').textContent = title;
+  $('#title').lang = item.label ? state.userLang : (state.local || state.userLang);
+  $('#kind').textContent = item.desc ? cap(item.desc) : '';
+  $('#sub').textContent = item.localLabel && item.localLabel !== title ? item.localLabel : '';
+  if(item.localLabel) $('#sub').lang = state.local;
+  let links = '';
+  if(item.coord) links += `<a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${item.coord[0]},${item.coord[1]}&travelmode=walking">Directions</a>`;
+  if(navigator.share) links += `<button id="shareBtn">Share</button>`;
+  $('#links').innerHTML = links;
+  if($('#shareBtn')) $('#shareBtn').onclick = ()=>navigator.share({title, url: location.href}).catch(()=>{});
+}
+function addLink(html){ $('#links').insertAdjacentHTML('beforeend', html); }
+function renderHero(f){
+  if(!f) return;
+  $('#heroImg').src = bigURL(f);
+  $('#heroImg').alt = f.caption;
+  $('#heroCredit').textContent = creditText(f) || 'Wikimedia Commons';
+  $('#heroCredit').href = f.page;
+  $('#hero').hidden = false; $('#nohero').hidden = true;
+}
+
+/* ---------- gallery + lightbox ---------- */
+let photos = [], at = 0;
+function renderGallery(list){
+  photos = list;
+  if(!list.length){ $('#gallery').innerHTML = ''; return; }
+  const dated = list.filter(f=>f.year).length;
+  section('gallery', 'Photos', `<div class="gallery">${list.map((f,i)=>`<button data-i="${i}" aria-label="${esc(f.caption)}"><img loading="lazy" alt="" src="${esc(f.thumb)}">${f.year?`<span class="yr">${f.year}</span>`:''}</button>`).join('')}</div>`,
+    `${list.length} from Wikimedia Commons${dated>2?', oldest first':''}`);
+}
+function openPhoto(i){
+  at = (i + photos.length) % photos.length; const f = photos[at];
+  $('#lbImg').src = bigURL(f); $('#lbImg').alt = f.caption;
+  $('#lbCount').textContent = `${at+1} of ${photos.length}`;
+  $('#lbCap').innerHTML = `${f.year?`<span class="d">${f.year}</span>`:''}${esc(trimText(f.caption, 400))}
+    <span class="cr">${esc(creditText(f) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(f.page)}">Source</a></span>`;
+  $('#lb').hidden = false; document.body.style.overflow = 'hidden';
+}
+function closePhoto(){ $('#lb').hidden = true; document.body.style.overflow = ''; }
+$('#gallery').addEventListener('click', e=>{ const b = e.target.closest('[data-i]'); if(b) openPhoto(+b.dataset.i); });
+$('#lbClose').onclick = closePhoto;
+$('#lbPrev').onclick = ()=>openPhoto(at-1);
+$('#lbNext').onclick = ()=>openPhoto(at+1);
+$('#lb').addEventListener('click', e=>{ if(e.target.id==='lb' || e.target.classList.contains('lb-img')) closePhoto(); });
+document.addEventListener('keydown', e=>{ if($('#lb').hidden) return; if(e.key==='Escape') closePhoto(); if(e.key==='ArrowLeft') openPhoto(at-1); if(e.key==='ArrowRight') openPhoto(at+1); });
+{ let x0 = null; const box = $('.lb-img');
+  box.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+  box.addEventListener('touchend', e=>{ if(x0==null) return; const dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 50) openPhoto(at + (dx<0 ? 1 : -1)); x0 = null; }); }
+
+function renderCredits(article, images){
+  let h = '';
+  if(article) h += `Text from <a target="_blank" rel="noopener" href="${esc(article.url)}">Wikipedia</a> (<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>). `;
+  h += `Facts from <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>.`;
+  if(images.length) h += ` Photos from Wikimedia Commons; each photo shows its author and licence when opened.
+    <details><summary>Photo credits</summary><ol>${images.map(f=>`<li><a target="_blank" rel="noopener" href="${esc(f.page)}">${esc(trimText(f.caption, 80))}</a>${creditText(f)?' — '+esc(creditText(f)):''}</li>`).join('')}</ol></details>`;
+  section('credits', 'Sources', `<p>${h}</p>`);
+}
+
+/* ---------- page ---------- */
+async function main(){
+  if(!QID){ fail('This link does not point to a place.'); return; }
+  const ul = state.userLang;
+  if(P.get('t')){ $('#title').textContent = P.get('t'); document.title = `${P.get('t')} · Wander`; }
+  let item;
+  try{ item = await loadItem(); }
+  catch(e){ fail('Could not load this place. Check your connection and try again.'); return; }
+  renderHead(item);
+  const title = item.label || P.get('t') || '';
+
+  // Wikipedia: the reader's language first, then the local language, then English
+  const order = LANGS.filter(l=>item.articles[l]);
+  const artLang = order[0] || null;
+  const articleP = artLang ? extractsFor(artLang, [item.articles[artLang]]).then(x=>{ const a = x[item.articles[artLang]]; return a ? {...a, lang: artLang} : null; }).catch(()=>null) : Promise.resolve(null);
+
+  // Facts, milestones and factoids from Wikidata
+  const m = {facts:[], events:[]};
+  const factsP = sparql(qPlace(QID, ul)).then(rows=>placeFacts(rows, m)).catch(()=>{});
+  const triviaP = sparql(qFactoids(QID, state.kind, ul)).then(rows=>factoidList(rows, title)).catch(()=>[]);
+
+  // History sentences from the article
+  const histP = (async()=>{
+    for(const lang of order){
+      try{ const rows = timeline(await fullText(lang, item.articles[lang]), 10); if(rows.length) return {lang, rows}; }catch(e){}
+    }
+    return null;
+  })();
+
+  // Photos: the item's own image, its Commons category, then the article's images
+  const heroP = item.image ? imageInfo({titles: 'File:'+item.image, iiurlwidth:'1280'}).then(x=>x[0]||null).catch(()=>null) : Promise.resolve(null);
+  const catP = item.cat ? imageInfo({generator:'categorymembers', gcmtitle:'Category:'+item.cat, gcmtype:'file', gcmlimit:'60'}).catch(()=>[]) : Promise.resolve([]);
+  const artImgP = artLang ? imageInfo({generator:'images', titles:item.articles[artLang], gimlimit:'40'}, `https://${artLang}.wikipedia.org/w/api.php?`).catch(()=>[]) : Promise.resolve([]);
+
+  // Summary
+  const article = await articleP;
+  if(article && article.extract){
+    const paras = article.extract.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const foreign = article.lang !== ul;
+    $('#summary').innerHTML = paras.map(p=>`<p lang="${esc(article.lang)}">${esc(p)}</p>`).join('')
+      + (foreign ? `<p class="lang">From ${esc(langName(article.lang))} Wikipedia. <a class="xlate" target="_blank" rel="noopener" href="${esc(translateLink(article.lang, article.title))}">Read it translated</a></p>` : '');
+    addLink(`<a target="_blank" rel="noopener" href="${esc(article.url)}">Wikipedia</a>`);
+  } else {
+    $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this place yet.</p>`;
+  }
+
+  // Facts
+  await factsP;
+  if(m.facts.length) section('facts', 'At a glance', `<dl class="factgrid">${m.facts.map(([l,v])=>`<div${textOf(v).length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('')}</dl>`);
+
+  // History: article sentences plus Wikidata milestones, in date order
+  const hist = await histP;
+  let rows = hist ? hist.rows : [], histLang = hist ? hist.lang : ul;
+  if(m.events.length && (!rows.length || histLang===ul)){
+    const seen = new Set(rows.map(r=>r.y));
+    rows = [...rows, ...m.events.filter(e=>!seen.has(e.y))]; histLang = histLang || ul;
+  }
+  rows.sort((a,b)=>a.y-b.y);
+  if(rows.length){
+    const foreign = histLang !== ul;
+    section('history', 'History', `<ol class="timeline" lang="${esc(histLang)}">${rows.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 320))}</span></li>`).join('')}</ol>`
+      + (foreign ? `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(rows.map(r=>r.s).join('\n\n').slice(0,1800))}">Translate this history</a>` : ''),
+      foreign ? esc(langName(histLang)) : '');
+  }
+
+  // Trivia
+  const trivia = await triviaP;
+  if(trivia.length) section('trivia', 'Did you know', `<ul class="factoids">${trivia.map(f=>`<li>${f}</li>`).join('')}</ul>`);
+
+  // Photos: hero first, then dated photos oldest first, then the rest
+  const [hero, cat, artImgs] = await Promise.all([heroP, catP, artImgP]);
+  const seen = new Set(), all = [];
+  for(const f of [hero, ...cat, ...artImgs]) if(f && usable(f) && !seen.has(f.title)){ seen.add(f.title); all.push(f); }
+  const heroPick = hero && usable(hero) ? hero : all[0];
+  renderHero(heroPick);
+  const gal = all.filter(f=>f!==heroPick).slice(0, 48);
+  gal.sort((a,b)=>(a.year||9999)-(b.year||9999));
+  renderGallery(gal);
+  renderCredits(article, all);
+}
+function fail(msg){
+  $('#page').innerHTML = `<div class="err"><h1>${esc(P.get('t') || 'Place not found')}</h1><p>${esc(msg)}</p><p><a href="./">Back to Wander</a></p></div>`;
+}
+main();
+</script>
+</body>
+</html>
