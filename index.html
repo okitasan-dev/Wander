@@ -220,6 +220,7 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .gsrc{list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted);line-height:1.45}
 .see{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:var(--brass-soft);font-size:15px;line-height:1.5}
 .see b{display:block;font:600 12px/1.3 var(--sans);color:var(--brass);letter-spacing:.02em;margin-bottom:3px}
+.see small{display:block;margin-top:5px;font-size:12.5px;color:var(--muted)}
 .gsrc li{margin:3px 0}
 .gsrc a{color:var(--muted)}
 .sheet-body p.note{font-size:14px;color:var(--muted);margin:0 0 6px;line-height:1.45}
@@ -1058,7 +1059,7 @@ function applyGuides(){
 }
 function guideHTML(g){
   let h = '';
-  if(g.seeToday) h += `<p class="see"><b>What to look for${g.kind ? ` · ${esc(g.kind)}` : ''}</b>${esc(g.seeToday)}</p>`;
+  if(g.seeToday) h += `<p class="see"><b>What to look for${g.kind ? ` · ${esc(g.kind)}` : ''}</b>${esc(g.seeToday)}${g.located ? `<small>Location: ${esc(g.located)}</small>` : ''}</p>`;
   if(g.keyPoints && g.keyPoints.length) h += `<ul class="kp">${g.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
   if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
   if(g.trivia && g.trivia.length) h += `<h4>Local finds</h4><ul class="factoids">${g.trivia.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
@@ -1082,13 +1083,17 @@ function guidePrompt(deep, radius){
   const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
   const here = location.origin + location.pathname;
   const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}]},'
-    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Make me a short, phone-friendly pamphlet about the history around me, within about ${size[0]} (${radius} m).
 
 RESEARCH
 - Search the web${locals.length ? ` in ${locals.join(' and ')} first, then English` : ''}. Favour local and native sources: city and regional government pages, tourism boards, local history societies, museum and religious-site websites, national heritage databases${GUIDE_HINTS[state.cc] ? ` (here: ${GUIDE_HINTS[state.cc]})` : ''}, local blogs and Atlas Obscura. My app already shows Wikipedia, so use Wikipedia only to check facts.
 - ${deep ? `Deep dive: use your deep research mode if you have one, up to about 40 searches, and cover the ${size[1]+7}–${size[2]+8} most interesting places.` : `Keep it quick: about ${size[3]}–${size[4]} searches, then stop. Cover the ${size[1]}–${size[2]} most interesting places, spread across the area.`}
-- Every place must be a physical spot I can walk to and look at: buildings, temples, shrines, churches, monuments, statues, plaques and markers, bridges, gates, walls, gardens, old shopfronts and streets, or a marked former site ("site of …"). Not events, people or general themes on their own: those belong in the overview and the area timeline, tied to the places where they happened.
+- Every place must be a spot I can walk to. Two kinds count:
+  • Landmarks: buildings, temples, shrines, churches, monuments, statues, plaques and markers, bridges, gates, walls, gardens, old shopfronts and streets, former sites.
+  • Where something notable happened: battles, assassinations, crimes, disasters, famous meetings or speeches, scenes from well-known stories. Include these whenever a source — obscure or not — ties the event to a specific spot (an address, coordinates, or a clear description such as "the corner of X and Y"), even if nothing marks it today. Dig for such sources.
+  Only history that cannot be pinned to a spot goes in the overview and the area timeline.
+- For each place, say how precisely its location is known and where that comes from (e.g. "address given in a 1923 newspaper report", "approximate: sources name only the street"), and set confidence to match.
 - Every fact needs a source link. Do not invent details or positions; if something is uncertain, say so.
 
 PLACES MY APP ALREADY KNOWS (id | name | lat, lon) — enrich these where you find more, and add places it is missing:
@@ -1097,14 +1102,14 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 PAMPHLET (one interactive page — a Claude artifact or ChatGPT canvas — concise, in ${langName(ul)}, US units)
 1. Overview: 3–5 key points about the area's history.
 2. Area timeline: the major moments, tappable for detail.
-3. A card for each place: name (and its name in the local script), what kind of place it is, what you can see there today (or that nothing survives), key points, a short timeline, trivia, sources, and a Google Maps link: https://www.google.com/maps/search/?api=1&query=LAT,LON
+3. A card for each place: name (and its name in the local script), what kind of place it is, what you can see there today (or that nothing marks the spot), how precisely the location is known, key points, a short timeline, trivia, sources, and a Google Maps link: https://www.google.com/maps/search/?api=1&query=LAT,LON
 4. A map only if one works inside the page; otherwise leave it out — the Google Maps links are enough.
 5. A "Send to Wander" button (see below).
 
 DATA FOR WANDER
 Build this JSON (plain text only, no HTML or markdown; summary at most 60 words; at most 4 key points and 6 timeline items per place):
 ${schema}
-kind is a short label such as "Shrine", "Merchant house" or "Site of a castle"; seeToday says in one sentence what is there to look at now. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates. In the page, the "Send to Wander" button opens ${here}#import= followed by that JSON as UTF-8 base64url, in a new tab (in JS: let b=''; new TextEncoder().encode(json).forEach(c=>b+=String.fromCharCode(c)); const code=btoa(b).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');). Also put the same JSON in a single \`\`\`json block at the very end of your chat reply, outside the page.`;
+kind is a short label such as "Shrine", "Merchant house", "Site of a castle" or "Site of an assassination"; seeToday says in one sentence what is there to look at now; located says how precisely the spot is known and from what source. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates. In the page, the "Send to Wander" button opens ${here}#import= followed by that JSON as UTF-8 base64url, in a new tab (in JS: let b=''; new TextEncoder().encode(json).forEach(c=>b+=String.fromCharCode(c)); const code=btoa(b).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');). Also put the same JSON in a single \`\`\`json block at the very end of your chat reply, outside the page.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';

@@ -294,7 +294,7 @@ function normalizeGuide(g){
     const id = typeof p.id === 'string' && /^Q\d+$/.test(p.id.trim()) ? p.id.trim() : null;
     const lat = num(p.lat, -90, 90), lon = num(p.lon, -180, 180);
     if(!id && (lat == null || lon == null)) return null;   // a new place needs a position
-    return {id, name, localName: str(p.localName, 120), kind: str(p.kind, 60), seeToday: str(p.seeToday, 300), lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
+    return {id, name, localName: str(p.localName, 120), kind: str(p.kind, 60), seeToday: str(p.seeToday, 300), located: str(p.located, 200), lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
   });
   const ar = g.area && typeof g.area === 'object' ? g.area : {};
   const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar)};
