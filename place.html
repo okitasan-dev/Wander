@@ -168,7 +168,7 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
 .fullsum summary{cursor:pointer;color:var(--brass);font-weight:500;font-size:15px;padding:6px 0}
 .factgrid dd a{color:inherit;text-decoration-color:color-mix(in srgb,var(--brass) 45%,transparent);text-underline-offset:3px}
 
-/* Claude guide */
+/* AI guide */
 .gh-sum{margin:12px 0 0;font-size:16.5px;line-height:1.6}
 .gsrc{list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted);line-height:1.45}
 .gsrc li{margin:3px 0}
@@ -407,13 +407,13 @@ async function main(){
   }
   updatePageLang($('#page'), ul);
 
-  // From the reader's own Claude guide, if one covers this place
+  // From the reader's own AI guide, if one covers this place
   const gp = guideFor(QID);
   if(gp){
     let h = gp.summary ? `<p class="gh-sum">${esc(gp.summary)}</p>` : '';
     if(gp.keyPoints.length) h += `<ul class="points">${gp.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
     if(gp.sources.length) h += `<ul class="gsrc">${gp.sources.map(x=>`<li><a target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.title)}</a></li>`).join('')}</ul>`;
-    section('guideSec', 'From your Claude guide', h);
+    section('guideSec', 'From your AI guide', h);
   }
 
   // Facts
@@ -573,9 +573,9 @@ function timelineEvents({hist, milestones, factRows, tlRows, photos, articleURL,
     if(kind==='burial') add({y, label, title:`${name} laid to rest here`, kind:'burial', qid, file, thumb:fileThumb(file), src:'Wikidata', w:2});
     if(kind==='work') add({y, label, title:`Appears in ${name}`, kind:'work', qid, src:'Wikidata', w:1});
   }
-  for(const t of (guide ? guide.timeline : [])){   // the reader's Claude guide
+  for(const t of (guide ? guide.timeline : [])){   // the reader's AI guide
     const yy = yearOf(t.date) || yearOf(t.text); if(!yy) continue;
-    add({y:yy.y, label:t.date || yy.label, title:trimText(t.text, 110), text:t.text, kind:'guide', src:'Claude guide', url:(guide.sources[0]||{}).url, w:3});
+    add({y:yy.y, label:t.date || yy.label, title:trimText(t.text, 110), text:t.text, kind:'guide', src:'AI guide', url:(guide.sources[0]||{}).url, w:3});
   }
   const old = new Date().getFullYear() - 30;   // historic photos only; recent ones stay in the gallery
   for(const f of photos) if(f.year && f.year <= old) add({y:f.year, label:String(f.year), title:trimText(f.caption, 110), text:f.caption, kind:'photo', photo:f, thumb:f.thumb, src:'Commons', w:2});
@@ -736,7 +736,7 @@ async function openEvent(e){
   if(e.lang) $('#evText').lang = e.lang;
   let src = '';
   if(e.photo) src = `${esc(creditText(e.photo) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.photo.page)}">Photo source</a>`;
-  else if(e.kind==='guide') src = `From your Claude guide${e.url ? ` · <a target="_blank" rel="noopener" href="${esc(e.url)}">source</a>` : ''}`;
+  else if(e.kind==='guide') src = `From your AI guide${e.url ? ` · <a target="_blank" rel="noopener" href="${esc(e.url)}">source</a>` : ''}`;
   else if(e.src==='Wikipedia' && e.url) src = `From <a target="_blank" rel="noopener" href="${esc(e.url)}">Wikipedia</a>`;
   else if(e.qid) src = `<a target="_blank" rel="noopener" href="place.html?${esc(new URLSearchParams({id:e.qid, lang:state.userLang, t:e.title}).toString())}">More about this</a> · from Wikidata`;
   else src = `From <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>`;

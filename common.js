@@ -254,9 +254,9 @@ function placeFacts(rows, m){
     .filter(e=>e.y!=null && e.label);
 }
 
-/* ---------- Claude guides: research done in Claude, handed back to Wander ---------- */
-/* A guide is the data block Claude adds to its pamphlet. It arrives as a "Send to Wander" link
-   (…#import=<base64url JSON>) or as pasted JSON. Everything in it came from web pages via Claude,
+/* ---------- AI guides: research done in Claude or ChatGPT, handed back to Wander ---------- */
+/* A guide is the data block the assistant adds to its pamphlet. It arrives as a "Send to Wander" link
+   (…#import=<base64url JSON>) or as pasted JSON. Everything in it came from web pages via the assistant,
    so it is treated as untrusted text: plain strings only, http(s) links only, sizes capped. */
 const GUIDE_KEY = 'wander.guides', GUIDE_MAX = 20;
 function decodeGuidePayload(text){
