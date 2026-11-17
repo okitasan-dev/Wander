@@ -56,6 +56,7 @@ svg{flex:none}
 .lg.wiki{background:var(--brass)}
 .lg.osm{background:var(--patina);box-shadow:inset 0 0 0 2px var(--brass)}
 .lg.wd{background:var(--ink);box-shadow:inset 0 0 0 2px var(--brass)}
+.lg.ai{background:var(--raise);box-shadow:inset 0 0 0 2px var(--brass)}
 .leaflet-container{font-family:var(--sans)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--rule)!important}
 .leaflet-control-attribution{background:color-mix(in srgb,var(--surface) 80%,transparent)!important;color:var(--muted)!important;font-size:10px}
@@ -74,6 +75,8 @@ svg{flex:none}
 .wiki{background:var(--brass);color:var(--on-brass)}
 .osm{background:var(--patina);color:#fff;box-shadow:inset 0 0 0 2px var(--brass)}
 .wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.ai{background:var(--raise);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.pin.ai{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
 .pin.osm,.pin.wd{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
 .you-dot{border-radius:50%}
 .pin.far{opacity:.55}
@@ -200,7 +203,37 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 #placeForm button{color:var(--on-brass);background:var(--brass);border-radius:10px;padding:9px 16px;font-weight:500}
 .chips{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 6px}
 .chip{font-size:13px;padding:7px 12px;border-radius:999px;border:1px solid var(--rule)!important;color:var(--ink)}
-#settingsDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
+#settingsDone,#guideDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
+#openGuide{display:block;width:100%;margin-top:14px;height:46px;border-radius:14px;border:1px solid var(--brass);color:var(--brass);font-weight:500}
+
+/* Claude guide: content that came back from a Claude research pamphlet */
+.card .src.gtag{color:var(--brass);font-weight:500}
+.gd{grid-column:1 / -1}
+.gd .gh{font:600 12px/1.3 var(--sans);color:var(--brass);letter-spacing:.03em;text-transform:uppercase;margin:20px 0 0}
+.kp{list-style:none;margin:8px 0 0;padding:0}
+.kp li{position:relative;padding:5px 0 5px 18px;font-size:15px;line-height:1.5}
+.kp li::before{content:"";position:absolute;left:3px;top:13px;width:7px;height:7px;border-radius:2px;background:var(--brass);transform:rotate(45deg)}
+.gsrc{list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted);line-height:1.45}
+.gsrc li{margin:3px 0}
+.gsrc a{color:var(--muted)}
+.sheet-body p.note{font-size:14px;color:var(--muted);margin:0 0 6px;line-height:1.45}
+.sheet-body h4{font:500 13px/1.3 var(--sans);color:var(--muted);margin:22px 0 0}
+.coords{flex:1;white-space:nowrap;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.mini{font-size:13px;font-weight:500;color:var(--brass);border:1px solid var(--brass)!important;border-radius:999px;padding:5px 12px}
+.seg{display:flex;gap:16px;flex:1;flex-wrap:wrap}
+.seg label{font-size:14px;display:inline-flex;align-items:center;gap:6px;color:var(--ink);flex:none}
+.seg input{accent-color:var(--brass);width:17px;height:17px;margin:0}
+#gPrompt,#gImport{display:block;width:100%;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border-radius:10px;border:1px solid var(--rule);
+  background:var(--surface);color:var(--ink);margin-top:12px;resize:vertical}
+.btnrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btnrow button,.btnrow a{flex:1;min-width:130px;height:44px;border-radius:12px;font-weight:500;font-size:15px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btnrow .primary{background:var(--brass);color:var(--on-brass)}
+.btnrow .ghost{border:1px solid var(--rule);color:var(--ink);background:var(--surface)}
+#gMsg{font-size:13.5px;margin:8px 0 0;color:var(--brass);min-height:1em}
+.gitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.gitem span{min-width:0}
+.gitem small{display:block;color:var(--muted);font-size:12px}
+.gitem button{color:var(--muted);font-size:13px;flex:none}
 
 footer{font-size:12px;color:var(--muted);padding:28px 20px 20px;max-width:760px;margin:0 auto;border-top:1px solid var(--rule)}
 footer a{color:var(--muted)}
@@ -219,7 +252,7 @@ footer a{color:var(--muted)}
       <button id="recenterBtn">Recenter</button>
       <button id="mapToggle">Hide map</button>
     </div>
-    <div class="legend"><span><i class="lg you"></i>You</span><span><i class="lg wiki"></i>Wikipedia</span><span><i class="lg osm"></i>Plaque or landmark</span><span><i class="lg wd"></i>Heritage listing</span></div>
+    <div class="legend"><span><i class="lg you"></i>You</span><span><i class="lg wiki"></i>Wikipedia</span><span><i class="lg osm"></i>Plaque or landmark</span><span><i class="lg wd"></i>Heritage listing</span><span class="g-ai" hidden><i class="lg ai"></i>Claude guide</span></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -297,7 +330,29 @@ footer a{color:var(--muted)}
       <button class="chip" data-ll="41.3839,2.1763">Barri Gòtic, Barcelona</button>
       <button class="chip" data-ll="50.0875,14.4213">Old Town, Prague</button>
     </div>
+    <button type="button" id="openGuide">Make a Claude guide for this spot</button>
     <button type="button" id="settingsDone">Done</button>
+  </div>
+</details>
+
+<details class="sheet" id="guide">
+  <summary>Claude guide</summary>
+  <div class="sheet-body">
+    <div class="grab"></div>
+    <h3>Claude guide</h3>
+    <p class="note">Wander writes a research prompt for where you are. Paste it into Claude: it searches local sources and builds a pamphlet. Tap “Send to Wander” in the pamphlet to bring its places back here.</p>
+    <div class="row"><span class="lbl">You are at</span><span class="coords" id="gCoords">No location yet</span><button type="button" class="mini" id="gCopyCoords">Copy</button></div>
+    <div class="row"><span class="lbl">Depth</span><div class="seg">
+      <label><input type="radio" name="gDepth" value="quick" checked> Quick</label>
+      <label><input type="radio" name="gDepth" value="deep"> Deep dive</label></div></div>
+    <textarea id="gPrompt" rows="7" readonly aria-label="Prompt for Claude"></textarea>
+    <div class="btnrow"><button type="button" class="primary" id="gCopy">Copy prompt</button><a class="ghost" id="gOpen" target="_blank" rel="noopener">Open in Claude</a></div>
+    <h4>Bring a guide back</h4>
+    <textarea id="gImport" rows="3" placeholder="Paste the data block or the Send to Wander link from Claude" aria-label="Guide data from Claude"></textarea>
+    <div class="btnrow"><button type="button" class="ghost" id="gImportBtn">Add guide</button></div>
+    <p id="gMsg" role="status"></p>
+    <div id="gList"></div>
+    <button type="button" id="guideDone">Done</button>
   </div>
 </details>
 
@@ -406,6 +461,7 @@ async function loadArea(lat, lon){
   const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
   const city = a.city || a.town || a.village || a.municipality || a.county;
   state.place = [hood, city, a.country].filter(Boolean).join(', ');
+  state.cc = (a.country_code||'').toLowerCase(); state.hood = hood || ''; state.city = city || '';
   const key = (hood||'')+'|'+(city||'');
   if(key === state.areaKey) return;
   state.areaKey = key;
@@ -564,8 +620,8 @@ function placeDetailsHTML(it){
     h += `<h4>Milestones</h4><ol class="timeline">${m.events.sort((a,b)=>a.y-b.y).slice(0,6).map(e=>`<li><span class="yr">${esc(e.label)}</span><span>${esc(e.s)}</span></li>`).join('')}</ol>`;
   }
   h += factoidsHTML(m.factoids);
-  if(!h) h = `<p class="gather">No further facts are recorded for this place yet.</p>`;
-  return `<div class="more">${h}</div>`;
+  if(!h && !it.ai) h = `<p class="gather">No further facts are recorded for this place yet.</p>`;
+  return h ? `<div class="more">${h}</div>` : '';
 }
 
 /* ---------- Nearby places ---------- */
@@ -763,6 +819,7 @@ function onFix(lat, lon, acc){
   const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
   if(moved > Math.max(120, state.radius/4) && Date.now()-state.lastLoadTime > 15000) refresh();
   else { updateStatus(); renderSoon(); }
+  if($('#guide').open) updateGuideSheet();
 }
 
 /* ---------- GPS ---------- */
@@ -801,7 +858,7 @@ function bestVersion(it){
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
 const M = { map:null, me:null, acc:null, ring:null, sight:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
-const srcClass = it => !it.src ? 'wiki' : (it.src==='OpenStreetMap' ? 'osm' : 'wd');
+const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='Claude guide' ? 'ai' : 'wd';
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
   $('#mapWrap').classList.add('show');
@@ -969,6 +1026,95 @@ function lookApply(force){
   if(html !== look.html){ look.html = html; $('#lookFacing').textContent = facing; $('#lookBody').innerHTML = body; $('#lookRange').textContent = `within ${sightLabel()}`; }
 }
 
+/* ---------- Claude guides ---------- */
+/* Guide entries attach to the places Wander already shows (by Wikidata ID) and add the ones it was missing. */
+function applyGuides(){
+  const guides = loadGuides(), ul = state.userLang;
+  state.areaGuide = null; let best = 3000;
+  const byQid = new Map(); for(const it of state.items.values()){ if(it.qid) byQid.set(it.qid, it); delete it.ai; }
+  for(const g of guides){
+    const a = g.area || {};
+    if(a.lat != null && a.lon != null && (a.summary || (a.keyPoints||[]).length)){ const d = hav(state.pos, a); if(d < best){ best = d; state.areaGuide = a; } }
+    (g.places || []).forEach((p, i)=>{
+      const known = p.id && byQid.get(p.id);
+      if(known){ known.ai = p; return; }
+      if(p.lat == null || p.lon == null) return;
+      const key = p.id || `guide:${g.id}:${i}`;
+      const it = state.items.get(key) || {key, qid:p.id || undefined, lat:p.lat, lon:p.lon, src:'Claude guide', facts:[], addedAt:0,
+        versions:{[ul]:{title:p.name, extract:p.summary, url:(p.sources[0]||{}).url || ''}}};
+      it.ai = p; state.items.set(key, it); if(p.id) byQid.set(p.id, it);
+    });
+  }
+}
+function guideHTML(g){
+  let h = '';
+  if(g.keyPoints && g.keyPoints.length) h += `<ul class="kp">${g.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
+  if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
+  if(g.trivia && g.trivia.length) h += `<h4>Local finds</h4><ul class="factoids">${g.trivia.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
+  if(g.sources && g.sources.length) h += `<ul class="gsrc">${g.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('')}</ul>`;
+  return h ? `<div class="more gd"><p class="gh">From your Claude guide</p>${h}</div>` : '';
+}
+const GUIDE_HINTS = {
+  jp:'Cultural Heritage Online (bunka.nii.ac.jp), Japan Search (jpsearch.go.jp), prefecture and city 文化財 pages, temple and shrine websites',
+  us:'the National Register of Historic Places, the Historical Marker Database (hmdb.org), state historic preservation offices, local historical societies',
+  gb:'Historic England or Historic Environment Scotland listings, blue plaque schemes, local history societies',
+  fr:'the Mérimée and POP heritage databases (pop.culture.gouv.fr), city heritage pages', it:'regional heritage catalogues and comune websites',
+  de:'state Denkmal lists, city heritage pages', es:'regional heritage catalogues (Bien de Interés Cultural), city heritage pages',
+  kr:'the Cultural Heritage Administration (heritage.go.kr)', cn:'local heritage bureau pages', tw:'the Bureau of Cultural Heritage (nchdb.boch.gov.tw)'
+};
+function guidePrompt(deep){
+  const p = state.pos, f = n => n.toFixed(5), ul = state.userLang;
+  const locals = state.langs.filter(l=>l!==ul).map(l=>`${langName(l)} (${l})`);
+  const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it);
+    return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
+  const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
+  const here = location.origin + location.pathname;
+  const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}]},'
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
+  return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Make me a short, phone-friendly pamphlet about the history around me, within about ${radiusLabel()} (${Math.round(state.radius)} m).
+
+RESEARCH
+- Search the web${locals.length ? ` in ${locals.join(' and ')} first, then English` : ''}. Favour local and native sources: city and regional government pages, tourism boards, local history societies, museum and religious-site websites, national heritage databases${GUIDE_HINTS[state.cc] ? ` (here: ${GUIDE_HINTS[state.cc]})` : ''}, local blogs and Atlas Obscura. My app already shows Wikipedia, so use Wikipedia only to check facts.
+- ${deep ? 'Deep dive: use Research mode if you have it, up to about 40 searches, and cover the 15–20 most interesting places.' : 'Keep it quick: about 10–15 searches, then stop. Cover the 8–12 most interesting places.'}
+- Every fact needs a source link. Do not invent details or positions; if something is uncertain, say so.
+
+PLACES MY APP ALREADY KNOWS (id | name | lat, lon) — enrich these where you find more, and add places it is missing:
+${[...areas, ...near].join('\n') || '(none yet)'}
+
+PAMPHLET (one interactive artifact, concise, in ${langName(ul)}, US units)
+1. Overview: 3–5 key points about the area's history.
+2. Area timeline: the major moments, tappable for detail.
+3. A card for each place: name (and its name in the local script), key points, a short timeline, trivia, sources, and a Google Maps link: https://www.google.com/maps/search/?api=1&query=LAT,LON
+4. A map only if one works inside the artifact; otherwise leave it out — the Google Maps links are enough.
+5. A "Send to Wander" button (see below).
+
+DATA FOR WANDER
+Build this JSON (plain text only, no HTML or markdown; summary at most 60 words; at most 4 key points and 6 timeline items per place):
+${schema}
+Use the id from my list when a place is one of mine; use null for new places, with your best coordinates. In the artifact, the "Send to Wander" button opens ${here}#import= followed by that JSON as UTF-8 base64url, in a new tab (in JS: let b=''; new TextEncoder().encode(json).forEach(c=>b+=String.fromCharCode(c)); const code=btoa(b).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');). Also put the same JSON in a single \`\`\`json block at the very end of your chat reply, outside the artifact.`;
+}
+function updateGuideSheet(){
+  const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
+  $('#gCoords').textContent = has ? `${state.pos.lat.toFixed(5)}, ${state.pos.lon.toFixed(5)}` : 'No location yet — tap Start first';
+  $('#gCopyCoords').hidden = !has;
+  const prompt = has ? guidePrompt(deep) : '';
+  $('#gPrompt').value = prompt; $('#gCopy').disabled = !has;
+  $('#gOpen').href = has ? 'https://claude.ai/new?q=' + encodeURIComponent(prompt) : '#';
+  const list = loadGuides().slice().reverse();
+  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.places.length} places · ${new Date(g.savedAt).toLocaleDateString()}</small></span><button type="button" data-rm="${esc(g.id)}">Remove</button></div>`).join('') : '';
+}
+function openGuide(){ $('#settings').open = false; updateGuideSheet(); $('#gMsg').textContent = ''; $('#guide').open = true; }
+async function copyText(text, btn){
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){ const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); try{ document.execCommand('copy'); }catch(_){} t.remove(); }
+  const was = btn.textContent; btn.textContent = 'Copied'; setTimeout(()=>{ btn.textContent = was; }, 1500);
+}
+function importGuide(text){
+  const g = addGuide(decodeGuidePayload(text));
+  render();
+  return `Added ${g.places.length} place${g.places.length===1?'':'s'}${g.area.name ? ' for ' + g.area.name : ''}.`;
+}
+
 /* ---------- rendering ---------- */
 /* Titles with a Wikidata ID open the place page in a new tab */
 function titleLink(it, title, localLang, kind){
@@ -1014,13 +1160,14 @@ function cardHTML(it, opts={}){
     <div>
       <h3 lang="${esc(localLang||ul)}">${num}${titleLink(it, head.title, localLang)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
-      ${meta?`<div class="meta">${meta}${isNew?'<span class="new">New</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
+      ${meta?`<div class="meta">${meta}${isNew?'<span class="new">New</span>':''}${it.src?`<span class="src${it.src==='Claude guide'?' gtag':''}">via ${esc(it.src)}</span>`:''}${it.ai && it.src!=='Claude guide'?'<span class="src gtag">Claude guide</span>':''}</div>`:''}
     </div>
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
     ${facts && !(expanded && it.more && it.more.facts && it.more.facts.length)?`<div class="facts">${facts}</div>`:''}
-    ${text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
+    ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}">${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
+      : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
     ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>`:''}
-    ${expanded ? placeDetailsHTML(it) : ''}
+    ${expanded ? (it.ai ? guideHTML(it.ai) : '') + placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -1044,7 +1191,8 @@ function areaHTML(it, idx){
   const orig = state.showOrig.has(it.key);
   const bodyV = (uv && uv.extract && !orig) ? uv : (lv || uv);
   const bodyLang = bodyV===uv ? ul : localLang;
-  const intro = bodyV.extract || '';
+  const ag = idx===0 ? state.areaGuide : null;
+  const intro = ag && ag.summary ? ag.summary : bodyV.extract || '';
   const facts = (d.facts||[]).map(([l,v])=>`<div${v.replace(/<[^>]+>/g,'').length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('');
   let more = '';
   if(d.hist && d.hist.length){
@@ -1053,15 +1201,16 @@ function areaHTML(it, idx){
       <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
     if(foreign) more += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(d.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(d.hist.map(h=>h.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
   }
+  if(ag) more = guideHTML(ag).replace(/^<div class="more gd">|<\/div>$/g, '') + more;
   more += factoidsHTML(d.factoids);
   const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
-  let actions = toggle;
+  let actions = toggle + (idx===0 ? `<button data-act="guide" data-key="${k}">Claude guide</button>` : '');
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   if(lv && !(uv && uv.extract)) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   return `<article class="card area open${idx>0?' secondary':''}" data-key="${k}">
     ${headline}
-    ${intro?`<p class="text" lang="${esc(bodyLang)}">${esc(intro)}${bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
+    ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
     ${more?`<div class="more">${more}</div>`:''}
@@ -1070,6 +1219,7 @@ function areaHTML(it, idx){
 }
 function render(){
   if(!state.pos) return;
+  applyGuides();
   try{ initMap(); }catch(e){ console.warn('map init', e); }
   const area = state.area.map((it,i)=>areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
@@ -1090,6 +1240,7 @@ function render(){
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
   lookApply(true);
   updatePageLang(document.querySelector('main'), state.userLang);
+  const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !rows.some(r=>r.it.src==='Claude guide');
 }
 /* Distance bands: what you can see, what is a short walk, and the rest */
 function bandOf(d){ return d <= state.sight ? 0 : d <= Math.max(WALK, state.sight) ? 1 : 2; }
@@ -1117,12 +1268,24 @@ document.addEventListener('click', e=>{
     if(opening && !it.more && !key.startsWith('area:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[], factoids:[]}; render(); });
   }
   if(b.dataset.act==='map'){ showOnMap(it); }
+  if(b.dataset.act==='guide'){ openGuide(); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
 $('#status').onclick = ()=>setStatus('');
 $('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
 $('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card); });
+$('#openGuide').onclick = openGuide;
+$('#guideDone').onclick = ()=>{ $('#guide').open = false; };
+$('#guide').addEventListener('click', e=>{
+  if(e.target===$('#guide')) $('#guide').open = false;
+  const rm = e.target.closest('[data-rm]');
+  if(rm){ saveGuides(loadGuides().filter(g=>g.id !== rm.dataset.rm)); for(const [k,it] of state.items) if(it.src==='Claude guide') state.items.delete(k); render(); updateGuideSheet(); }
+});
+document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
+$('#gCopy').onclick = ()=>copyText($('#gPrompt').value, $('#gCopy'));
+$('#gCopyCoords').onclick = ()=>copyText($('#gCoords').textContent, $('#gCopyCoords'));
+$('#gImportBtn').onclick = ()=>{ try{ $('#gMsg').textContent = importGuide($('#gImport').value); $('#gImport').value = ''; updateGuideSheet(); }catch(e){ $('#gMsg').textContent = 'Could not read that: ' + e.message; } };
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
 $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
 $('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
@@ -1156,6 +1319,15 @@ $('#placeForm').onsubmit = async e=>{
     else setStatus('Could not find “'+esc(v)+'”.');
   }catch(err){ setStatus('Search failed: '+esc(err.message)); }
 };
+// Arriving from a Claude pamphlet's "Send to Wander" link: …#import=<data>
+if(location.hash.startsWith('#import=')){
+  try{
+    const g = addGuide(decodeGuidePayload(location.hash));
+    history.replaceState(null, '', location.pathname + location.search);
+    setStatus(`Claude guide added: ${g.places.length} places${g.area.name ? ' for ' + esc(g.area.name) : ''}`);
+    if(!state.pos && g.area.lat != null) setManual(g.area.lat, g.area.lon);   // show it where it was made; Start switches back to GPS
+  }catch(e){ setStatus('Could not read that Claude guide: ' + esc(e.message)); }
+}
 // Keep distances fresh even when standing still
 setInterval(()=>{ if(state.pos) renderSoon(); }, 30000);
 </script>

@@ -159,7 +159,7 @@ h2 span{font-weight:400}
 .when .sep{color:var(--muted);font-weight:400;margin:0 6px}
 body.event main{display:flex;flex-direction:column}
 body.event .hero,body.event .nohero{order:0} body.event .head{order:1} body.event #summary{order:2} body.event #gallery{order:3}
-body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order:6} body.event #credits{order:7}
+body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order:6} body.event #credits{order:7}
 .points{list-style:none;margin:18px 0 0;padding:0}
 .points li{position:relative;padding:10px 0 10px 22px;border-top:1px solid var(--rule);font-size:16.5px;line-height:1.55}
 .points li:last-child{border-bottom:1px solid var(--rule)}
@@ -167,6 +167,13 @@ body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order
 .fullsum{margin-top:12px}
 .fullsum summary{cursor:pointer;color:var(--brass);font-weight:500;font-size:15px;padding:6px 0}
 .factgrid dd a{color:inherit;text-decoration-color:color-mix(in srgb,var(--brass) 45%,transparent);text-underline-offset:3px}
+
+/* Claude guide */
+.gh-sum{margin:12px 0 0;font-size:16.5px;line-height:1.6}
+.gsrc{list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted);line-height:1.45}
+.gsrc li{margin:3px 0}
+.gsrc a{color:var(--muted)}
+.tl-dot.guide{background:var(--raise);box-shadow:inset 0 0 0 2px var(--brass),0 0 0 2px var(--surface)}
 
 /* credits */
 .credits{font-size:13px;color:var(--muted);line-height:1.5}
@@ -192,6 +199,7 @@ body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order
     <div class="links" id="links"></div>
   </div>
   <section class="summary" id="summary"><p class="gather"><span class="spin"></span>Reading about this place…</p></section>
+  <section id="guideSec"></section>
   <section id="facts"></section>
   <section id="history"></section>
   <section id="trivia"></section>
@@ -399,6 +407,15 @@ async function main(){
   }
   updatePageLang($('#page'), ul);
 
+  // From the reader's own Claude guide, if one covers this place
+  const gp = guideFor(QID);
+  if(gp){
+    let h = gp.summary ? `<p class="gh-sum">${esc(gp.summary)}</p>` : '';
+    if(gp.keyPoints.length) h += `<ul class="points">${gp.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
+    if(gp.sources.length) h += `<ul class="gsrc">${gp.sources.map(x=>`<li><a target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.title)}</a></li>`).join('')}</ul>`;
+    section('guideSec', 'From your Claude guide', h);
+  }
+
   // Facts
   await factsP;
   const grid = F => `<dl class="factgrid">${F.map(([l,v])=>`<div${textOf(v).length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
@@ -426,7 +443,7 @@ async function main(){
   }
 
   // Trivia
-  const trivia = await triviaP;
+  const trivia = [...(gp ? gp.trivia.map(esc) : []), ...await triviaP];
   if(trivia.length) section('trivia', 'Did you know', `<ul class="factoids">${trivia.map(f=>`<li>${f}</li>`).join('')}</ul>`);
 
   // Photos: hero first, then dated photos oldest first, then the rest
@@ -443,7 +460,7 @@ async function main(){
 
   // The interactive timeline replaces the plain history list once everything is in (places only)
   if(event) return;
-  const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url});
+  const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url, guide: gp});
   if(events.length >= 3) renderTimeline(events, hist ? hist.lang : ul);
   updatePageLang($('#page'), ul);
 }
@@ -538,7 +555,7 @@ const fileThumb = file => file ? `https://commons.wikimedia.org/wiki/Special:Fil
 const yearLabel = y => y < 0 ? `${-y} BCE` : String(y);
 
 /* Gather every dated thing into one list. w = how much it deserves a card when space is short. */
-function timelineEvents({hist, milestones, factRows, tlRows, photos, articleURL}){
+function timelineEvents({hist, milestones, factRows, tlRows, photos, articleURL, guide}){
   const ev = [], add = e => { if(e.y!=null && isFinite(e.y) && e.title) ev.push(e); };
   const KEY = {P571:'Founded or built', P1619:'Officially opened', P576:'Closed or demolished'};
   for(const pid in KEY){
@@ -555,6 +572,10 @@ function timelineEvents({hist, milestones, factRows, tlRows, photos, articleURL}
     if(kind==='event') add({y, label, title:cap(name), kind:'event', qid, file, thumb:fileThumb(file), src:'Wikidata', w:file ? 5 : 4});
     if(kind==='burial') add({y, label, title:`${name} laid to rest here`, kind:'burial', qid, file, thumb:fileThumb(file), src:'Wikidata', w:2});
     if(kind==='work') add({y, label, title:`Appears in ${name}`, kind:'work', qid, src:'Wikidata', w:1});
+  }
+  for(const t of (guide ? guide.timeline : [])){   // the reader's Claude guide
+    const yy = yearOf(t.date) || yearOf(t.text); if(!yy) continue;
+    add({y:yy.y, label:t.date || yy.label, title:trimText(t.text, 110), text:t.text, kind:'guide', src:'Claude guide', url:(guide.sources[0]||{}).url, w:3});
   }
   const old = new Date().getFullYear() - 30;   // historic photos only; recent ones stay in the gallery
   for(const f of photos) if(f.year && f.year <= old) add({y:f.year, label:String(f.year), title:trimText(f.caption, 110), text:f.caption, kind:'photo', photo:f, thumb:f.thumb, src:'Commons', w:2});
@@ -710,11 +731,12 @@ async function openEvent(e){
   const big = e.photo ? bigURL(e.photo) : e.thumb || '';
   $('#evImg').hidden = !big; if(big){ $('#evImg').src = big; $('#evImg').alt = ''; }
   $('#evDate').textContent = e.label;
-  $('#evTitle').textContent = e.kind==='history' || e.kind==='photo' ? '' : e.title;
+  $('#evTitle').textContent = e.kind==='history' || e.kind==='photo' || e.kind==='guide' ? '' : e.title;
   $('#evText').textContent = e.text || '';
   if(e.lang) $('#evText').lang = e.lang;
   let src = '';
   if(e.photo) src = `${esc(creditText(e.photo) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.photo.page)}">Photo source</a>`;
+  else if(e.kind==='guide') src = `From your Claude guide${e.url ? ` · <a target="_blank" rel="noopener" href="${esc(e.url)}">source</a>` : ''}`;
   else if(e.src==='Wikipedia' && e.url) src = `From <a target="_blank" rel="noopener" href="${esc(e.url)}">Wikipedia</a>`;
   else if(e.qid) src = `<a target="_blank" rel="noopener" href="place.html?${esc(new URLSearchParams({id:e.qid, lang:state.userLang, t:e.title}).toString())}">More about this</a> · from Wikidata`;
   else src = `From <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>`;

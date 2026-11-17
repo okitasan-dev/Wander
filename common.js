@@ -253,3 +253,60 @@ function placeFacts(rows, m){
     .map(r=>({y:yearNum(r.time.value), label:fmtTime(r.time.value, r.prec && r.prec.value), s:cap(r.valLabel.value)}))
     .filter(e=>e.y!=null && e.label);
 }
+
+/* ---------- Claude guides: research done in Claude, handed back to Wander ---------- */
+/* A guide is the data block Claude adds to its pamphlet. It arrives as a "Send to Wander" link
+   (…#import=<base64url JSON>) or as pasted JSON. Everything in it came from web pages via Claude,
+   so it is treated as untrusted text: plain strings only, http(s) links only, sizes capped. */
+const GUIDE_KEY = 'wander.guides', GUIDE_MAX = 20;
+function decodeGuidePayload(text){
+  let s = String(text || '').trim();
+  const hash = s.indexOf('#import=');
+  if(hash >= 0) s = s.slice(hash + 8).trim();
+  if(!s.includes('{')){   // a link's code: base64url (or percent-encoded) JSON
+    try{ s = decodeURIComponent(s); }catch(e){}
+    if(!s.includes('{')){
+      try{
+        const b64 = s.replace(/-/g, '+').replace(/_/g, '/').replace(/[^A-Za-z0-9+/=]/g, '').replace(/=+$/, '');
+        const bin = atob(b64 + '==='.slice((b64.length + 3) % 4).slice(0, (4 - b64.length % 4) % 4));
+        s = new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+      }catch(e){ throw new Error('No guide data found'); }
+    }
+  }
+  const a = s.indexOf('{'), z = s.lastIndexOf('}');
+  if(a < 0 || z <= a) throw new Error('No guide data found');
+  let data; try{ data = JSON.parse(s.slice(a, z + 1)); }catch(e){ throw new Error('The guide data is incomplete — copy the whole block'); }
+  return normalizeGuide(data);
+}
+function normalizeGuide(g){
+  if(!g || typeof g !== 'object') throw new Error('Not a guide');
+  const str = (v, n) => typeof v === 'string' ? v.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, n) : '';   // plain text only
+  const num = (v, lo, hi) => { const x = typeof v === 'string' ? parseFloat(v) : v; return typeof x === 'number' && isFinite(x) && x >= lo && x <= hi ? x : null; };
+  const arr = (v, n, f) => Array.isArray(v) ? v.slice(0, n).map(f).filter(Boolean) : [];
+  const url = v => { const u = str(v, 600); return /^https?:\/\/[^\s"'<>]+$/i.test(u) ? u : ''; };
+  const sources = v => arr(v, 8, s => { const u = url(s && s.url); return u ? {title: str(s.title, 120) || u.replace(/^https?:\/\/(www\.)?/, '').split('/')[0], url: u} : null; });
+  const timeline = v => arr(v, 12, t => { const text = str(t && t.text, 300), date = str(t && t.date, 40); return text ? {date, text} : null; });
+  const body = p => ({ summary: str(p.summary, 900), keyPoints: arr(p.keyPoints, 6, k => str(k, 300)), timeline: timeline(p.timeline),
+    trivia: arr(p.trivia, 6, k => str(k, 300)), sources: sources(p.sources) });
+  const places = arr(g.places, 40, p => {
+    if(!p || typeof p !== 'object') return null;
+    const name = str(p.name, 120); if(!name) return null;
+    const id = typeof p.id === 'string' && /^Q\d+$/.test(p.id.trim()) ? p.id.trim() : null;
+    const lat = num(p.lat, -90, 90), lon = num(p.lon, -180, 180);
+    if(!id && (lat == null || lon == null)) return null;   // a new place needs a position
+    return {id, name, localName: str(p.localName, 120), lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
+  });
+  const ar = g.area && typeof g.area === 'object' ? g.area : {};
+  const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar)};
+  if(!places.length && !area.summary) throw new Error('The guide has no places');
+  return {area, places};
+}
+function loadGuides(){ try{ const v = JSON.parse(localStorage.getItem(GUIDE_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
+function saveGuides(list){ try{ localStorage.setItem(GUIDE_KEY, JSON.stringify(list.slice(-GUIDE_MAX))); return true; }catch(e){ return false; } }
+function addGuide(g){
+  const list = loadGuides().filter(x => !(x.area && g.area && x.area.name && x.area.name === g.area.name));   // a new guide for the same area replaces the old one
+  const saved = {...g, id: Date.now().toString(36), savedAt: Date.now()};
+  list.push(saved); saveGuides(list); return saved;
+}
+/* The newest guide entry for a Wikidata ID, if any */
+function guideFor(qid){ let hit = null; for(const g of loadGuides()) for(const p of g.places || []) if(p.id === qid) hit = p; return hit; }
