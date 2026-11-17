@@ -120,6 +120,29 @@ h2 span{font-weight:400}
 .card.area .text{font-size:16px}
 .card.area .thumb{width:88px;height:88px}
 
+.card.area .desc{font-size:14px;color:var(--muted);margin-top:4px}
+.card.area.secondary{border-top:1px solid var(--rule);padding-top:18px}
+.card.area.secondary h3{font-size:24px}
+.factgrid{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;margin:16px 0 0;border-top:1px solid var(--rule)}
+.factgrid>div{padding:10px 0;border-bottom:1px solid var(--rule)}
+.factgrid .wide{grid-column:1 / -1}
+.factgrid dt{font-size:12px;color:var(--muted);margin-bottom:2px}
+.factgrid dd{margin:0;font:500 17px/1.3 var(--serif);font-variant-numeric:lining-nums}
+.factgrid dd small{font:400 12px var(--sans);color:var(--muted);margin-left:4px}
+.gather{grid-column:1 / -1;font-size:13px;color:var(--muted);margin:12px 0 0}
+.more{grid-column:1 / -1}
+.more h4{font:500 13px/1.3 var(--sans);color:var(--muted);margin:22px 0 8px}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{display:grid;grid-template-columns:68px 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--rule);font-size:15px;line-height:1.5}
+.timeline li:last-child{border-bottom:1px solid var(--rule)}
+.timeline .yr{font:500 18px/1.25 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
+.xlate{display:inline-block;margin-top:8px;font-size:13px;font-weight:500;color:var(--brass);text-decoration:none}
+.people{list-style:none;margin:0;padding:0}
+.people li{padding:8px 0;border-top:1px solid var(--rule)}
+.people li:last-child{border-bottom:1px solid var(--rule)}
+.people .pn{display:block;font:500 17px/1.3 var(--serif)}
+.people .pd{display:block;font-size:13px;color:var(--muted)}
+
 /* hero */
 .hero{padding:56px 24px 40px;max-width:560px}
 .hero .mark{color:var(--brass);margin-bottom:22px}
@@ -305,7 +328,7 @@ const state = {
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
   radius: store.get('radius', 1000), tourDist: store.get('tourDist', 100),
-  tour:false, heard:new Set(), expanded:new Set(), showOrig:new Set(), speakingKey:null,
+  tour:false, heard:new Set(), expanded:new Set(), collapsed:new Set(), showOrig:new Set(), speakingKey:null,
   loads:0, wakeLock:null,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
 };
@@ -406,6 +429,134 @@ async function loadArea(lat, lon){
     area.forEach(it=>{ const t=wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title; if(t && ex[t]){ it.versions[lang]=ex[t]; it.thumb = it.thumb || ex[t].thumb; } });
   }));
   state.area = area.filter(it=>Object.keys(it.versions).length);
+  const mine = state.area;
+  loadAreaDetails(mine).then(()=>{ if(state.area===mine) render(); }).catch(()=>{});
+}
+
+/* ---------- Area fact sheet: Wikidata facts + history timeline + notable natives ---------- */
+const sparql = q => fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q), 25000).then(d=>d.results.bindings);
+const UNITS = {Q712226:'km²', Q25343:'m²', Q35852:'ha', Q232291:'sq mi', Q11573:'m', Q3710:'ft', Q81292:'acres'};
+const unitOf = uri => UNITS[(uri||'').split('/').pop()] || '';
+const isQ = s => /^Q\d+$/.test(s||'');
+function fmtNum(n, compact){
+  try{ return new Intl.NumberFormat(state.userLang, compact && n>=1e6 ? {notation:'compact', compactDisplay:'long', maximumSignificantDigits:3} : {maximumFractionDigits: n<100?1:0}).format(n); }
+  catch(e){ return String(Math.round(n)); }
+}
+const HIST_RE = /histor|geschicht|storia|dějiny|dejiny|dzieje|tarih|歴史|历史|歷史|沿革|역사|lịch sử|ιστορ|истори|істор|geschiedenis|sejarah|ประวัติ|تاريخ|היסטוריה|povijest|istorija|zgodovina|történet/i;
+function historySection(text){
+  const lines = text.split('\n'); const out=[]; let inHist=false, level=0;
+  for(const ln of lines){
+    const m = /^(=+)\s*(.*?)\s*=+\s*$/.exec(ln);
+    if(m){ const lv=m[1].length; if(inHist && lv<=level) break; if(!inHist && HIST_RE.test(m[2])){ inHist=true; level=lv; } continue; }
+    if(inHist) out.push(ln);
+  }
+  return out.join(' ').trim();
+}
+let SENT_RE = null;
+try{ SENT_RE = new RegExp('(?<=[.!?])\\s+(?=[A-ZÀ-ÖØ-Þ0-9"“‘(\\u0370-\\u03FF\\u0400-\\u04FF\\u0590-\\u05FF\\u0600-\\u06FF])|(?<=[。！？])'); }catch(e){}
+function sentences(t){
+  t = t.replace(/\s+/g,' ').trim(); if(!t) return [];
+  let parts = SENT_RE ? t.split(SENT_RE) : (t.match(/[^.!?。！？]+[.!?。！？]*/g) || []);
+  const out = [];
+  for(const p of parts.map(s=>s.trim()).filter(Boolean)){
+    const prev = out[out.length-1];
+    if(prev && /(?:^|\s)(St|Dr|Mt|Mr|Mrs|Ms|Jr|Sr|ca|c|Ft|No|vs|Ste|Sta|Sto|Hl|hl|bzw|z\.B|u\.a|e\.g|i\.e|[A-Z])\.$/.test(prev)) out[out.length-1] = prev+' '+p;
+    else out.push(p);
+  }
+  return out;
+}
+function yearOf(s){
+  let m;
+  if((m = /紀元前\s*(\d{1,4})\s*年/.exec(s)) || (m = /公元前\s*(\d{1,4})\s*年/.exec(s))) return {y:-m[1], label:m[1]+' BC'};
+  if((m = /(?:^|[^\d])(\d{3,4})\s*年/.exec(s))) return {y:+m[1], label:m[1]};
+  if((m = /\b(\d{1,4})\s*(?:BCE|BC|v\. ?Chr\.|av\. J\.-C\.|a\. ?C\.|a\.C\.|до н\. ?э\.|п\.н\.е\.|př\. n\. l\.)/.exec(s))) return {y:-m[1], label:m[1]+' BC'};
+  if((m = /(?:^|[^\d.,\/:\-–])(1[0-9]{3}|20[0-2][0-9])(s?)(?![\d])/.exec(s))) return {y:+m[1], label:m[1]+m[2]};
+  if((m = /\b(?:in|In|im|Im|en|En|em|Em|nel|Nel|w|W|в|В|AD|CE|anno|Anno)\s+(\d{3})(?![\d])/.exec(s))) return {y:+m[1], label:m[1]};
+  if((m = /\b(\d{1,2})(?:th|st|nd|rd)\s+century/i.exec(s))) return {y:m[1]*100-50, label:m[1]+(['th','st','nd','rd'][(m[1]%100>10&&m[1]%100<14)?0:(m[1]%10<4?m[1]%10:0)])+' c.'};
+  return null;
+}
+function timeline(text, n=5){
+  const pick = src => {
+    const cjk = /[぀-ヿ一-鿿가-힯]/;
+    const seen = new Set(), rows = [];
+    for(const s of sentences(src)){
+      const L = s.length, isC = cjk.test(s);
+      if(isC ? (L<12 || L>170) : (L<40 || L>320)) continue;
+      const y = yearOf(s); if(!y || seen.has(y.y)) continue;
+      seen.add(y.y); rows.push({...y, s}); if(rows.length>=80) break;
+    }
+    rows.sort((a,b)=>a.y-b.y);
+    if(rows.length<=n) return rows;
+    const out=[]; for(let i=0;i<n;i++){ const r=rows[Math.round(i*(rows.length-1)/(n-1))]; if(!out.includes(r)) out.push(r); }
+    return out;
+  };
+  let rows = pick(historySection(text));
+  if(rows.length<3) rows = pick(text.replace(/^=+.*=+\s*$/gm,' '));
+  return rows;
+}
+async function fullText(lang, title){
+  const d = await fetchJSON(wikiURL(lang, {action:'query', prop:'extracts', explaintext:'1', exsectionformat:'wiki', redirects:'1', titles:title}), 20000);
+  return (d.query && d.query.pages && d.query.pages[0] && d.query.pages[0].extract) || '';
+}
+async function loadAreaDetails(area){
+  const ul = state.userLang, ids = area.map(a=>a.qid).filter(Boolean);
+  if(!ids.length) return;
+  area.forEach(a=>{ a.details = a.details || {loading:true}; });
+  const V = `VALUES ?item { ${ids.map(q=>'wd:'+q).join(' ')} }`;
+  const L = `SERVICE wikibase:label { bd:serviceParam wikibase:language "${ul},en". }`;
+  const qBasics = `SELECT ?item ?desc ?descEn ?inc ?incP ?rec ?recP ?areaAmt ?areaUnit ?elevAmt ?elevUnit ?namedLabel ?herLabel WHERE { ${V}
+    OPTIONAL { ?item schema:description ?desc FILTER(LANG(?desc) = "${ul}") }
+    OPTIONAL { ?item schema:description ?descEn FILTER(LANG(?descEn) = "en") }
+    OPTIONAL { ?item p:P571/psv:P571 [ wikibase:timeValue ?inc; wikibase:timePrecision ?incP ] }
+    OPTIONAL { ?item p:P1249/psv:P1249 [ wikibase:timeValue ?rec; wikibase:timePrecision ?recP ] }
+    OPTIONAL { ?item p:P2046/psv:P2046 [ wikibase:quantityAmount ?areaAmt; wikibase:quantityUnit ?areaUnit ] }
+    OPTIONAL { ?item p:P2044/psv:P2044 [ wikibase:quantityAmount ?elevAmt; wikibase:quantityUnit ?elevUnit ] }
+    OPTIONAL { ?item wdt:P138 ?named }
+    OPTIONAL { ?item wdt:P1435 ?her }
+    ${L} }`;
+  const qPop = `SELECT ?item ?pop ?pd WHERE { ${V} ?item p:P1082 ?s. ?s ps:P1082 ?pop; wikibase:rank ?r. FILTER(?r != wikibase:DeprecatedRank) OPTIONAL { ?s pq:P585 ?pd } }`;
+  const qTwin = `SELECT ?item ?tLabel WHERE { ${V} ?item wdt:P190 ?t. ${L} } LIMIT 60`;
+  const qPeople = q => `SELECT ?p ?pLabel ?pDescription ?b ?d WHERE {
+    { SELECT ?p ?links WHERE { ?p wdt:P19 wd:${q}; wdt:P31 wd:Q5; wikibase:sitelinks ?links. } ORDER BY DESC(?links) LIMIT 3 }
+    OPTIONAL { ?p wdt:P569 ?b } OPTIONAL { ?p wdt:P570 ?d } ${L} } ORDER BY DESC(?links)`;
+  const safe = p => p.catch(()=>[]);
+  const [basics, pops, twins, ...people] = await Promise.all([safe(sparql(qBasics)), safe(sparql(qPop)), safe(sparql(qTwin)), ...ids.map(q=>safe(sparql(qPeople(q))))]);
+  // history text: the reader's language first, then the local language
+  const texts = await Promise.all(area.map(async a=>{
+    const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>a.versions[l]);
+    for(const lang of order){
+      try{ const t = await fullText(lang, a.versions[lang].title); const rows = timeline(t); if(rows.length>=2) return {lang, rows}; }catch(e){}
+    }
+    return null;
+  }));
+  area.forEach((a, i)=>{
+    const id = a.qid, d = {facts:[]};
+    const B = basics.filter(b=>b.item.value.endsWith('/'+id));
+    const first = k => { const r = B.find(b=>b[k]); return r ? r[k] : null; };
+    d.desc = (first('desc')||first('descEn')||{}).value || '';
+    const inc = first('inc'), rec = first('rec');
+    if(inc){ const t = fmtTime(inc.value, (first('incP')||{}).value); if(t) d.facts.push(['Founded', esc(t)]); }
+    else if(rec){ const t = fmtTime(rec.value, (first('recP')||{}).value); if(t) d.facts.push(['First recorded', esc(t)]); }
+    const P = pops.filter(b=>b.item.value.endsWith('/'+id)).map(b=>({n:+b.pop.value, y:b.pd ? b.pd.value.slice(0,4).replace(/^\+/,'') : ''}));
+    if(P.length){ P.sort((a,b)=>(b.y||'').localeCompare(a.y||'')); const p = P[0]; d.pop = p.n;
+      d.facts.push(['Population', `${esc(fmtNum(p.n, true))}${p.y?` <small>${esc(p.y)}</small>`:''}`]); }
+    const ar = first('areaAmt'); if(ar){ const u = unitOf((first('areaUnit')||{}).value); d.facts.push(['Area', esc(fmtNum(Math.abs(+ar.value)))+(u?' '+u:'')]); }
+    const el = first('elevAmt'); if(el){ const u = unitOf((first('elevUnit')||{}).value)||'m'; d.facts.push(['Elevation', esc(fmtNum(+el.value))+' '+u]); }
+    const named = [...new Set(B.map(b=>b.namedLabel && b.namedLabel.value).filter(v=>v && !isQ(v)))].slice(0,2);
+    if(named.length) d.facts.push(['Named after', esc(named.join(', '))]);
+    const her = [...new Set(B.map(b=>b.herLabel && b.herLabel.value).filter(v=>v && !isQ(v)))][0];
+    if(her) d.facts.push(['Heritage', esc(cap(her))]);
+    const tw = [...new Set(twins.filter(b=>b.item.value.endsWith('/'+id)).map(b=>b.tLabel && b.tLabel.value).filter(v=>v && !isQ(v)))];
+    if(tw.length) d.facts.push(['Twinned with', esc(tw.slice(0,4).join(', '))+(tw.length>4?` <small>+${tw.length-4}</small>`:'')]);
+    const pi = ids.indexOf(id);
+    d.people = (pi>=0 ? people[pi] : []).filter(b=>b.pLabel && !isQ(b.pLabel.value)).map(b=>{
+      const yr = v => v ? fmtTime(v.value, 9) : '';
+      const by = yr(b.b), dy = yr(b.d);
+      return {name:b.pLabel.value, life: by ? (dy ? `${by}–${dy}` : `born ${by}`) : '', desc:(b.pDescription||{}).value||''};
+    });
+    if(texts[i]){ d.hist = texts[i].rows; d.histLang = texts[i].lang; }
+    a.details = d;
+  });
 }
 
 /* ---------- Nearby places ---------- */
@@ -699,7 +850,7 @@ function toggleTour(){
     keepAwake(true);
     if(state.watchId==null && !state.manual) startGPS();
     const a = state.area[0];
-    if(a){ const {v} = bestVersion(a); speakItem(a, `You are in ${v ? v.title : 'a new area'}. `); }
+    if(a){ speakArea(a, true); }
     else speak('Tour mode on. I will read out places as you get close.', 'en', 'tour');
   } else { keepAwake(false); if(synth) synth.cancel(); state.speakingKey=null; renderSoon(); }
 }
@@ -829,10 +980,62 @@ function cardHTML(it, opts={}){
     <div class="actions">${actions}</div>
   </article>`;
 }
+function areaHTML(it, idx){
+  const ul = state.userLang;
+  const localLang = state.langs.find(l=>l!==ul && it.versions[l]);
+  const lv = localLang ? it.versions[localLang] : null, uv = it.versions[ul];
+  const head = lv || uv; if(!head) return '';
+  const sub = lv && uv && uv.title!==lv.title ? uv.title : '';
+  const k = esc(it.key), d = it.details || {};
+  const open = idx===0 ? !state.collapsed.has(it.key) : state.expanded.has(it.key);
+  const orig = state.showOrig.has(it.key);
+  const bodyV = (uv && uv.extract && !orig) ? uv : (lv || uv);
+  const bodyLang = bodyV===uv ? ul : localLang;
+  const intro = trimText(bodyV.extract||'', open ? 420 : 200);
+  const facts = (d.facts||[]).map(([l,v])=>`<div${v.replace(/<[^>]+>/g,'').length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('');
+  let more = '';
+  if(open){
+    if(d.hist && d.hist.length){
+      const foreign = d.histLang!==ul;
+      more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
+        <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
+      if(foreign) more += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(d.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(d.hist.map(h=>h.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
+    }
+    if(d.people && d.people.length){
+      more += `<h4>Born here</h4><ul class="people">${d.people.map(p=>`<li><span class="pn">${esc(p.name)}</span><span class="pd">${esc([p.life, p.desc].filter(Boolean).join(', '))}</span></li>`).join('')}</ul>`;
+    }
+  }
+  const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
+  let actions = `<button class="listen" data-act="speak" data-key="${k}">${state.speakingKey===it.key?ICON.stop+'Stop':ICON.play+'Listen'}</button>`;
+  actions += `<button data-act="areatoggle" data-key="${k}" data-idx="${idx}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
+  if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
+  if(lv && !(uv && uv.extract)) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
+  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
+  return `<article class="card area${idx>0?' secondary':''}${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
+    <div>
+      <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
+      ${sub?`<div class="sub">${esc(sub)}</div>`:''}
+      ${d.desc?`<div class="desc">${esc(cap(d.desc))}</div>`:''}
+    </div>
+    ${it.thumb && idx===0?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
+    ${facts?`<dl class="factgrid">${facts}</dl>`:''}
+    ${loading}
+    ${intro?`<p class="text" lang="${esc(bodyLang)}">${esc(intro)}${bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
+    ${more?`<div class="more">${more}</div>`:''}
+    <div class="actions">${actions}</div>
+  </article>`;
+}
+function speakArea(it, arriving){
+  const {v, lang} = bestVersion(it); if(!v) return;
+  const d = it.details || {};
+  const parts = [arriving ? `You are in ${v.title}.` : `${v.title}.`, trimText(v.extract||'', 380)];
+  if(d.hist && d.histLang===lang) parts.push(...d.hist.slice(0,3).map(h=>h.s));
+  speak(parts.join(' '), lang, it.key);
+}
 function render(){
   if(!state.pos) return;
   try{ initMap(); }catch(e){ console.warn('map init', e); }
-  const area = state.area.map(it=>cardHTML(it,{area:true})).join('');
+  const area = state.area.map((it,i)=>areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
   const items = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it)}))
@@ -849,7 +1052,11 @@ function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key=
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b) return;
   const key = b.dataset.key, it = findItem(key); if(!it) return;
-  if(b.dataset.act==='speak'){ if(state.speakingKey===key){ synth && synth.cancel(); state.speakingKey=null; renderSoon(); } else { state.heard.add(key); speakItem(it); } }
+  if(b.dataset.act==='speak'){ if(state.speakingKey===key){ synth && synth.cancel(); state.speakingKey=null; renderSoon(); } else { state.heard.add(key); key.startsWith('area:') ? speakArea(it) : speakItem(it); } }
+  if(b.dataset.act==='areatoggle'){
+    const set = b.dataset.idx==='0' ? state.collapsed : state.expanded;
+    set.has(key) ? set.delete(key) : set.add(key); render();
+  }
   if(b.dataset.act==='more'){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
   if(b.dataset.act==='map'){ showOnMap(it); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
