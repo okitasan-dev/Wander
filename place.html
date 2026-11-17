@@ -100,6 +100,58 @@ h2 span{font-weight:400}
 .lb-cap .cr{display:block;margin-top:6px;font-size:12px;color:#B9C6C3}
 .lb-cap a{color:#E3C68E}
 
+/* timeline */
+.tl-wrap{margin:0 -20px}
+.tl{position:relative;height:262px;overflow:hidden;touch-action:pan-y;cursor:grab;background:var(--surface);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  user-select:none;-webkit-user-select:none;outline-offset:-2px}
+.tl:active{cursor:grabbing}
+.tl-axis{position:absolute;left:0;right:0;top:222px;height:1.5px;background:var(--muted);opacity:.45}
+.tl-tick{position:absolute;top:222px;width:1px;height:7px;background:var(--muted)}
+.tl-tick span{position:absolute;top:10px;left:50%;transform:translateX(-50%);font:500 11.5px/1 var(--sans);color:var(--muted);white-space:nowrap;font-variant-numeric:lining-nums}
+.tl-break{position:absolute;top:216px;height:14px;background:var(--surface);display:flex;align-items:center;justify-content:center;
+  background-image:repeating-linear-gradient(90deg,var(--muted) 0 3px,transparent 3px 7px);background-size:100% 1.5px;background-position:center;background-repeat:no-repeat}
+.tl-break span{font:500 11px/1 var(--sans);color:var(--muted);background:var(--surface);padding:0 6px;white-space:nowrap}
+.tl-stage{position:absolute;inset:0}
+.tl-dot{position:absolute;top:218px;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 2px var(--surface);z-index:1}
+.tl-dot.photo{background:var(--patina)}
+.tl-dot.work,.tl-dot.burial{background:var(--muted)}
+.tl-stem{position:absolute;width:1px;margin-left:-.5px;background:var(--brass);opacity:.45}
+.tl-card{position:absolute;left:0;top:0;width:136px;height:60px;display:flex;gap:7px;align-items:stretch;padding:5px 7px 5px 5px;border-radius:9px;
+  background:var(--raise);border:1px solid var(--rule);box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:left;overflow:hidden;z-index:2}
+.tl-card img{width:48px;height:48px;object-fit:cover;border-radius:5px;flex:none;background:var(--surface)}
+.tl-card .tx{min-width:0;display:flex;flex-direction:column;padding-left:2px}
+.tl-card b{font:600 14px/1.15 var(--serif);color:var(--brass);font-variant-numeric:lining-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:30px}
+.tl-card .tx>span{font-size:11.5px;line-height:1.28;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
+.tl-card.photo{border-color:color-mix(in srgb,var(--patina) 45%,transparent)}
+.tl-card .more{position:absolute;right:4px;top:4px;font:600 10.5px/1 var(--sans);font-style:normal;background:var(--brass);color:var(--on-brass);border-radius:999px;padding:3px 6px}
+.tl-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 20px 14px}
+.tl-ctrl{display:flex;gap:4px;flex:none}
+.tl-ctrl button{min-width:34px;height:34px;padding:0 9px;border-radius:999px;background:color-mix(in srgb,var(--raise) 90%,transparent);border:1px solid var(--rule);
+  box-shadow:0 1px 4px rgba(0,0,0,.1);font-size:17px;font-weight:500;line-height:1}
+.tl-ctrl button[data-z="fit"]{font-size:13px}
+.tl-hint{font-size:12.5px;line-height:1.35;color:var(--muted);margin:0}
+.tl-list li{padding-left:10px;margin-left:-10px;transition:box-shadow .2s}
+.tl-list li.vis{box-shadow:inset 3px 0 0 var(--brass)}
+.tl-list li{cursor:pointer}
+.tl-list .tx{display:flex;gap:10px;align-items:flex-start}
+.tl-list .tx img{width:44px;height:44px;object-fit:cover;border-radius:5px;flex:none;background:var(--surface)}
+
+/* event sheet */
+.ev{position:fixed;inset:0;z-index:90;background:rgba(5,16,17,.5);display:flex;align-items:flex-end;justify-content:center}
+.ev[hidden]{display:none}
+.ev-panel{position:relative;width:100%;max-width:560px;max-height:86vh;overflow:auto;background:var(--raise);border-radius:20px 20px 0 0;box-shadow:var(--shadow);
+  padding:0 0 calc(env(safe-area-inset-bottom) + 20px)}
+.ev-panel img{display:block;width:100%;max-height:46vh;object-fit:contain;background:#0b1516;border-radius:20px 20px 0 0}
+.ev-body{padding:16px 20px 0}
+.ev-date{font:600 26px/1.1 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
+.ev-body h3{font:600 20px/1.3 var(--serif);margin:6px 0 0}
+.ev-body h3:empty{display:none}
+.ev-body p{font-size:16px;line-height:1.6;margin:10px 0 0}
+.ev-body p:empty{display:none}
+.ev-src{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.5}
+.ev-src .cr{display:block}
+.ev-close{position:absolute;right:10px;top:10px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;z-index:2}
+
 /* credits */
 .credits{font-size:13px;color:var(--muted);line-height:1.5}
 .credits a{color:var(--muted)}
@@ -134,6 +186,14 @@ h2 span{font-weight:400}
   <div class="lb-top"><span class="lb-count" id="lbCount"></span><button id="lbClose" aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <div class="lb-img"><img id="lbImg" alt=""><button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button class="lb-nav lb-next" id="lbNext" aria-label="Next photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
   <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<div class="ev" id="ev" hidden role="dialog" aria-modal="true" aria-label="Moment in history">
+  <div class="ev-panel">
+    <button class="ev-close" id="evClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <img id="evImg" alt="" hidden>
+    <div class="ev-body"><div class="ev-date" id="evDate"></div><h3 id="evTitle"></h3><p id="evText"></p><div class="ev-src" id="evSrc"></div></div>
+  </div>
 </div>
 
 <script src="common.js"></script>
@@ -284,8 +344,10 @@ async function main(){
 
   // Facts, milestones and factoids from Wikidata
   const m = {facts:[], events:[]};
-  const factsP = sparql(qPlace(QID, ul)).then(rows=>placeFacts(rows, m)).catch(()=>{});
+  let factRows = [];
+  const factsP = sparql(qPlace(QID, ul)).then(rows=>{ factRows = rows; placeFacts(rows, m); }).catch(()=>{});
   const triviaP = sparql(qFactoids(QID, state.kind, ul)).then(rows=>factoidList(rows, title)).catch(()=>[]);
+  const tlP = sparql(qTimeline(QID, ul)).catch(()=>[]);
 
   // History sentences from the article
   const histP = (async()=>{
@@ -345,7 +407,228 @@ async function main(){
   gal.sort((a,b)=>(a.year||9999)-(b.year||9999));
   renderGallery(gal);
   renderCredits(article, all);
+
+  // The interactive timeline replaces the plain history list once everything is in
+  const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url});
+  if(events.length >= 3) renderTimeline(events, hist ? hist.lang : ul);
 }
+/* ---------- Interactive timeline ---------- */
+/* Dated things connected to the place: heritage listing, events held there, notable burials, works set there. */
+function qTimeline(q, ul){
+  return `SELECT ?kind ?x ?xLabel ?t ?prec ?img ?links WHERE {
+    { SELECT ("her" AS ?kind) ?x ?t ?prec WHERE { wd:${q} p:P1435 ?st. ?st ps:P1435 ?x; pqv:P580 [ wikibase:timeValue ?t; wikibase:timePrecision ?prec ]. } LIMIT 4 }
+    UNION { SELECT ("event" AS ?kind) ?x ?links (MIN(?tt) AS ?t) (MAX(?pp) AS ?prec) (SAMPLE(?i) AS ?img) WHERE {
+      ?x wdt:P276 wd:${q}; p:P585/psv:P585 [ wikibase:timeValue ?tt; wikibase:timePrecision ?pp ]; wikibase:sitelinks ?links. OPTIONAL { ?x wdt:P18 ?i } FILTER(?links > 0)
+    } GROUP BY ?x ?links ORDER BY DESC(?links) LIMIT 12 }
+    UNION { SELECT ("burial" AS ?kind) ?x ?links (MIN(?tt) AS ?t) (MAX(?pp) AS ?prec) (SAMPLE(?i) AS ?img) WHERE {
+      ?x wdt:P119 wd:${q}; p:P570/psv:P570 [ wikibase:timeValue ?tt; wikibase:timePrecision ?pp ]; wikibase:sitelinks ?links. OPTIONAL { ?x wdt:P18 ?i }
+    } GROUP BY ?x ?links ORDER BY DESC(?links) LIMIT 6 }
+    UNION { SELECT ("work" AS ?kind) ?x ?links (MIN(?tt) AS ?t) (MAX(?pp) AS ?prec) WHERE {
+      { ?x wdt:P840 wd:${q} } UNION { ?x wdt:P915 wd:${q} } ?x p:P577/psv:P577 [ wikibase:timeValue ?tt; wikibase:timePrecision ?pp ]; wikibase:sitelinks ?links. FILTER(?links > 2)
+    } GROUP BY ?x ?links ORDER BY DESC(?links) LIMIT 5 }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${ul},en". } }`;
+}
+const fileOf = uri => uri ? decodeURIComponent(uri.split('/').pop()).replace(/_/g, ' ') : '';
+const fileThumb = file => file ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=250` : '';
+const yearLabel = y => y < 0 ? `${-y} BCE` : String(y);
+
+/* Gather every dated thing into one list. w = how much it deserves a card when space is short. */
+function timelineEvents({hist, milestones, factRows, tlRows, photos, articleURL}){
+  const ev = [], add = e => { if(e.y!=null && isFinite(e.y) && e.title) ev.push(e); };
+  const KEY = {P571:'Founded or built', P1619:'Officially opened', P576:'Closed or demolished'};
+  for(const pid in KEY){
+    const r = factRows.find(r=>r.pid.value.endsWith('/'+pid) && r.kind.value==='n' && r.time);
+    if(r){ const label = fmtTime(r.time.value, r.prec && r.prec.value); if(label) add({y:yearNum(r.time.value), label, title:KEY[pid], kind:'key', src:'Wikidata', w:4}); }
+  }
+  for(const r of (hist ? hist.rows : [])) add({y:r.y, label:r.label, title:trimText(r.s, 110), text:r.s, kind:'history', src:'Wikipedia', url:articleURL, lang:hist.lang, w:2});
+  for(const r of milestones) add({y:r.y, label:r.label, title:r.s, kind:'milestone', src:'Wikidata', w:3});
+  for(const r of tlRows){
+    const name = r.xLabel && !isQ(r.xLabel.value) ? r.xLabel.value : ''; if(!name || !r.t) continue;
+    const y = yearNum(r.t.value), label = fmtTime(r.t.value, r.prec && r.prec.value) || (y!=null ? yearLabel(y) : '');
+    const file = fileOf(r.img && r.img.value), qid = r.x.value.split('/').pop(), kind = r.kind.value;
+    if(kind==='her') add({y, label, title:`Designated ${name}`, kind:'key', src:'Wikidata', w:3});
+    if(kind==='event') add({y, label, title:cap(name), kind:'event', qid, file, thumb:fileThumb(file), src:'Wikidata', w:file ? 5 : 4});
+    if(kind==='burial') add({y, label, title:`${name} laid to rest here`, kind:'burial', qid, file, thumb:fileThumb(file), src:'Wikidata', w:2});
+    if(kind==='work') add({y, label, title:`Appears in ${name}`, kind:'work', qid, src:'Wikidata', w:1});
+  }
+  const old = new Date().getFullYear() - 30;   // historic photos only; recent ones stay in the gallery
+  for(const f of photos) if(f.year && f.year <= old) add({y:f.year, label:String(f.year), title:trimText(f.caption, 110), text:f.caption, kind:'photo', photo:f, thumb:f.thumb, src:'Commons', w:2});
+  // drop exact repeats, keep the most important 70, then order by date
+  const seen = new Set();
+  return ev.filter(e=>{ const k = e.y+'|'+e.title.slice(0,40).toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a,b)=>b.w-a.w || a.y-b.y).slice(0, 70).sort((a,b)=>a.y-b.y || b.w-a.w);
+}
+
+function renderTimeline(events, histLang){
+  const ul = state.userLang, foreign = events.some(e=>e.kind==='history') && histLang !== ul;
+  section('history', 'History', `
+    <div class="tl-wrap">
+      <div class="tl" id="tl" tabindex="0" aria-label="Timeline. Drag to move, pinch or use the buttons to zoom.">
+        <div class="tl-ticks"></div><div class="tl-axis"></div><div class="tl-breaks"></div><div class="tl-stage"></div>
+      </div>
+      <div class="tl-bar"><p class="tl-hint">Drag to move · pinch or + − to zoom · tap a moment</p>
+        <div class="tl-ctrl"><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button><button data-z="fit" aria-label="Show everything">Fit</button></div></div>
+    </div>
+    <ol class="timeline tl-list">${events.map((e,i)=>`<li data-i="${i}"><span class="yr">${esc(e.label)}</span><span class="tx">${e.thumb?`<img loading="lazy" alt="" src="${esc(e.thumb)}">`:''}<span${e.lang?` lang="${esc(e.lang)}"`:''}>${esc(e.kind==='history' ? trimText(e.text, 320) : e.title)}</span></span></li>`).join('')}</ol>`
+    + (foreign ? `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(events.filter(e=>e.kind==='history').map(e=>e.text).join('\n\n').slice(0,1800))}">Translate this history</a>` : ''),
+    `${events.length} moments`);
+  const rows = [...document.querySelectorAll('.tl-list li')];
+  const tl = makeTimeline($('#tl'), events, i=>openEvent(events[i]), vis=>rows.forEach((r,i)=>r.classList.toggle('vis', vis.has(i))));
+  $('.tl-list').addEventListener('click', ev=>{ const li = ev.target.closest('li[data-i]'); if(!li) return; const i = +li.dataset.i; tl.focus(i); openEvent(events[i]); });
+}
+
+/* A horizontal, pannable, zoomable timeline drawn with positioned HTML. Long empty stretches are squeezed into breaks. */
+function makeTimeline(root, events, onOpen, onView){
+  const CARD = 136, LANES = [10, 78, 146], AXIS = 222, PAD = 24;
+  // squeezed time scale: gaps longer than G years count for much less
+  const Ys = [...new Set(events.map(e=>e.y))].sort((a,b)=>a-b), n = Ys.length - 1;
+  const G = Math.max(12, (Ys[n] - Ys[0]) / 12), U = [0], breaks = [];
+  for(let i=1; i<=n; i++){ const gap = Ys[i]-Ys[i-1]; U.push(U[i-1] + (gap <= G ? gap : G + (gap-G)*.12)); if(gap > 2.2*G && gap >= 40) breaks.push({i, gap}); }
+  const seg = (A, B, v) => { let lo = 0, hi = n; while(hi-lo > 1){ const mid = (lo+hi)>>1; if(A[mid] <= v) lo = mid; else hi = mid; } return [lo, hi]; };
+  const toU = y => y <= Ys[0] ? y-Ys[0] : y >= Ys[n] ? U[n]+(y-Ys[n]) : (([a,b]) => U[a]+(U[b]-U[a])*(y-Ys[a])/(Ys[b]-Ys[a]))(seg(Ys, Ys, y));
+  const toY = v => v <= U[0] ? Ys[0]+(v-U[0]) : v >= U[n] ? Ys[n]+(v-U[n]) : (([a,b]) => Ys[a]+(Ys[b]-Ys[a])*(v-U[a])/(U[b]-U[a]))(seg(U, U, v));
+  events.forEach(e=>e.u = toU(e.y));
+  const uMin = U[0], uMax = U[n], W = () => root.clientWidth || 360;
+  const fitK = () => Math.max(.02, (W() - PAD - CARD - 14) / Math.max(uMax - uMin, 8));
+  let k = fitK(), u0 = uMin - PAD/k, fitted = true, raf = 0;
+  const kMax = () => Math.max(fitK()*3, 70);
+  const clamp = () => {
+    k = Math.min(kMax(), Math.max(fitK()*.85, k)); const w = W();
+    const lo = uMin - PAD/k, hi = uMax - (w - CARD - 24)/k;   // u0 range that keeps the moments on screen
+    u0 = hi <= lo ? lo : Math.min(hi, Math.max(lo, u0));
+  };
+  const draw = () => { raf = 0; render(); }, later = () => { if(!raf) raf = requestAnimationFrame(draw); };
+
+  // one card, stem and dot per event, created once and moved on every frame
+  const stage = root.querySelector('.tl-stage');
+  events.forEach((e, i)=>{
+    e.dot = Object.assign(document.createElement('div'), {className:'tl-dot '+e.kind});
+    e.stem = Object.assign(document.createElement('div'), {className:'tl-stem'});
+    e.el = document.createElement('button'); e.el.className = 'tl-card ' + e.kind; e.el.dataset.i = i;
+    e.el.innerHTML = `${e.thumb?`<img loading="lazy" alt="" src="${esc(e.thumb)}">`:''}<span class="tx"><b>${esc(e.label)}</b><span>${esc(e.title)}</span></span><i class="more" data-more="${i}"></i>`;
+    e.badge = e.el.querySelector('.more');
+    stage.append(e.stem, e.dot, e.el);
+  });
+  function render(){
+    const w = W(), x = e => (e.u - u0) * k;
+    // ticks: a round year step that leaves room between labels
+    const yA = toY(u0), yB = toY(u0 + w/k), steps = [1,2,5,10,20,25,50,100,200,250,500,1000,2000];
+    const step = steps.find(s => (yB - yA)/s <= Math.max(3, w/80)) || 5000;
+    let ticks = '', last = -1e9;
+    const yEnd = Math.min(yB, Math.max(Ys[n], new Date().getFullYear()));
+    for(let t = Math.ceil(yA/step)*step; t <= yEnd; t += step){
+      if(breaks.some(b => t > Ys[b.i-1] && t < Ys[b.i])) continue;
+      const tx = (toU(t) - u0) * k; if(tx - last < 48) continue; last = tx;
+      ticks += `<div class="tl-tick" style="left:${tx}px"><span>${yearLabel(t)}</span></div>`;
+    }
+    root.querySelector('.tl-ticks').innerHTML = ticks;
+    root.querySelector('.tl-breaks').innerHTML = breaks.map(b=>{ const x1 = (U[b.i-1]-u0)*k + 8, x2 = (U[b.i]-u0)*k - 8;
+      return x2 - x1 > 30 && x2 > 0 && x1 < w ? `<div class="tl-break" style="left:${x1}px;width:${x2-x1}px"><span>${x2-x1 > 70 ? `${b.gap} years` : '⋯'}</span></div>` : ''; }).join('');
+    // cards: most important first, each into the first lane with room; the rest become +N on a neighbour
+    const lanes = LANES.map(()=>[]), placed = [];
+    events.forEach(e=>{ e._x = x(e); e._lane = -1; e._more = 0; });
+    for(const e of [...events].sort((a,b)=>b.w-a.w || a.y-b.y)){
+      if(e._x < -CARD || e._x > w + 20) continue;
+      const L = e._x - 18, R = L + CARD + 6, l = lanes.findIndex(sp => sp.every(([a,b]) => R <= a || L >= b));
+      if(l < 0) continue; lanes[l].push([L, R]); e._lane = l; placed.push(e);
+    }
+    for(const e of events){
+      if(e._lane >= 0 || e._x < 0 || e._x > w) continue;
+      let best = null, bd = 1e9;
+      for(const p of placed){ const L = p._x - 18; if(e._x >= L - 6 && e._x <= L + CARD + 6){ const d = Math.abs(e._x - p._x); if(d < bd){ bd = d; best = p; } } }
+      if(best) best._more++;
+    }
+    const vis = new Set();
+    events.forEach((e, i)=>{
+      const on = e._lane >= 0, inView = e._x >= -4 && e._x <= w + 4;
+      if(inView) vis.add(i);
+      e.dot.style.display = inView ? '' : 'none'; e.dot.style.left = e._x + 'px';
+      e.el.style.display = on ? '' : 'none'; e.stem.style.display = on ? '' : 'none';
+      if(on){ const top = LANES[e._lane]; e.el.style.transform = `translate(${e._x - 18}px, ${top}px)`; e.stem.style.cssText = `left:${e._x}px;top:${top+60}px;height:${AXIS-top-60}px`;
+        e.badge.textContent = e._more ? '+' + e._more : ''; e.badge.style.display = e._more ? '' : 'none'; }
+    });
+    onView(vis);
+  }
+  function zoomAt(px, f){ const ua = u0 + px/k; k *= f; clamp(); u0 = ua - px/k; clamp(); fitted = false; later(); }
+  function fit(){ k = fitK(); u0 = uMin - PAD/k; fitted = true; later(); }
+
+  // drag to pan, two fingers to pinch, a short touch is a tap
+  const pts = new Map(); let down = null, pinch = null;
+  root.addEventListener('pointerdown', ev=>{
+    root.setPointerCapture(ev.pointerId); pts.set(ev.pointerId, {x:ev.clientX});
+    if(pts.size === 1) down = {x:ev.clientX, t:Date.now(), target:ev.target, u0, moved:false};
+    if(pts.size === 2){ const [a,b] = [...pts.values()], left = root.getBoundingClientRect().left; pinch = {d:Math.abs(a.x-b.x)||1, mid:(a.x+b.x)/2 - left, k, u0}; down = null; }
+  });
+  root.addEventListener('pointermove', ev=>{
+    if(!pts.has(ev.pointerId)) return; pts.get(ev.pointerId).x = ev.clientX;
+    if(pinch && pts.size === 2){
+      const [a,b] = [...pts.values()], left = root.getBoundingClientRect().left, ua = pinch.u0 + pinch.mid/pinch.k;
+      k = pinch.k * (Math.abs(a.x-b.x)||1) / pinch.d; clamp(); u0 = ua - ((a.x+b.x)/2 - left)/k; clamp(); fitted = false; later();
+    } else if(down){
+      const dx = ev.clientX - down.x; if(Math.abs(dx) > 6) down.moved = true;
+      if(down.moved){ u0 = down.u0 - dx/k; clamp(); fitted = false; later(); }
+    }
+  });
+  const up = ev=>{
+    pts.delete(ev.pointerId);
+    if(down && !down.moved && ev.type === 'pointerup' && Date.now() - down.t < 600){
+      const more = down.target.closest('[data-more]'), card = down.target.closest('[data-i]');
+      if(more && more.textContent){ const e = events[+more.dataset.more]; zoomAt(e._x, 2.6); }
+      else if(card) onOpen(+card.dataset.i);
+    }
+    if(pts.size === 1 && pinch){ const [p] = [...pts.values()]; down = {x:p.x, t:0, target:root, u0, moved:true}; }
+    else if(pts.size === 0) down = null;
+    if(pts.size < 2) pinch = null;
+  };
+  root.addEventListener('pointerup', up); root.addEventListener('pointercancel', up);
+  // trackpads: sideways scroll pans, pinch (ctrl + wheel) zooms; plain vertical scroll still scrolls the page
+  root.addEventListener('wheel', ev=>{
+    const left = root.getBoundingClientRect().left;
+    if(ev.ctrlKey || ev.metaKey){ ev.preventDefault(); zoomAt(ev.clientX - left, Math.exp(-ev.deltaY * .01)); }
+    else if(Math.abs(ev.deltaX) > Math.abs(ev.deltaY)){ ev.preventDefault(); u0 += ev.deltaX / k; clamp(); fitted = false; later(); }
+  }, {passive:false});
+  root.addEventListener('keydown', ev=>{
+    const w = W();
+    if(ev.key==='ArrowLeft' || ev.key==='ArrowRight'){ ev.preventDefault(); u0 += (ev.key==='ArrowLeft' ? -1 : 1) * w*.25/k; clamp(); fitted = false; later(); }
+    if(ev.key==='+' || ev.key==='='){ zoomAt(w/2, 1.6); } if(ev.key==='-'){ zoomAt(w/2, 1/1.6); }
+  });
+  root.parentElement.querySelector('.tl-ctrl').addEventListener('click', ev=>{ const z = ev.target.closest('[data-z]'); if(!z) return; const w = W();
+    if(z.dataset.z==='in') zoomAt(w/2, 1.8); if(z.dataset.z==='out') zoomAt(w/2, 1/1.8); if(z.dataset.z==='fit') fit(); });
+  if(window.ResizeObserver) new ResizeObserver(()=>{ fitted ? fit() : (clamp(), later()); }).observe(root);
+  render();
+  return { focus(i){ const e = events[i], w = W(); k = Math.max(k, Math.min(kMax(), fitK()*4)); u0 = e.u - (w/2 - CARD/2)/k; clamp(); fitted = false; later();
+    root.scrollIntoView({behavior:'smooth', block:'center'}); } };
+}
+
+/* The sheet that opens when a moment is tapped */
+async function openEvent(e){
+  const big = e.photo ? bigURL(e.photo) : e.thumb || '';
+  $('#evImg').hidden = !big; if(big){ $('#evImg').src = big; $('#evImg').alt = ''; }
+  $('#evDate').textContent = e.label;
+  $('#evTitle').textContent = e.kind==='history' ? '' : e.title;
+  $('#evText').textContent = e.text || '';
+  if(e.lang) $('#evText').lang = e.lang;
+  let src = '';
+  if(e.photo) src = `${esc(creditText(e.photo) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.photo.page)}">Photo source</a>`;
+  else if(e.src==='Wikipedia' && e.url) src = `From <a target="_blank" rel="noopener" href="${esc(e.url)}">Wikipedia</a>`;
+  else if(e.qid) src = `<a target="_blank" rel="noopener" href="place.html?${esc(new URLSearchParams({id:e.qid, lang:state.userLang, t:e.title}).toString())}">More about this</a> · from Wikidata`;
+  else src = `From <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>`;
+  $('#evSrc').innerHTML = src;
+  $('#ev').hidden = false; document.body.style.overflow = 'hidden'; $('#evClose').focus();
+  // a sharper image and its credit, fetched only when opened
+  if(e.file && !e.info){
+    try{ e.info = (await imageInfo({titles:'File:'+e.file, iiurlwidth:'1280'}))[0]; }catch(err){ e.info = null; }
+    if(e.info && !$('#ev').hidden && $('#evDate').textContent === e.label){
+      $('#evImg').src = bigURL(e.info);
+      $('#evSrc').insertAdjacentHTML('afterbegin', `<span class="cr">Image: ${esc(creditText(e.info) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.info.page)}">source</a></span>`);
+    }
+  }
+}
+function closeEvent(){ $('#ev').hidden = true; document.body.style.overflow = ''; }
+$('#evClose').onclick = closeEvent;
+$('#ev').addEventListener('click', ev=>{ if(ev.target.id==='ev') closeEvent(); });
+document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && !$('#ev').hidden) closeEvent(); });
+
 function fail(msg){
   $('#page').innerHTML = `<div class="err"><h1>${esc(P.get('t') || 'Place not found')}</h1><p>${esc(msg)}</p><p><a href="./">Back to Wander</a></p></div>`;
 }
