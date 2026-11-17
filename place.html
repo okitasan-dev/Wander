@@ -95,7 +95,7 @@ h2 span{font-weight:400}
 .lb-img img{max-width:100%;max-height:100%;object-fit:contain}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;color:#fff;display:grid;place-items:center;background:rgba(0,0,0,.25)}
 .lb-prev{left:0;border-radius:0 10px 10px 0}.lb-next{right:0;border-radius:10px 0 0 10px}
-.lb-cap{padding:12px 18px calc(env(safe-area-inset-bottom) + 16px);font-size:14px;line-height:1.5;max-height:34vh;overflow:auto}
+.lb-cap{padding:12px 18px calc(env(safe-area-inset-bottom) + 16px);font-size:14px;line-height:1.5;max-height:34vh;max-height:34dvh;overflow:auto}
 .lb-cap .d{font:600 15px var(--serif);color:#E3C68E;margin-right:8px}
 .lb-cap .cr{display:block;margin-top:6px;font-size:12px;color:#B9C6C3}
 .lb-cap a{color:#E3C68E}
@@ -137,11 +137,11 @@ h2 span{font-weight:400}
 .tl-list .tx img{width:44px;height:44px;object-fit:cover;border-radius:5px;flex:none;background:var(--surface)}
 
 /* event sheet */
-.ev{position:fixed;inset:0;z-index:90;background:rgba(5,16,17,.5);display:flex;align-items:flex-end;justify-content:center}
+.ev{position:fixed;inset:0;z-index:90;background:rgba(5,16,17,.5);display:flex;align-items:flex-end;justify-content:center;padding-top:calc(env(safe-area-inset-top) + 12px)}
 .ev[hidden]{display:none}
-.ev-panel{position:relative;width:100%;max-width:560px;max-height:86vh;overflow:auto;background:var(--raise);border-radius:20px 20px 0 0;box-shadow:var(--shadow);
+.ev-panel{position:relative;width:100%;max-width:560px;max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--raise);border-radius:20px 20px 0 0;box-shadow:var(--shadow);
   padding:0 0 calc(env(safe-area-inset-bottom) + 20px)}
-.ev-panel img{display:block;width:100%;max-height:46vh;object-fit:contain;background:#0b1516;border-radius:20px 20px 0 0}
+.ev-panel img{display:block;width:100%;max-height:46vh;max-height:46dvh;object-fit:contain;background:#0b1516;border-radius:20px 20px 0 0}
 .ev-body{padding:16px 20px 0}
 .ev-date{font:600 26px/1.1 var(--serif);color:var(--brass);font-variant-numeric:lining-nums}
 .ev-body h3{font:600 20px/1.3 var(--serif);margin:6px 0 0}
@@ -150,6 +150,7 @@ h2 span{font-weight:400}
 .ev-body p:empty{display:none}
 .ev-src{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.5}
 .ev-src .cr{display:block}
+.ev-top{position:sticky;top:0;height:0;z-index:3}
 .ev-close{position:absolute;right:10px;top:10px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;z-index:2}
 
 /* event layout: key points and photos first */
@@ -206,8 +207,8 @@ body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order
 
 <div class="ev" id="ev" hidden role="dialog" aria-modal="true" aria-label="Moment in history">
   <div class="ev-panel">
-    <button class="ev-close" id="evClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <img id="evImg" alt="" hidden>
+    <div class="ev-top"><button class="ev-close" id="evClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div><img id="evImg" alt="" hidden>
     <div class="ev-body"><div class="ev-date" id="evDate"></div><h3 id="evTitle"></h3><p id="evText"></p><div class="ev-src" id="evSrc"></div></div>
   </div>
 </div>
@@ -706,7 +707,7 @@ async function openEvent(e){
   const big = e.photo ? bigURL(e.photo) : e.thumb || '';
   $('#evImg').hidden = !big; if(big){ $('#evImg').src = big; $('#evImg').alt = ''; }
   $('#evDate').textContent = e.label;
-  $('#evTitle').textContent = e.kind==='history' ? '' : e.title;
+  $('#evTitle').textContent = e.kind==='history' || e.kind==='photo' ? '' : e.title;
   $('#evText').textContent = e.text || '';
   if(e.lang) $('#evText').lang = e.lang;
   let src = '';
