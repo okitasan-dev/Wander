@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#2f6b4f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Wander — local history around you</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{--bg:#f6f3ec;--card:#fff;--ink:#1f2421;--muted:#6b706b;--accent:#2f6b4f;--accent-ink:#fff;--warm:#b5651d;--line:#e3ddd0;--chip:#efe9dc}
 @media (prefers-color-scheme:dark){:root{--bg:#121513;--card:#1c211e;--ink:#ecebe6;--muted:#9aa29b;--accent:#6fbf93;--accent-ink:#0d1a12;--warm:#e0a060;--line:#2c332e;--chip:#262d28}}
@@ -45,6 +46,25 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted
 .text .lang{font-size:12px;color:var(--muted)}
 .actions{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .actions button,.actions a{font-size:13px;padding:6px 11px}
+#mapWrap{position:relative;margin-bottom:12px;display:none}
+#mapWrap.show{display:block}
+#map{height:42vh;min-height:240px;border-radius:16px;border:1px solid var(--line);overflow:hidden;z-index:1}
+#mapWrap.collapsed #map{display:none}
+.mapbtns{position:absolute;right:8px;top:8px;z-index:500;display:flex;flex-direction:column;gap:6px}
+#mapWrap.collapsed .mapbtns{position:static;flex-direction:row;justify-content:flex-end}
+.mapbtns button{padding:7px 11px;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+#recenterBtn{display:none}
+.pin{width:26px;height:26px;border-radius:50%;color:#fff;font:600 12px/24px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pin.wiki{background:#2f6b4f}.pin.osm{background:#c06a1b}.pin.wd{background:#6a4fb0}
+.pin.speaking{background:#d43c3c;transform:scale(1.25)}
+.num{display:inline-block;min-width:22px;height:22px;border-radius:11px;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px;margin-right:6px;vertical-align:2px;padding:0 5px}
+.num.wiki{background:#2f6b4f}.num.osm{background:#c06a1b}.num.wd{background:#6a4fb0}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:12px;margin:6px 4px 0;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.card.flash{outline:3px solid var(--warm);transition:outline .3s}
+.leaflet-popup-content{margin:10px 12px;font-size:14px}
+.leaflet-popup-content button{margin-top:6px;font-size:13px;padding:5px 10px}
+@media (prefers-color-scheme:dark){#map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
 .chk{font-size:14px;display:inline-flex;align-items:center;gap:4px}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .src{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
@@ -114,6 +134,14 @@ footer a{color:var(--muted)}
     </div>
   </details>
 
+  <div id="mapWrap">
+    <div id="map"></div>
+    <div class="mapbtns">
+      <button id="mapToggle">Hide map</button>
+      <button id="recenterBtn">◎ Me</button>
+    </div>
+    <div class="legend"><span><i style="background:#3b82f6"></i>You</span><span><i style="background:#2f6b4f"></i>Wikipedia</span><span><i style="background:#c06a1b"></i>Plaque / landmark</span><span><i style="background:#6a4fb0"></i>Heritage listing</span></div>
+  </div>
   <div id="areaWrap"></div>
   <div id="listWrap">
     <div class="hero">
@@ -129,6 +157,7 @@ footer a{color:var(--muted)}
   Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA) · Facts from <a href="https://www.wikidata.org/">Wikidata</a>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 "use strict";
 /* ---------- config ---------- */
@@ -252,8 +281,9 @@ async function extractsFor(lang, titles, chars){
 
 /* ---------- Area intro (neighbourhood + city) ---------- */
 async function loadArea(lat, lon){
-  const z14 = await nominatim('reverse', {lat, lon, zoom:'14', addressdetails:'1', extratags:'1'});
+  const z14 = await nominatim('reverse', {lat, lon, zoom:'14', addressdetails:'1', extratags:'1', polygon_geojson:'1', polygon_threshold:'0.0003'});
   const a = z14.address || {};
+  state.areaGeo = (z14.geojson && /Polygon/.test(z14.geojson.type)) ? z14.geojson : null;
   state.langs = langsFor(a);
   const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
   const city = a.city || a.town || a.village || a.municipality || a.county;
@@ -509,6 +539,8 @@ function stopGPS(){
 }
 function setManual(lat, lon){
   stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.heard.clear(); state.loads=0;
+  M.follow = true; if($('#recenterBtn')) $('#recenterBtn').style.display='none';
+  for(const p of M.pins.values()) p.remove(); M.pins.clear();
   onFix(lat, lon, null);
   $('#settings').open=false; window.scrollTo({top:0});
 }
@@ -572,6 +604,81 @@ function toggleTour(){
   } else { keepAwake(false); if(synth) synth.cancel(); state.speakingKey=null; renderSoon(); }
 }
 
+/* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
+const M = { map:null, me:null, acc:null, ring:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
+const srcClass = it => !it.src ? 'wiki' : (it.src==='OpenStreetMap' ? 'osm' : 'wd');
+function initMap(){
+  if(M.map || typeof L==='undefined' || !state.pos) return;
+  $('#mapWrap').classList.add('show');
+  if(store.get('mapHidden', false)){ $('#mapWrap').classList.add('collapsed'); $('#mapToggle').textContent='Show map'; }
+  M.map = L.map('map', {zoomControl:false, attributionControl:true}).setView([state.pos.lat, state.pos.lon], 16);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(M.map);
+  L.control.zoom({position:'bottomright'}).addTo(M.map);
+  M.ring = L.circle([state.pos.lat, state.pos.lon], {radius:state.radius, color:'#2f6b4f', weight:1, dashArray:'4 6', fill:false, interactive:false}).addTo(M.map);
+  M.acc = L.circle([state.pos.lat, state.pos.lon], {radius:state.pos.acc||0, color:'#3b82f6', weight:0, fillOpacity:.12, interactive:false}).addTo(M.map);
+  M.me = L.circleMarker([state.pos.lat, state.pos.lon], {radius:8, color:'#fff', weight:3, fillColor:'#3b82f6', fillOpacity:1}).addTo(M.map).bindPopup('You are here');
+  const stopFollow = ()=>{ if(M.programmatic) return; M.follow=false; $('#recenterBtn').style.display='inline-flex'; };
+  M.map.on('dragstart', stopFollow);
+  M.map.on('popupopen', e=>{ const b = e.popup.getElement() && e.popup.getElement().querySelector('[data-goto]'); if(b) b.onclick = ()=>{ M.map.closePopup(); scrollToCard(b.dataset.goto); }; });
+}
+function recenter(){
+  if(!M.map || !state.pos) return;
+  M.follow = true; $('#recenterBtn').style.display='none';
+  M.programmatic = true; M.map.setView([state.pos.lat, state.pos.lon], Math.max(M.map.getZoom(), 15)); M.programmatic = false;
+}
+function updateMap(ordered){
+  if(!state.pos) return;
+  initMap(); if(!M.map) return;
+  const ll = [state.pos.lat, state.pos.lon];
+  M.me.setLatLng(ll); M.acc.setLatLng(ll).setRadius(state.pos.acc||0); M.ring.setLatLng(ll).setRadius(state.radius);
+  if(M.follow){
+    M.programmatic = true;
+    const c = M.map.getCenter();
+    if(hav({lat:c.lat, lon:c.lng}, state.pos) > 3000) M.map.setView(ll, 16, {animate:false}); else M.map.panTo(ll, {animate:true});
+    M.programmatic = false;
+  }
+  // neighbourhood outline
+  if(state.areaGeo !== M.areaGeo){
+    if(M.area){ M.area.remove(); M.area=null; }
+    M.areaGeo = state.areaGeo;
+    if(state.areaGeo) M.area = L.geoJSON(state.areaGeo, {style:{color:'#b5651d', weight:1.5, fillOpacity:.05, dashArray:'2 4'}, interactive:false}).addTo(M.map);
+  }
+  // numbered pins, matching card numbers
+  const keep = new Set();
+  ordered.forEach((it, i)=>{
+    keep.add(it.key);
+    const n = i+1, cls = srcClass(it) + (state.speakingKey===it.key ? ' speaking' : '');
+    const sig = n+'|'+cls;
+    let p = M.pins.get(it.key);
+    const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-12]});
+    if(!p){
+      p = L.marker([it.lat, it.lon], {icon:icon(), zIndexOffset: state.speakingKey===it.key ? 1000 : -n}).addTo(M.map);
+      p.on('click', ()=>{ const cur = state.items.get(it.key) || it; const {v} = bestVersion(cur);
+        p.unbindPopup(); p.bindPopup(`<b>${p.num}. ${esc(v ? v.title : '')}</b><br><button data-goto="${esc(it.key)}">Show details ↓</button>`).openPopup(); });
+      p.sig = sig; p.num = n; M.pins.set(it.key, p);
+    } else if(p.sig !== sig){ p.setIcon(icon()); p.setZIndexOffset(state.speakingKey===it.key ? 1000 : -n); p.sig = sig; p.num = n; }
+  });
+  for(const [k,p] of M.pins) if(!keep.has(k)){ p.remove(); M.pins.delete(k); }
+}
+function showOnMap(it){
+  if(!M.map || it.lat==null) return;
+  if($('#mapWrap').classList.contains('collapsed')) toggleMap();
+  M.follow=false; $('#recenterBtn').style.display='inline-flex';
+  window.scrollTo({top:0, behavior:'smooth'});
+  M.programmatic = true; M.map.setView([it.lat, it.lon], Math.max(M.map.getZoom(), 17)); M.programmatic = false;
+  const p = M.pins.get(it.key); if(p) p.fire('click');
+}
+function toggleMap(){
+  const w = $('#mapWrap'); const hidden = w.classList.toggle('collapsed');
+  $('#mapToggle').textContent = hidden ? 'Show map' : 'Hide map'; store.set('mapHidden', hidden);
+  if(!hidden && M.map) setTimeout(()=>M.map.invalidateSize(), 50);
+}
+function scrollToCard(key){
+  const el = document.querySelector(`article[data-key="${CSS.escape(key)}"]`); if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'), 1600);
+}
+
 /* ---------- rendering ---------- */
 function translateLink(lang, title){
   const host = lang.replace(/-/g,'--') + '-wikipedia-org.translate.goog';
@@ -604,11 +711,13 @@ function cardHTML(it, opts={}){
   const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
   if(it.src && foreignText) actions += `<a class="btn" target="_blank" rel="noopener" href="https://translate.google.com/?sl=auto&tl=${ul}&op=translate&text=${encodeURIComponent(foreignText.slice(0,1500))}">🌐 Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
+  if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">📍 Map</button>`;
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">🚶 Walk</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
-  return `<article class="card${state.speakingKey===it.key?' speaking':''}">
+  const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
+  return `<article class="card${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
     <div>
-      <h3 lang="${esc(localLang||ul)}">${esc(head.title)}</h3>
+      <h3 lang="${esc(localLang||ul)}">${num}${esc(head.title)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
       ${meta?`<div class="meta">${meta}${isNew?'<span class="new">NEW</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
     </div>
@@ -621,14 +730,16 @@ function cardHTML(it, opts={}){
 }
 function render(){
   if(!state.pos) return;
+  try{ initMap(); }catch(e){ console.warn('map init', e); }
   const area = state.area.map(it=>cardHTML(it,{area:true})).join('');
   $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
   const items = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d).map(x=>x.it);
   $('#listWrap').innerHTML = items.length
-    ? `<h2>Nearby · ${items.length} place${items.length>1?'s':''}</h2>` + items.map(it=>cardHTML(it)).join('')
+    ? `<h2>Nearby · ${items.length} place${items.length>1?'s':''}</h2>` + items.map((it,i)=>cardHTML(it,{num:i+1})).join('')
     : (state.loading ? '' : `<div class="empty">Nothing with a Wikipedia article within ${fmtDist(state.radius)}. Try a bigger radius in Settings.</div>`);
+  try{ updateMap(items); }catch(e){ console.warn('map', e); }
 }
 let rt=null; function renderSoon(){ if(rt) return; rt=setTimeout(()=>{rt=null; render();}, 400); }
 function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key===key); }
@@ -639,10 +750,13 @@ document.addEventListener('click', e=>{
   const key = b.dataset.key, it = findItem(key); if(!it) return;
   if(b.dataset.act==='speak'){ if(state.speakingKey===key){ synth && synth.cancel(); state.speakingKey=null; renderSoon(); } else { state.heard.add(key); speakItem(it); } }
   if(b.dataset.act==='more'){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
+  if(b.dataset.act==='map'){ showOnMap(it); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
 $('#tourBtn').onclick = toggleTour;
+$('#mapToggle').onclick = toggleMap;
+$('#recenterBtn').onclick = recenter;
 $('#refreshBtn').onclick = ()=>{ if(!state.pos){ startGPS(); return; } state.areaKey=''; state.lastLoadTime=0; refresh(true); };
 $('#radius').value = String(state.radius);
 $('#radius').onchange = e=>{ state.radius=+e.target.value; store.set('radius',state.radius); state.lastLoadTime=0; refresh(); };
