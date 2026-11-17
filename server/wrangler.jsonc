@@ -1,0 +1,30 @@
+// Cloudflare Worker settings for the Wander tour-guide backend.
+// You normally don't need to touch this file. The knobs you might change are in "vars".
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wander-guide",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Where finished stories are cached, so the same street corner is only researched once.
+  // No "id" needed: Cloudflare creates this storage automatically on the first deploy.
+  "kv_namespaces": [{ "binding": "TOURS" }],
+
+  // Each visitor (by IP address) may start at most 3 new research requests per minute.
+  "ratelimits": [
+    { "name": "PER_IP", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }
+  ],
+
+  "vars": {
+    // Safety cap: max number of NEW (uncached) stories per day, across all users.
+    // Each one costs real money on your Anthropic account, so start low.
+    "DAILY_LIMIT": "20",
+    // Which websites may call this backend. "*" = any. Later, set it to your app's address,
+    // e.g. "https://wander.example.com" (comma-separate several).
+    "ALLOWED_ORIGINS": "*"
+  },
+
+  // Lets you see logs and errors in the Cloudflare dashboard.
+  "observability": { "enabled": true }
+}
