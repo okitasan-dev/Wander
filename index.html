@@ -559,6 +559,107 @@ async function loadAreaDetails(area){
   });
 }
 
+/* ---------- Per-place fact sheet (loaded when "More" is tapped) ---------- */
+const yearNum = t => { const m = /^([+-]?)(\d+)-/.exec(t||''); return m ? (m[1]==='-' ? -m[2] : +m[2]) : null; };
+function qPlace(q, ul){
+  return `SELECT ?kind ?pid ?val ?valLabel ?amt ?unit ?time ?prec WHERE {
+    { BIND("v" AS ?kind)
+      VALUES ?pid { wd:P31 wd:P84 wd:P149 wd:P1435 wd:P138 wd:P417 wd:P140 wd:P112 wd:P170 wd:P547 wd:P186 wd:P361 wd:P88 wd:P127 }
+      ?pid wikibase:directClaim ?wdt. wd:${q} ?wdt ?val. FILTER(isIRI(?val)) }
+    UNION
+    { BIND("n" AS ?kind)
+      VALUES ?pid { wd:P571 wd:P1619 wd:P576 wd:P2048 wd:P1101 wd:P1174 wd:P2049 }
+      ?pid wikibase:claim ?p; wikibase:statementValue ?psv.
+      wd:${q} ?p ?st. ?st ?psv ?node. ?st wikibase:rank ?r. FILTER(?r != wikibase:DeprecatedRank)
+      OPTIONAL { ?node wikibase:timeValue ?time; wikibase:timePrecision ?prec }
+      OPTIONAL { ?node wikibase:quantityAmount ?amt; wikibase:quantityUnit ?unit } }
+    UNION
+    { BIND("e" AS ?kind) BIND(wd:P793 AS ?pid)
+      wd:${q} p:P793 ?st. ?st ps:P793 ?val.
+      OPTIONAL { ?st pqv:P585 ?tn. ?tn wikibase:timeValue ?time; wikibase:timePrecision ?prec } }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${ul},en". }
+  } LIMIT 300`;
+}
+function placeFacts(rows, m){
+  const by = {};
+  for(const r of rows){ const pid = r.pid.value.split('/').pop(); (by[pid] = by[pid] || []).push(r); }
+  const labels = pid => [...new Set((by[pid]||[]).filter(r=>r.kind.value==='v').map(r=>r.valLabel && r.valLabel.value).filter(v=>v && !isQ(v)))];
+  const time = pid => { const r = (by[pid]||[]).find(r=>r.kind.value==='n' && r.time); return r ? fmtTime(r.time.value, r.prec && r.prec.value) : null; };
+  const qty = pid => { const r = (by[pid]||[]).find(r=>r.kind.value==='n' && r.amt); return r ? {n:Math.abs(+r.amt.value), u:unitOf(r.unit && r.unit.value)} : null; };
+  const add = (l, v) => { if(v) m.facts.push([l, esc(v)]); };
+  const list = (pid, n) => { const L = labels(pid); return L.length ? L.slice(0,n).map(cap).join(', ') : null; };
+  add('Type', list('P31', 2));
+  add('Founded', time('P571')); add('Opened', time('P1619')); add('Closed', time('P576'));
+  add('Architect', list('P84', 2)); add('Style', list('P149', 2));
+  add('Founded by', list('P112', 2)); add('Created by', list('P170', 2)); add('Commissioned by', list('P88', 1));
+  add('Named after', list('P138', 2)); add('Dedicated to', list('P417', 2)); add('Commemorates', list('P547', 2));
+  add('Religion', list('P140', 1)); add('Material', list('P186', 3)); add('Part of', list('P361', 1)); add('Owned by', list('P127', 1));
+  const h = qty('P2048'); if(h) add('Height', fmtNum(h.n)+' '+(h.u||'m'));
+  const f = qty('P1101'); if(f) add('Floors', fmtNum(f.n));
+  const v = qty('P1174'); if(v) add('Visitors a year', fmtNum(v.n, true));
+  add('Heritage', list('P1435', 1));
+  m.events = (by.P793||[]).filter(r=>r.kind.value==='e' && r.time && r.valLabel && !isQ(r.valLabel.value))
+    .map(r=>({y:yearNum(r.time.value), label:fmtTime(r.time.value, r.prec && r.prec.value), s:cap(r.valLabel.value)}))
+    .filter(e=>e.y!=null && e.label);
+}
+function osmFacts(t, m){
+  const has = l => m.facts.some(f=>f[0]===l);
+  const add = (l, v) => { if(v && !has(l)) m.facts.push([l, esc(v)]); };
+  if(t.start_date && !has('Founded') && !has('Opened')) add('Built', t.start_date.replace(/^~/, 'c. ').replace(/^C(\d+)$/, '$1th century').replace(/^0+(?=\d)/, ''));
+  add('Architect', t.architect); add('Artist', t.artist_name);
+  add('Subject', t.subject || t['subject:name'] || t['name:subject']);
+  if(t.material) add('Material', cap(t.material.replace(/[_;]/g, ' ')));
+  if(t.height) add('Height', /\d$/.test(t.height) ? t.height+' m' : t.height);
+  add('Floors', t['building:levels']);
+  if(t.religion) add('Religion', cap(t.religion.replace(/_/g,' ')));
+  if(t.denomination) add('Denomination', cap(t.denomination.replace(/_/g,' ')));
+  add('Listed by', t['heritage:operator']);
+  if(t.opening_hours) add('Opening hours', t.opening_hours);
+}
+async function loadPlaceDetails(it){
+  if(it.more) return;
+  it.more = {loading:true}; render();
+  const ul = state.userLang, m = {facts:[], hist:[], histLang:null, events:[]};
+  const jobs = [];
+  if(it.qid) jobs.push(sparql(qPlace(it.qid, ul)).then(rows=>placeFacts(rows, m)).catch(()=>{}));
+  if(!it.src){
+    const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>it.versions[l] && /wikipedia\.org/.test(it.versions[l].url||''));
+    jobs.push((async()=>{
+      for(const lang of order){
+        try{ const t = await fullText(lang, it.versions[lang].title); const rows = timeline(t, 4); if(rows.length){ m.hist = rows; m.histLang = lang; return; } }catch(e){}
+      }
+    })());
+  }
+  await Promise.all(jobs);
+  if(it.tags) osmFacts(it.tags, m);
+  // Wikidata milestones join the timeline when they share its language; otherwise they get their own list
+  if(m.events.length && (!m.hist.length || m.histLang===ul)){
+    const seen = new Set(m.hist.map(h=>h.y));
+    m.hist = [...m.hist, ...m.events.filter(e=>!seen.has(e.y))].sort((a,b)=>a.y-b.y).slice(0, 7);
+    if(!m.histLang) m.histLang = ul;
+    m.events = [];
+  }
+  it.more = m;
+}
+function placeDetailsHTML(it){
+  const m = it.more, ul = state.userLang;
+  if(!m) return '';
+  if(m.loading) return `<p class="gather"><span class="spin"></span>Gathering facts…</p>`;
+  let h = '';
+  if(m.facts.length) h += `<dl class="factgrid">${m.facts.map(([l,v])=>`<div${v.replace(/<[^>]+>/g,'').length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+  if(m.hist.length){
+    const foreign = m.histLang!==ul;
+    h += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(m.histLang))})</span>`:''}</h4>
+      <ol class="timeline" lang="${esc(m.histLang)}">${m.hist.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 260))}</span></li>`).join('')}</ol>`;
+    if(foreign) h += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(m.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(m.hist.map(r=>r.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
+  }
+  if(m.events.length){
+    h += `<h4>Milestones</h4><ol class="timeline">${m.events.sort((a,b)=>a.y-b.y).slice(0,6).map(e=>`<li><span class="yr">${esc(e.label)}</span><span>${esc(e.s)}</span></li>`).join('')}</ol>`;
+  }
+  if(!h) h = `<p class="gather">No further facts are recorded for this place yet.</p>`;
+  return `<div class="more">${h}</div>`;
+}
+
 /* ---------- Nearby places ---------- */
 async function loadNearby(lat, lon){
   const ul = state.userLang;
@@ -633,6 +734,7 @@ function mergeOSM(elements){
     if(existing){   // already known from Wikipedia/Wikidata: just add the plaque text & facts
       if(inscription && !existing.inscription){ existing.inscription = inscription; existing.inscrLang = t['inscription:'+ul] ? ul : local; }
       existing.facts = [...new Set([...(existing.facts||[]), ...facts.slice(1)])];
+      existing.tags = existing.tags || t;
       continue;
     }
     const key = t.wikidata || `osm:${el.type}/${el.id}`;
@@ -644,7 +746,7 @@ function mergeOSM(elements){
     const desc = t['description:'+ul] || '';
     if(name) versions[local] = {title:name, extract: t.description || '', url};
     if(userName || desc || !name) versions[ul] = {title: userName || name || facts[0], extract: desc, url};
-    state.items.set(key, {key, qid:t.wikidata, src:'OpenStreetMap', versions, lat, lon, facts,
+    state.items.set(key, {key, qid:t.wikidata, src:'OpenStreetMap', versions, lat, lon, facts, tags:t,
       inscription, inscrLang: t['inscription:'+ul] ? ul : local, isNew: state.loads>1, addedAt:Date.now(), factsLoaded: !t.wikidata});
   }
 }
@@ -823,6 +925,7 @@ function speakItem(it, intro){
   const DIRS = {N:'north',NE:'north-east',E:'east',SE:'south-east',S:'south',SW:'south-west',W:'west',NW:'north-west'};
   const lead = intro || (d!=null ? `${v.title}, about ${fmtDist(d)} ${DIRS[dirLabel(bearing(state.pos,it)).split(' ')[1]]}. ` : v.title+'. ');
   let body = trimText(v.extract||'', 700), bodyLang = lang;
+  if(body && it.more && it.more.hist && it.more.histLang===lang) body += ' ' + it.more.hist.slice(0,2).map(h=>h.s).join(' ');
   if(!body && it.inscription){ body = it.inscription; bodyLang = it.inscrLang || lang; }
   else if(!body && it.facts && it.facts.length) body = it.facts.slice(0,2).join('. ') + '.';
   speak(lead + body, bodyLang, it.key);
@@ -957,7 +1060,7 @@ function cardHTML(it, opts={}){
   const facts = (it.facts||[]).map(f=>`<span>${esc(f)}</span>`).join('');
   const k = esc(it.key);
   let actions = `<button class="listen" data-act="speak" data-key="${k}">${state.speakingKey===it.key?ICON.stop+'Stop':ICON.play+'Listen'}</button>`;
-  if(full.length > text.length || expanded) actions += `<button data-act="more" data-key="${k}">${expanded?'Less':'More'}</button>`;
+  actions += `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
@@ -974,9 +1077,10 @@ function cardHTML(it, opts={}){
       ${meta?`<div class="meta">${meta}${isNew?'<span class="new">New</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
     </div>
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
-    ${facts?`<div class="facts">${facts}</div>`:''}
+    ${facts && !(expanded && it.more && it.more.facts && it.more.facts.length)?`<div class="facts">${facts}</div>`:''}
     ${text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
     ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>`:''}
+    ${expanded ? placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -1057,7 +1161,12 @@ document.addEventListener('click', e=>{
     const set = b.dataset.idx==='0' ? state.collapsed : state.expanded;
     set.has(key) ? set.delete(key) : set.add(key); render();
   }
-  if(b.dataset.act==='more'){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
+  if(b.dataset.act==='more'){
+    const opening = !state.expanded.has(key);
+    opening ? state.expanded.add(key) : state.expanded.delete(key);
+    render();
+    if(opening && !it.more && !key.startsWith('area:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[]}; render(); });
+  }
   if(b.dataset.act==='map'){ showOnMap(it); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
