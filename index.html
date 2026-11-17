@@ -25,19 +25,17 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font:400 16px/1.55 var(--sans);background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
-  padding:0 env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 96px) env(safe-area-inset-left)}
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 96px) env(safe-area-inset-left)}
 button,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:none}
 :focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
 svg{flex:none}
 
-/* masthead */
-.top{position:sticky;top:0;z-index:600;background:var(--ground);padding:calc(env(safe-area-inset-top) + 12px) 20px 12px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px}
-.brand{display:flex;align-items:center;gap:8px;flex:none}
-.brand .mark{color:var(--brass);display:flex}
-.brand .word{font:italic 600 24px/1 var(--serif);letter-spacing:.01em}
-#status{font-size:13px;line-height:1.35;color:var(--muted);min-width:0;flex:1;border-left:1px solid var(--rule);padding-left:14px}
-#status .place{display:block;color:var(--ink);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#status .sub2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* status notice: only shown while loading or when something goes wrong */
+#status{position:fixed;top:calc(env(safe-area-inset-top) + 10px);left:50%;transform:translateX(-50%);z-index:950;width:max-content;max-width:calc(100% - 24px);
+  padding:9px 14px;border-radius:14px;background:var(--raise);border:1px solid var(--rule);box-shadow:var(--shadow);font-size:13.5px;line-height:1.4;color:var(--ink);cursor:pointer}
+#status[hidden]{display:none}
+#status .place{font-weight:600;margin-right:6px}
+#status .sub2{color:var(--muted)}
 
 /* map */
 #mapWrap{position:relative;display:none;border-bottom:1px solid var(--rule)}
@@ -207,10 +205,7 @@ footer a{color:var(--muted)}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="brand"><span class="mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></span><span class="word">Wander</span></div>
-  <div id="status" role="status"><span class="place">Ready when you are</span><span class="sub2">Tap Start to find the history around you.</span></div>
-</header>
+<div id="status" role="status" hidden></div>
 
 <main>
   <div id="mapWrap">
@@ -368,7 +363,7 @@ function bearing(a,b){ const y=Math.sin(toRad(b.lon-a.lon))*Math.cos(toRad(b.lat
   const x=Math.cos(toRad(a.lat))*Math.sin(toRad(b.lat))-Math.sin(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.cos(toRad(b.lon-a.lon));
   return (Math.atan2(y,x)*180/Math.PI+360)%360; }
 const compassName = deg => ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8];
-const arrowSVG = deg => `<svg class="arw" width="12" height="12" viewBox="0 0 12 12" style="--r:${Math.round(deg)}deg" aria-hidden="true"><path d="M6 .8 10.2 10.6 6 8.4 1.8 10.6Z" fill="currentColor"/></svg>`;
+const arrowSVG = deg => `<svg class="arw" width="13" height="13" viewBox="0 0 12 12" style="--r:${Math.round(deg)}deg" aria-hidden="true"><path d="M6 .6 10.6 6.2H7.3V11.4H4.7V6.2H1.4Z" fill="currentColor"/></svg>`;
 const WALK = 402;                       // ¼ mile, about five minutes on foot
 const walkMin = m => Math.max(1, Math.round(m/80));
 const FT = 3.28084;
@@ -395,7 +390,7 @@ async function fetchJSON(url, ms=15000){
   try{ const r=await fetch(url,{signal:c.signal}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
   finally{ clearTimeout(t); }
 }
-function setStatus(html){ $('#status').innerHTML = html; }
+function setStatus(html){ const s = $('#status'); s.innerHTML = html || ''; s.hidden = !html; }
 
 /* ---------- Nominatim (OSM) — max 1 request/second ---------- */
 let lastNomi = 0;
@@ -897,11 +892,7 @@ async function refresh(force){
   state.loading = false;
   updateStatus(); render();
 }
-function updateStatus(){
-  if(!state.pos) return;
-  const how = state.manual ? 'Manual location' : (state.watchId!=null ? 'Following GPS' + (state.pos.acc ? ` to ${fmtDist(state.pos.acc)}` : '') : 'Location set');
-  setStatus(`<span class="place">${esc(state.place||'Unknown area')}</span><span class="sub2">${how}, ${state.langs.map(l=>esc(langName(l))).join(' and ')} sources</span>`);
-}
+function updateStatus(){ if(!state.loading) setStatus(''); }   // all loaded: clear the notice
 function onFix(lat, lon, acc){
   state.pos = {lat, lon, acc};
   const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
@@ -1260,6 +1251,7 @@ document.addEventListener('click', e=>{
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
+$('#status').onclick = ()=>setStatus('');
 $('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
 $('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card); });
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
