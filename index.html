@@ -3,95 +3,209 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2f6b4f">
+<meta name="theme-color" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0C2123" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Wander — local history around you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-:root{--bg:#f6f3ec;--card:#fff;--ink:#1f2421;--muted:#6b706b;--accent:#2f6b4f;--accent-ink:#fff;--warm:#b5651d;--line:#e3ddd0;--chip:#efe9dc}
-@media (prefers-color-scheme:dark){:root{--bg:#121513;--card:#1c211e;--ink:#ecebe6;--muted:#9aa29b;--accent:#6fbf93;--accent-ink:#0d1a12;--warm:#e0a060;--line:#2c332e;--chip:#262d28}}
+:root{
+  --ground:#E6E9E4; --surface:#F3F4F0; --raise:#FFFFFF; --ink:#132A2C; --muted:#5B6D6C; --rule:rgba(19,42,44,.13);
+  --brass:#8A672B; --brass-hi:#A8823F; --brass-soft:rgba(138,103,43,.10); --on-brass:#FFF9EC;
+  --patina:#2B6C61; --you:#1C8B7B; --shadow:0 10px 30px rgba(19,42,44,.16);
+  --serif:"Bodoni Moda","Noto Serif JP","Noto Serif SC","Noto Serif",Didot,Georgia,serif;
+  --sans:"Schibsted Grotesk",-apple-system,BlinkMacSystemFont,"Noto Sans JP","Noto Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --ground:#0C2123; --surface:#122D30; --raise:#17373A; --ink:#E8EEE7; --muted:#8FA7A3; --rule:rgba(232,238,231,.11);
+  --brass:#D0AE70; --brass-hi:#E3C68E; --brass-soft:rgba(208,174,112,.11); --on-brass:#1E180B;
+  --patina:#5FB3A3; --you:#8DE3D4; --shadow:0 12px 34px rgba(0,0,0,.45);
+}}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans","Noto Sans JP","Noto Sans SC",sans-serif;background:var(--bg);color:var(--ink);
-  padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
-header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
-h1{font-size:20px;margin:0;letter-spacing:.2px}
-h1 span{color:var(--warm)}
-#status{font-size:13px;color:var(--muted);margin-top:2px;min-height:1.2em}
-.bar{display:flex;gap:8px;margin-top:10px}
-button,.btn{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-button.on{background:var(--warm);border-color:var(--warm);color:#fff}
-.bar button{flex:1;justify-content:center}
-main{padding:12px 12px 40px;max-width:720px;margin:0 auto}
-details.settings{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:12px}
-details.settings summary{cursor:pointer;color:var(--muted);font-size:14px}
-.row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.row label{font-size:14px;color:var(--muted);min-width:90px}
-select,input[type=text]{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-input[type=text]{flex:1;min-width:0}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.chip{font-size:13px;padding:5px 10px;border-radius:999px;background:var(--chip);border:none;color:var(--ink)}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:18px 4px 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:0 12px}
-.card.speaking{outline:2px solid var(--warm)}
-.card .thumb{width:72px;height:72px;border-radius:10px;object-fit:cover;grid-column:2;grid-row:1 / span 2;background:var(--chip)}
-.card h3{margin:0;font-size:17px;line-height:1.25}
-.sub{font-size:14px;color:var(--muted)}
-.meta{font-size:13px;color:var(--accent);font-weight:600;margin-top:2px}
-.meta .new{background:var(--warm);color:#fff;border-radius:6px;padding:0 6px;margin-left:6px;font-size:11px;vertical-align:1px}
-.facts{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.facts span{font-size:12px;background:var(--chip);border-radius:6px;padding:2px 7px}
-.text{grid-column:1 / -1;margin:8px 0 0;font-size:15px}
-.text .lang{font-size:12px;color:var(--muted)}
-.actions{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.actions button,.actions a{font-size:13px;padding:6px 11px}
-#mapWrap{position:relative;margin-bottom:12px;display:none}
+body{font:400 16px/1.55 var(--sans);background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
+  padding:0 env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 96px) env(safe-area-inset-left)}
+button,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:none}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
+svg{flex:none}
+
+/* masthead */
+.top{position:sticky;top:0;z-index:600;background:var(--ground);padding:calc(env(safe-area-inset-top) + 12px) 20px 12px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:8px;flex:none}
+.brand .mark{color:var(--brass);display:flex}
+.brand .word{font:italic 500 24px/1 var(--serif);letter-spacing:.01em}
+#status{font-size:13px;line-height:1.35;color:var(--muted);min-width:0;flex:1;border-left:1px solid var(--rule);padding-left:14px}
+#status .place{display:block;color:var(--ink);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status .sub2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* map */
+#mapWrap{position:relative;display:none;border-bottom:1px solid var(--rule)}
 #mapWrap.show{display:block}
-#map{height:42vh;min-height:240px;border-radius:16px;border:1px solid var(--line);overflow:hidden;z-index:1}
-#mapWrap.collapsed #map{display:none}
-.mapbtns{position:absolute;right:8px;top:8px;z-index:500;display:flex;flex-direction:column;gap:6px}
-#mapWrap.collapsed .mapbtns{position:static;flex-direction:row;justify-content:flex-end}
-.mapbtns button{padding:7px 11px;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-#recenterBtn{display:none}
-.pin{width:26px;height:26px;border-radius:50%;color:#fff;font:600 12px/24px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
-.pin.wiki{background:#2f6b4f}.pin.osm{background:#c06a1b}.pin.wd{background:#6a4fb0}
-.pin.speaking{background:#d43c3c;transform:scale(1.25)}
-.num{display:inline-block;min-width:22px;height:22px;border-radius:11px;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px;margin-right:6px;vertical-align:2px;padding:0 5px}
-.num.wiki{background:#2f6b4f}.num.osm{background:#c06a1b}.num.wd{background:#6a4fb0}
-.legend{font-size:12px;color:var(--muted);display:flex;gap:12px;margin:6px 4px 0;flex-wrap:wrap}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
-.card.flash{outline:3px solid var(--warm);transition:outline .3s}
-.leaflet-popup-content{margin:10px 12px;font-size:14px}
-.leaflet-popup-content button{margin-top:6px;font-size:13px;padding:5px 10px}
-@media (prefers-color-scheme:dark){#map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}}
-.chk{font-size:14px;display:inline-flex;align-items:center;gap:4px}
-.chk input{width:18px;height:18px;accent-color:var(--accent)}
-.src{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
-.inscr{grid-column:1 / -1;margin:8px 0 0;padding:6px 10px;border-left:3px solid var(--warm);font-size:14px;font-style:italic;background:var(--chip);border-radius:0 8px 8px 0}
-.empty{color:var(--muted);text-align:center;padding:30px 10px}
-.hero{text-align:center;padding:30px 10px}
-.hero p{color:var(--muted)}
-footer{font-size:12px;color:var(--muted);text-align:center;padding:10px 16px 30px}
+#map{height:44vh;min-height:260px;z-index:1;background:var(--surface)}
+#mapWrap.collapsed #map,#mapWrap.collapsed .legend{display:none}
+#map .leaflet-tile-pane{filter:grayscale(.8) contrast(.92) brightness(1.04)}
+@media (prefers-color-scheme:dark){#map .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) grayscale(.55) brightness(.78) contrast(1.08)}}
+.mapbtns{position:absolute;right:12px;top:12px;z-index:500;display:flex;gap:8px}
+#mapWrap.collapsed .mapbtns{position:static;justify-content:flex-end;padding:10px 16px}
+.mapbtns button{font-size:13px;font-weight:500;padding:8px 13px;border-radius:999px;background:color-mix(in srgb,var(--surface) 88%,transparent);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.14);border:1px solid var(--rule)}
+#recenterBtn{display:none;color:var(--brass)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 20px 12px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:11px;height:11px;border-radius:50%;display:inline-block}
+.lg.you{background:var(--you);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--you)}
+.lg.wiki{background:var(--brass)}
+.lg.osm{background:var(--patina);box-shadow:inset 0 0 0 2px var(--brass)}
+.lg.wd{background:var(--ink);box-shadow:inset 0 0 0 2px var(--brass)}
+.leaflet-container{font-family:var(--sans)}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--rule)!important}
+.leaflet-control-attribution{background:color-mix(in srgb,var(--surface) 80%,transparent)!important;color:var(--muted)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--raise);color:var(--ink);box-shadow:var(--shadow)}
+.leaflet-popup-content-wrapper{border-radius:12px}
+.leaflet-popup-content{margin:12px 14px;font-size:14px;line-height:1.4}
+.leaflet-popup-content b{font:500 16px/1.25 var(--serif)}
+.leaflet-popup-content button{display:block;margin-top:8px;color:var(--brass);font-weight:500;font-size:13px;padding:0}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted)}
+
+/* medallions: map pins and list numbers share one form */
+.pin,.num{display:inline-grid;place-items:center;border-radius:50%;font:600 13px/1 var(--serif);font-variant-numeric:lining-nums}
+.pin{width:28px;height:28px;box-shadow:0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface);transition:transform .2s}
+.num{width:26px;height:26px;margin-right:10px;flex:none;vertical-align:3px}
+.wiki{background:var(--brass);color:var(--on-brass)}
+.osm{background:var(--patina);color:#fff;box-shadow:inset 0 0 0 2px var(--brass)}
+.wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.pin.osm,.pin.wd{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
+.pin.speaking{transform:scale(1.3)}
+.you-dot{border-radius:50%}
+@media (prefers-reduced-motion:no-preference){
+  .pin.speaking{animation:ring 1.6s ease-out infinite}
+  @keyframes ring{0%{box-shadow:0 0 0 0 var(--brass),0 0 0 2px var(--surface)}100%{box-shadow:0 0 0 14px transparent,0 0 0 2px var(--surface)}}
+}
+
+/* sections */
+main{max-width:760px;margin:0 auto}
+h2{font:500 13px/1.3 var(--sans);color:var(--muted);margin:0;padding:26px 20px 10px;display:flex;justify-content:space-between;align-items:baseline}
+h2 span{font-weight:400}
+
+/* entries */
+.card{display:grid;grid-template-columns:1fr auto;gap:0 16px;padding:18px 20px 20px;border-top:1px solid var(--rule);position:relative}
+.card.speaking{background:var(--brass-soft)}
+.card.speaking::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brass)}
+.card.flash{background:var(--brass-soft);transition:background .4s}
+.card h3{margin:0;font:500 21px/1.22 var(--serif);letter-spacing:-.005em;display:flex;align-items:flex-start}
+.card .sub{font-size:14px;color:var(--muted);margin-top:3px}
+.card .meta{font-size:13px;color:var(--brass);font-weight:500;margin-top:5px;font-variant-numeric:tabular-nums}
+.card .meta .dir{color:var(--muted);font-weight:400;margin-left:6px}
+.card .meta .new{color:var(--on-brass);background:var(--brass);border-radius:4px;padding:1px 6px;margin-left:8px;font-size:11px}
+.card .src{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px}
+.card .thumb{width:76px;height:76px;border-radius:6px;object-fit:cover;grid-column:2;grid-row:1 / span 2;background:var(--surface)}
+.facts{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.facts span{font-size:12px;color:var(--muted);border:1px solid var(--rule);border-radius:4px;padding:3px 8px;line-height:1.3}
+.text{grid-column:1 / -1;margin:12px 0 0;font-size:15.5px;line-height:1.6;max-width:64ch}
+.text .lang{font-size:12px;color:var(--muted)}
+/* the plaque */
+.inscr{grid-column:1 / -1;margin:14px 0 0;padding:14px 16px;border:1px solid var(--brass);border-radius:3px;background:var(--brass-soft);
+  font:400 15px/1.55 var(--serif);letter-spacing:.02em;box-shadow:inset 0 0 0 3px var(--ground),inset 0 0 0 4px color-mix(in srgb,var(--brass) 45%,transparent)}
+.inscr .cap{display:block;font:500 11px/1 var(--sans);color:var(--brass);letter-spacing:.04em;margin-bottom:8px}
+.actions{grid-column:1 / -1;display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.actions button,.actions a{font-size:13.5px;font-weight:500;color:var(--brass);padding:4px 0}
+.actions .listen{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--brass);border-radius:999px;padding:6px 14px 6px 11px}
+.card.speaking .actions .listen{background:var(--brass);color:var(--on-brass)}
+
+/* area frontispiece */
+.card.area{border-top:0;padding-top:4px}
+.card.area h3{font:500 32px/1.1 var(--serif);letter-spacing:-.01em}
+.card.area .text{font-size:16px}
+.card.area .thumb{width:88px;height:88px}
+
+/* hero */
+.hero{padding:56px 24px 40px;max-width:560px}
+.hero .mark{color:var(--brass);margin-bottom:22px}
+.hero h1{font:400 40px/1.08 var(--serif);letter-spacing:-.015em;margin:0 0 18px}
+.hero p{color:var(--muted);margin:0 0 12px;font-size:16px;max-width:46ch}
+.empty{color:var(--muted);padding:36px 20px;border-top:1px solid var(--rule)}
+
+/* dock */
+.dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:900;display:flex;gap:4px;padding:6px;
+  border-radius:22px;background:color-mix(in srgb,var(--raise) 86%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:var(--shadow);border:1px solid var(--rule);width:min(440px,calc(100% - 24px))}
+.dock button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:16px;font-size:15px;font-weight:500;color:var(--ink)}
+.dock button.icon{flex:0 0 52px}
+.dock button.primary{background:var(--brass);color:var(--on-brass)}
+.dock button.on{color:var(--brass);background:var(--brass-soft)}
+.dock button.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--brass)}
+@media (prefers-reduced-motion:no-preference){.dock button.on::after{animation:blink 2s ease-in-out infinite}@keyframes blink{50%{opacity:.25}}}
+
+/* settings sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000}
+.sheet>summary{display:none}
+.sheet[open]::before{content:"";position:fixed;inset:0;background:rgba(5,16,17,.45)}
+.sheet-body{position:relative;max-width:560px;margin:0 auto;background:var(--raise);border-radius:22px 22px 0 0;box-shadow:var(--shadow);
+  padding:10px 22px calc(env(safe-area-inset-bottom) + 22px);max-height:82vh;overflow:auto}
+.sheet-body .grab{width:38px;height:4px;border-radius:2px;background:var(--rule);margin:2px auto 12px}
+.sheet-body h3{font:500 24px/1.2 var(--serif);margin:0 0 6px}
+.row{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.row label,.row .lbl{font-size:14px;color:var(--muted);flex:0 0 110px}
+select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
+.chk{font-size:14px;display:inline-flex;align-items:center;gap:8px;margin-right:14px}
+.chk input{width:18px;height:18px;accent-color:var(--brass)}
+.row .srcs{display:flex;flex-direction:column;gap:8px;flex:1}
+#placeForm button{color:var(--on-brass);background:var(--brass);border-radius:10px;padding:9px 16px;font-weight:500}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 6px}
+.chip{font-size:13px;padding:7px 12px;border-radius:999px;border:1px solid var(--rule)!important;color:var(--ink)}
+#settingsDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
+
+footer{font-size:12px;color:var(--muted);padding:28px 20px 20px;max-width:760px;margin:0 auto;border-top:1px solid var(--rule)}
 footer a{color:var(--muted)}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px;margin-right:4px}
-@keyframes s{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--brass);border-top-color:transparent;border-radius:50%;margin-right:6px;vertical-align:-1px}
+@media (prefers-reduced-motion:no-preference){.spin{animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}}
+@media (min-width:700px){.hero h1{font-size:52px}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Wander <span>·</span> <small style="font-weight:400;font-size:14px;color:var(--muted)">history around you</small></h1>
-  <div id="status">Tap <b>Start</b> to find history near you.</div>
-  <div class="bar">
-    <button id="gpsBtn" class="primary">📍 Start</button>
-    <button id="tourBtn">🎧 Tour mode</button>
-    <button id="refreshBtn" aria-label="Refresh">↻</button>
-  </div>
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></span><span class="word">Wander</span></div>
+  <div id="status" role="status"><span class="place">Ready when you are</span><span class="sub2">Tap Start to find the history around you.</span></div>
 </header>
 
 <main>
-  <details class="settings" id="settings">
-    <summary>Settings &amp; manual location</summary>
+  <div id="mapWrap">
+    <div id="map"></div>
+    <div class="mapbtns">
+      <button id="recenterBtn">Recenter</button>
+      <button id="mapToggle">Hide map</button>
+    </div>
+    <div class="legend"><span><i class="lg you"></i>You</span><span><i class="lg wiki"></i>Wikipedia</span><span><i class="lg osm"></i>Plaque or landmark</span><span><i class="lg wd"></i>Heritage listing</span></div>
+  </div>
+  <section id="areaWrap"></section>
+  <section id="listWrap">
+    <div class="hero">
+      <div class="mark" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></div>
+      <h1>The history around you, as you walk.</h1>
+      <p>Wander reads the local-language Wikipedia first, where neighbourhood history runs deepest, then street plaques and heritage registers, and turns them into short notes you can read or hear.</p>
+      <p>Tap Start, or turn on Tour to hear each place as you reach it.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>.
+</footer>
+
+<nav class="dock" aria-label="Controls">
+  <button id="gpsBtn" class="primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Start</span></button>
+  <button id="tourBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></svg><span>Tour</span></button>
+  <button id="refreshBtn" class="icon" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
+  <button id="settingsBtn" class="icon" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+</nav>
+
+<details class="sheet" id="settings">
+  <summary>Settings</summary>
+  <div class="sheet-body">
+    <div class="grab"></div>
+    <h3>Settings</h3>
     <div class="row">
       <label for="radius">Search radius</label>
       <select id="radius">
@@ -107,7 +221,7 @@ footer a{color:var(--muted)}
       <select id="ulang"></select>
     </div>
     <div class="row">
-      <label for="tourDist">Tour: read at</label>
+      <label for="tourDist">Read aloud within</label>
       <select id="tourDist">
         <option value="60">60 m</option>
         <option value="100">100 m</option>
@@ -116,13 +230,15 @@ footer a{color:var(--muted)}
       </select>
     </div>
     <div class="row">
-      <label>Sources</label>
-      <span class="chk"><input type="checkbox" id="srcWiki" checked disabled> Wikipedia</span>
-      <span class="chk"><input type="checkbox" id="srcOsm"> OSM plaques &amp; landmarks</span>
-      <span class="chk"><input type="checkbox" id="srcWd"> Heritage registers</span>
+      <span class="lbl">Sources</span>
+      <div class="srcs">
+        <span class="chk"><input type="checkbox" id="srcWiki" checked disabled> Wikipedia</span>
+        <span class="chk"><input type="checkbox" id="srcOsm"> Street plaques and landmarks</span>
+        <span class="chk"><input type="checkbox" id="srcWd"> Heritage registers</span>
+      </div>
     </div>
     <form class="row" id="placeForm">
-      <input type="text" id="placeInput" placeholder="Place name, “lat, lon” or a Maps link" autocomplete="off">
+      <input type="text" id="placeInput" placeholder="Place, coordinates or a Maps link" autocomplete="off">
       <button type="submit">Go</button>
     </form>
     <div class="chips">
@@ -132,34 +248,19 @@ footer a{color:var(--muted)}
       <button class="chip" data-ll="41.3839,2.1763">Barri Gòtic, Barcelona</button>
       <button class="chip" data-ll="50.0875,14.4213">Old Town, Prague</button>
     </div>
-  </details>
-
-  <div id="mapWrap">
-    <div id="map"></div>
-    <div class="mapbtns">
-      <button id="mapToggle">Hide map</button>
-      <button id="recenterBtn">◎ Me</button>
-    </div>
-    <div class="legend"><span><i style="background:#3b82f6"></i>You</span><span><i style="background:#2f6b4f"></i>Wikipedia</span><span><i style="background:#c06a1b"></i>Plaque / landmark</span><span><i style="background:#6a4fb0"></i>Heritage listing</span></div>
+    <button type="button" id="settingsDone">Done</button>
   </div>
-  <div id="areaWrap"></div>
-  <div id="listWrap">
-    <div class="hero">
-      <div style="font-size:44px">🧭</div>
-      <p>Wander finds places of historical interest around you, searching the <b>local-language</b> Wikipedia first, where neighbourhood history is richest, and gives you short factoids you can read or listen to while you walk.</p>
-      <p>Turn on <b>Tour mode</b> to have each place read aloud as you get close.</p>
-    </div>
-  </div>
-</main>
-
-<footer>
-  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (Nominatim) ·
-  Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA) · Facts from <a href="https://www.wikidata.org/">Wikidata</a>
-</footer>
+</details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 "use strict";
+const ICON = {
+  play:'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>',
+  stop:'<svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1.2" fill="currentColor"/></svg>'
+};
+const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 /* ---------- config ---------- */
 const COUNTRY_LANGS = {
   jp:['ja'], cn:['zh'], tw:['zh'], hk:['zh'], mo:['zh','pt'], kr:['ko'], kp:['ko'], mn:['mn'],
@@ -376,7 +477,7 @@ function mergeOSM(elements){
     if(sd && /^\d{3,4}/.test(sd)) facts.push('Est. '+sd.slice(0,4).replace(/^0+/,''));
     if(t.architect) facts.push('Architect: '+t.architect);
     if(t.artist_name) facts.push('Artist: '+t.artist_name);
-    if(t.heritage && t['heritage:operator']) facts.push('🏛 Listed ('+t['heritage:operator']+')');
+    if(t.heritage && t['heritage:operator']) facts.push('Listed ('+t['heritage:operator']+')');
     const existing = t.wikidata && state.items.get(t.wikidata);
     if(existing){   // already known from Wikipedia/Wikidata: just add the plaque text & facts
       if(inscription && !existing.inscription){ existing.inscription = inscription; existing.inscrLang = t['inscription:'+ul] ? ul : local; }
@@ -419,7 +520,7 @@ function mergeWD(rows){
     const label = b.itemLabel?.value, her = b.herLabel?.value, type = b.typeLabel?.value;
     const f = seen[qid] || (seen[qid] = {qid, lat:+m[2], lon:+m[1], label, desc:b.itemDescription?.value||'', lang:b.itemLabel?.['xml:lang'], facts:new Set()});
     if(type && !/^Q\d+$/.test(type)) f.facts.add(cap(type));
-    if(her && !/^Q\d+$/.test(her)) f.facts.add('🏛 '+her);
+    if(her && !/^Q\d+$/.test(her)) f.facts.add(her);
   }
   for(const f of Object.values(seen)){
     const existing = state.items.get(f.qid);
@@ -474,7 +575,7 @@ async function loadFacts(){
       if(f.built) facts.push('Est. '+f.built);
       const ar=[...f.arch].slice(0,2); if(ar.length) facts.push('Architect: '+ar.join(', '));
       const st=[...f.style][0]; if(st) facts.push('Style: '+st);
-      const h=[...f.her][0]; if(h) facts.push('🏛 '+h);
+      const h=[...f.her][0]; if(h) facts.push(h);
       it.facts = [...new Set([...facts, ...(it.facts||[])])];
     }
   }catch(e){ /* factoids are optional */ }
@@ -489,18 +590,18 @@ async function refresh(force){
   setStatus('<span class="spin"></span>Looking around…');
   try{
     await loadArea(lat, lon);
-    setStatus(`<span class="spin"></span>${esc(state.place)} · searching ${state.langs.map(langName).join(' + ')} Wikipedia…`);
+    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Reading ${state.langs.map(langName).join(' and ')} Wikipedia…</span>`);
     const extra = Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
     const added = await loadNearby(lat, lon);
     state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
     render();
-    setStatus(`<span class="spin"></span>${esc(state.place)} · checking plaques &amp; heritage registers…`);
+    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Checking plaques and heritage registers…</span>`);
     const [wdRows, osmEls] = await extra;
     mergeWD(wdRows); mergeOSM(osmEls);
     if(added && state.loads>1 && !state.tour && navigator.vibrate) navigator.vibrate(40);
     loadFacts();
   }catch(e){
-    setStatus('⚠️ Could not load: '+esc(e.message)+' — check your connection and tap ↻');
+    setStatus('Could not load: '+esc(e.message)+' — check your connection and tap ↻');
     state.loading=false; return;
   }
   state.loading = false;
@@ -508,9 +609,8 @@ async function refresh(force){
 }
 function updateStatus(){
   if(!state.pos) return;
-  const acc = state.pos.acc ? ` · ±${Math.round(state.pos.acc)} m` : '';
-  const src = state.manual ? ' · manual location' : (state.watchId!=null ? ' · following GPS' : '');
-  setStatus(`📍 ${esc(state.place||'Unknown area')}${acc}${src}<br>Sources: ${state.langs.map(l=>esc(langName(l))).join(' + ')} Wikipedia`);
+  const how = state.manual ? 'Manual location' : (state.watchId!=null ? 'Following GPS' + (state.pos.acc ? ` to ${Math.round(state.pos.acc)} m` : '') : 'Location set');
+  setStatus(`<span class="place">${esc(state.place||'Unknown area')}</span><span class="sub2">${how}, ${state.langs.map(l=>esc(langName(l))).join(' and ')} sources</span>`);
 }
 function onFix(lat, lon, acc){
   state.pos = {lat, lon, acc};
@@ -522,20 +622,20 @@ function onFix(lat, lon, acc){
 /* ---------- GPS ---------- */
 function startGPS(){
   if(!('geolocation' in navigator)){ setStatus('This browser has no location access. Use Settings → manual location.'); return; }
-  if(!window.isSecureContext){ setStatus('⚠️ GPS needs the page to be opened over https://. Use Settings → manual location, or host the file (see notes).'); $('#settings').open=true; return; }
+  if(!window.isSecureContext){ setStatus('GPS needs the page to be opened over https://. Use Settings → manual location, or host the file (see notes).'); $('#settings').open=true; return; }
   stopGPS(); state.manual=false;
   setStatus('<span class="spin"></span>Getting your location…');
   state.watchId = navigator.geolocation.watchPosition(
     p => onFix(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
-    err => { setStatus('⚠️ Location: '+esc(err.message)+'. You can type a place in Settings.'); $('#settings').open=true; },
+    err => { setStatus('Location: '+esc(err.message)+'. You can type a place in Settings.'); $('#settings').open=true; },
     {enableHighAccuracy:true, maximumAge:10000, timeout:30000}
   );
-  $('#gpsBtn').textContent='📍 Following'; $('#gpsBtn').classList.add('on'); $('#gpsBtn').classList.remove('primary');
+  label('#gpsBtn','Following'); $('#gpsBtn').classList.add('on'); $('#gpsBtn').classList.remove('primary');
 }
 function stopGPS(){
   if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);
   state.watchId=null;
-  $('#gpsBtn').textContent='📍 Use GPS'; $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
+  label('#gpsBtn','Use GPS'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
 }
 function setManual(lat, lon){
   stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.heard.clear(); state.loads=0;
@@ -594,7 +694,7 @@ async function keepAwake(on){
 document.addEventListener('visibilitychange', ()=>{ if(state.tour && document.visibilityState==='visible') keepAwake(true); });
 function toggleTour(){
   state.tour = !state.tour;
-  const b=$('#tourBtn'); b.classList.toggle('on', state.tour); b.textContent = state.tour ? '🎧 Touring' : '🎧 Tour mode';
+  const b=$('#tourBtn'); b.classList.toggle('on', state.tour); label('#tourBtn', state.tour ? 'Touring' : 'Tour');
   if(state.tour){
     keepAwake(true);
     if(state.watchId==null && !state.manual) startGPS();
@@ -614,9 +714,10 @@ function initMap(){
   M.map = L.map('map', {zoomControl:false, attributionControl:true}).setView([state.pos.lat, state.pos.lon], 16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(M.map);
   L.control.zoom({position:'bottomright'}).addTo(M.map);
-  M.ring = L.circle([state.pos.lat, state.pos.lon], {radius:state.radius, color:'#2f6b4f', weight:1, dashArray:'4 6', fill:false, interactive:false}).addTo(M.map);
-  M.acc = L.circle([state.pos.lat, state.pos.lon], {radius:state.pos.acc||0, color:'#3b82f6', weight:0, fillOpacity:.12, interactive:false}).addTo(M.map);
-  M.me = L.circleMarker([state.pos.lat, state.pos.lon], {radius:8, color:'#fff', weight:3, fillColor:'#3b82f6', fillOpacity:1}).addTo(M.map).bindPopup('You are here');
+  M.ring = L.circle([state.pos.lat, state.pos.lon], {radius:state.radius, color:cssv('--brass'), weight:1, dashArray:'4 6', fill:false, interactive:false}).addTo(M.map);
+  M.acc = L.circle([state.pos.lat, state.pos.lon], {radius:state.pos.acc||0, color:cssv('--you'), weight:0, fillOpacity:.12, interactive:false}).addTo(M.map);
+  M.map.createPane('me'); M.map.getPane('me').style.zIndex = 650;
+  M.me = L.circleMarker([state.pos.lat, state.pos.lon], {pane:'me', radius:8, color:cssv('--surface'), weight:3, fillColor:cssv('--you'), fillOpacity:1}).addTo(M.map).bindPopup('You are here');
   const stopFollow = ()=>{ if(M.programmatic) return; M.follow=false; $('#recenterBtn').style.display='inline-flex'; };
   M.map.on('dragstart', stopFollow);
   M.map.on('popupopen', e=>{ const b = e.popup.getElement() && e.popup.getElement().querySelector('[data-goto]'); if(b) b.onclick = ()=>{ M.map.closePopup(); scrollToCard(b.dataset.goto); }; });
@@ -641,7 +742,7 @@ function updateMap(ordered){
   if(state.areaGeo !== M.areaGeo){
     if(M.area){ M.area.remove(); M.area=null; }
     M.areaGeo = state.areaGeo;
-    if(state.areaGeo) M.area = L.geoJSON(state.areaGeo, {style:{color:'#b5651d', weight:1.5, fillOpacity:.05, dashArray:'2 4'}, interactive:false}).addTo(M.map);
+    if(state.areaGeo) M.area = L.geoJSON(state.areaGeo, {style:{color:cssv('--patina'), weight:1.5, fillOpacity:.05, dashArray:'2 4'}, interactive:false}).addTo(M.map);
   }
   // numbered pins, matching card numbers
   const keep = new Set();
@@ -650,11 +751,11 @@ function updateMap(ordered){
     const n = i+1, cls = srcClass(it) + (state.speakingKey===it.key ? ' speaking' : '');
     const sig = n+'|'+cls;
     let p = M.pins.get(it.key);
-    const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-12]});
+    const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-12]});
     if(!p){
       p = L.marker([it.lat, it.lon], {icon:icon(), zIndexOffset: state.speakingKey===it.key ? 1000 : -n}).addTo(M.map);
       p.on('click', ()=>{ const cur = state.items.get(it.key) || it; const {v} = bestVersion(cur);
-        p.unbindPopup(); p.bindPopup(`<b>${p.num}. ${esc(v ? v.title : '')}</b><br><button data-goto="${esc(it.key)}">Show details ↓</button>`).openPopup(); });
+        p.unbindPopup(); p.bindPopup(`<b>${p.num}. ${esc(v ? v.title : '')}</b><br><button data-goto="${esc(it.key)}">Show details</button>`).openPopup(); });
       p.sig = sig; p.num = n; M.pins.set(it.key, p);
     } else if(p.sig !== sig){ p.setIcon(icon()); p.setZIndexOffset(state.speakingKey===it.key ? 1000 : -n); p.sig = sig; p.num = n; }
   });
@@ -700,31 +801,31 @@ function cardHTML(it, opts={}){
   const expanded = state.expanded.has(it.key);
   const text = expanded ? full : trimText(full, limit);
   const d = state.pos && it.lat!=null ? hav(state.pos, it) : null;
-  const meta = d!=null ? `${dirLabel(bearing(state.pos,it))} · ${fmtDist(d)}` : '';
+  const meta = d!=null ? `${fmtDist(d)}<span class="dir">${dirLabel(bearing(state.pos,it))}</span>` : '';
   const isNew = it.isNew && Date.now()-it.addedAt < 180000;
   const facts = (it.facts||[]).map(f=>`<span>${esc(f)}</span>`).join('');
   const k = esc(it.key);
-  let actions = `<button data-act="speak" data-key="${k}">${state.speakingKey===it.key?'⏹ Stop':'🔊 Listen'}</button>`;
+  let actions = `<button class="listen" data-act="speak" data-key="${k}">${state.speakingKey===it.key?ICON.stop+'Stop':ICON.play+'Listen'}</button>`;
   if(full.length > text.length || expanded) actions += `<button data-act="more" data-key="${k}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
-  if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">🌐 Translate</a>`;
+  if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
-  if(it.src && foreignText) actions += `<a class="btn" target="_blank" rel="noopener" href="https://translate.google.com/?sl=auto&tl=${ul}&op=translate&text=${encodeURIComponent(foreignText.slice(0,1500))}">🌐 Translate</a>`;
+  if(it.src && foreignText) actions += `<a class="btn" target="_blank" rel="noopener" href="https://translate.google.com/?sl=auto&tl=${ul}&op=translate&text=${encodeURIComponent(foreignText.slice(0,1500))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
-  if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">📍 Map</button>`;
-  if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">🚶 Walk</a>`;
+  if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
+  if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">Directions</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
-  return `<article class="card${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
+  return `<article class="card${opts.area?' area':''}${state.speakingKey===it.key?' speaking':''}" data-key="${k}">
     <div>
       <h3 lang="${esc(localLang||ul)}">${num}${esc(head.title)}</h3>
       ${sub?`<div class="sub">${esc(sub)}</div>`:''}
-      ${meta?`<div class="meta">${meta}${isNew?'<span class="new">NEW</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
+      ${meta?`<div class="meta">${meta}${isNew?'<span class="new">New</span>':''}${it.src?`<span class="src">via ${esc(it.src)}</span>`:''}</div>`:''}
     </div>
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
     ${facts?`<div class="facts">${facts}</div>`:''}
     ${text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
-    ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}">✍️ ${esc(it.inscription)}</blockquote>`:''}
+    ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>`:''}
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -737,7 +838,7 @@ function render(){
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d).map(x=>x.it);
   $('#listWrap').innerHTML = items.length
-    ? `<h2>Nearby · ${items.length} place${items.length>1?'s':''}</h2>` + items.map((it,i)=>cardHTML(it,{num:i+1})).join('')
+    ? `<h2>Nearby <span>${items.length} place${items.length>1?'s':''}</span></h2>` + items.map((it,i)=>cardHTML(it,{num:i+1})).join('')
     : (state.loading ? '' : `<div class="empty">Nothing with a Wikipedia article within ${fmtDist(state.radius)}. Try a bigger radius in Settings.</div>`);
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
 }
@@ -755,6 +856,9 @@ document.addEventListener('click', e=>{
 });
 $('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
 $('#tourBtn').onclick = toggleTour;
+$('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
+$('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
+$('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
 $('#mapToggle').onclick = toggleMap;
 $('#recenterBtn').onclick = recenter;
 $('#refreshBtn').onclick = ()=>{ if(!state.pos){ startGPS(); return; } state.areaKey=''; state.lastLoadTime=0; refresh(true); };
@@ -780,7 +884,7 @@ $('#placeForm').onsubmit = async e=>{
     const r = await nominatim('search', {q:v, limit:'1'});
     if(r && r[0]) setManual(parseFloat(r[0].lat), parseFloat(r[0].lon));
     else setStatus('Could not find “'+esc(v)+'”.');
-  }catch(err){ setStatus('⚠️ Search failed: '+esc(err.message)); }
+  }catch(err){ setStatus('Search failed: '+esc(err.message)); }
 };
 if(synth && synth.onvoiceschanged!==undefined) synth.onvoiceschanged = ()=>{};
 // Keep distances fresh even when standing still
