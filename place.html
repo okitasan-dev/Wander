@@ -179,7 +179,7 @@ body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order
 .err h1{font-size:28px;margin-bottom:12px}
 </style>
 </head>
-<body>
+<body lang="en">
 <a class="home" href="./"><svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="16" cy="16" r="14.5"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" stroke="none"/></svg>Wander</a>
 <main id="page">
   <figure class="hero" id="hero" hidden><img id="heroImg" alt=""><a class="credit" id="heroCredit" target="_blank" rel="noopener"></a></figure>
@@ -397,6 +397,7 @@ async function main(){
   } else {
     $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this ${event ? 'event' : 'place'} yet.</p>`;
   }
+  updatePageLang($('#page'), ul);
 
   // Facts
   await factsP;
@@ -438,11 +439,13 @@ async function main(){
   gal.sort((a,b)=>(a.year||9999)-(b.year||9999));
   renderGallery(gal);
   renderCredits(article, all);
+  updatePageLang($('#page'), ul);
 
   // The interactive timeline replaces the plain history list once everything is in (places only)
   if(event) return;
   const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url});
   if(events.length >= 3) renderTimeline(events, hist ? hist.lang : ul);
+  updatePageLang($('#page'), ul);
 }
 /* ---------- Event layout ---------- */
 /* Is this item an event (anything Wikidata classes under "occurrence")? */

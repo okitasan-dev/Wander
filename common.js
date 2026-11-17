@@ -46,6 +46,24 @@ function fmtTime(t, prec){
   return null;
 }
 
+/* ---------- page language ---------- */
+/* Browsers offer to translate a page based on its declared language (<html lang>). When most of what is on
+   screen is in the local language (Japanese in Kyoto, say), declare that, so the browser's translator is offered.
+   Wander's own buttons and labels sit under <body lang="en">; content passages carry their own lang attributes. */
+function updatePageLang(root, readerLang){
+  const weight = {ja:2.5, zh:2.5, ko:2}, counts = {}; let total = 0;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for(let n; (n = walk.nextNode());){
+    const t = n.nodeValue.trim(), el = n.parentElement; if(!t || !el || el.closest('[hidden],script,style')) continue;
+    const owner = el.closest('[lang]'), l = ((owner && owner !== document.documentElement && owner.lang) || 'en').split('-')[0].toLowerCase();
+    const c = t.length * (weight[l] || 1); counts[l] = (counts[l] || 0) + c; total += c;
+  }
+  const ranked = Object.entries(counts).sort((a,b)=>b[1]-a[1]); if(!ranked.length) return;
+  const other = ranked.find(([l])=>l !== readerLang);
+  const pick = other && other[1]/total >= .4 ? other[0] : ranked[0][0];
+  if(document.documentElement.lang !== pick) document.documentElement.lang = pick;
+}
+
 /* ---------- Wikipedia ---------- */
 function wikiURL(lang, params){
   return `https://${lang}.wikipedia.org/w/api.php?` + new URLSearchParams({format:'json', formatversion:'2', origin:'*', ...params});

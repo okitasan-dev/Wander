@@ -209,7 +209,7 @@ footer a{color:var(--muted)}
 @media (min-width:700px){.hero h1{font-size:52px}}
 </style>
 </head>
-<body>
+<body lang="en">
 <div id="status" role="status" hidden></div>
 
 <main>
@@ -1091,6 +1091,7 @@ function render(){
   const items = rows.map(r=>r.it);
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
   lookApply(true);
+  updatePageLang(document.querySelector('main'), state.userLang);
 }
 /* Distance bands: what you can see, what is a short walk, and the rest */
 function bandOf(d){ return d <= state.sight ? 0 : d <= Math.max(WALK, state.sight) ? 1 : 2; }
