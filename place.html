@@ -152,6 +152,21 @@ h2 span{font-weight:400}
 .ev-src .cr{display:block}
 .ev-close{position:absolute;right:10px;top:10px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center;z-index:2}
 
+/* event layout: key points and photos first */
+.when{margin-top:10px;font:600 17px/1.4 var(--serif);color:var(--brass)}
+.when a{color:inherit;text-decoration-color:color-mix(in srgb,var(--brass) 40%,transparent);text-underline-offset:3px}
+.when .sep{color:var(--muted);font-weight:400;margin:0 6px}
+body.event main{display:flex;flex-direction:column}
+body.event .hero,body.event .nohero{order:0} body.event .head{order:1} body.event #summary{order:2} body.event #gallery{order:3}
+body.event #facts{order:4} body.event #trivia{order:5} body.event #history{order:6} body.event #credits{order:7}
+.points{list-style:none;margin:18px 0 0;padding:0}
+.points li{position:relative;padding:10px 0 10px 22px;border-top:1px solid var(--rule);font-size:16.5px;line-height:1.55}
+.points li:last-child{border-bottom:1px solid var(--rule)}
+.points li::before{content:"";position:absolute;left:3px;top:19px;width:8px;height:8px;border-radius:2px;background:var(--brass);transform:rotate(45deg)}
+.fullsum{margin-top:12px}
+.fullsum summary{cursor:pointer;color:var(--brass);font-weight:500;font-size:15px;padding:6px 0}
+.factgrid dd a{color:inherit;text-decoration-color:color-mix(in srgb,var(--brass) 45%,transparent);text-underline-offset:3px}
+
 /* credits */
 .credits{font-size:13px;color:var(--muted);line-height:1.5}
 .credits a{color:var(--muted)}
@@ -172,6 +187,7 @@ h2 span{font-weight:400}
     <div class="kind" id="kind"></div>
     <h1 id="title"></h1>
     <div class="sub" id="sub"></div>
+    <div class="when" id="when" hidden></div>
     <div class="links" id="links"></div>
   </div>
   <section class="summary" id="summary"><p class="gather"><span class="spin"></span>Reading about this place…</p></section>
@@ -266,7 +282,7 @@ const creditText = f => [f.artist, f.license].filter(Boolean).join(' · ');
 
 /* ---------- rendering pieces ---------- */
 function renderHead(item){
-  const title = item.label || P.get('t') || 'Untitled';
+  const title = cap(item.label || P.get('t') || 'Untitled');
   document.title = `${title} · Wander`;
   $('#title').textContent = title;
   $('#title').lang = item.label ? state.userLang : (state.local || state.userLang);
@@ -336,47 +352,61 @@ async function main(){
   catch(e){ fail('Could not load this place. Check your connection and try again.'); return; }
   renderHead(item);
   const title = item.label || P.get('t') || '';
+  const eventP = isEvent(QID);
 
   // Wikipedia: the reader's language first, then the local language, then English
   const order = LANGS.filter(l=>item.articles[l]);
   const artLang = order[0] || null;
   const articleP = artLang ? extractsFor(artLang, [item.articles[artLang]]).then(x=>{ const a = x[item.articles[artLang]]; return a ? {...a, lang: artLang} : null; }).catch(()=>null) : Promise.resolve(null);
 
-  // Facts, milestones and factoids from Wikidata
-  const m = {facts:[], events:[]};
-  let factRows = [];
-  const factsP = sparql(qPlace(QID, ul)).then(rows=>{ factRows = rows; placeFacts(rows, m); }).catch(()=>{});
-  const triviaP = sparql(qFactoids(QID, state.kind, ul)).then(rows=>factoidList(rows, title)).catch(()=>[]);
-  const tlP = sparql(qTimeline(QID, ul)).catch(()=>[]);
+  // Photos: the item's own image, its Commons category, then the article's images
+  const heroP = item.image ? imageInfo({titles: 'File:'+item.image, iiurlwidth:'1280'}).then(x=>x[0]||null).catch(()=>null) : Promise.resolve(null);
+  const catP = item.cat ? imageInfo({generator:'categorymembers', gcmtitle:'Category:'+item.cat, gcmtype:'file', gcmlimit:'60'}).catch(()=>[]) : Promise.resolve([]);
+  const artImgP = artLang ? imageInfo({generator:'images', titles:item.articles[artLang], gimlimit:'40'}, `https://${artLang}.wikipedia.org/w/api.php?`).catch(()=>[]) : Promise.resolve([]);
 
-  // History sentences from the article
-  const histP = (async()=>{
+  // Events get their own layout: key points and photos first, event facts, no building history
+  const event = await eventP;
+  if(event) document.body.classList.add('event');
+  const triviaP = sparql(qFactoids(QID, state.kind, ul)).then(rows=>factoidList(rows, title)).catch(()=>[]);
+  const m = {facts:[], events:[]};
+  let factRows = [], ev = null;
+  const factsP = event
+    ? sparql(qEvent(QID, ul)).then(rows=>{ ev = eventFacts(rows); }).catch(()=>{})
+    : sparql(qPlace(QID, ul)).then(rows=>{ factRows = rows; placeFacts(rows, m); }).catch(()=>{});
+  const tlP = event ? Promise.resolve([]) : sparql(qTimeline(QID, ul)).catch(()=>[]);
+  const histP = event ? Promise.resolve(null) : (async()=>{
     for(const lang of order){
       try{ const rows = timeline(await fullText(lang, item.articles[lang]), 10); if(rows.length) return {lang, rows}; }catch(e){}
     }
     return null;
   })();
 
-  // Photos: the item's own image, its Commons category, then the article's images
-  const heroP = item.image ? imageInfo({titles: 'File:'+item.image, iiurlwidth:'1280'}).then(x=>x[0]||null).catch(()=>null) : Promise.resolve(null);
-  const catP = item.cat ? imageInfo({generator:'categorymembers', gcmtitle:'Category:'+item.cat, gcmtype:'file', gcmlimit:'60'}).catch(()=>[]) : Promise.resolve([]);
-  const artImgP = artLang ? imageInfo({generator:'images', titles:item.articles[artLang], gimlimit:'40'}, `https://${artLang}.wikipedia.org/w/api.php?`).catch(()=>[]) : Promise.resolve([]);
-
-  // Summary
+  // Summary (events: key points, with the full introduction one tap away)
   const article = await articleP;
   if(article && article.extract){
     const paras = article.extract.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-    const foreign = article.lang !== ul;
-    $('#summary').innerHTML = paras.map(p=>`<p lang="${esc(article.lang)}">${esc(p)}</p>`).join('')
+    const foreign = article.lang !== ul, L = esc(article.lang);
+    const full = paras.map(p=>`<p lang="${L}">${esc(p)}</p>`).join('');
+    const pts = event ? keyPoints(article.extract) : [];
+    $('#summary').innerHTML = (pts.length >= 2
+        ? `<h2>Key points</h2><ul class="points" lang="${L}">${pts.map(p=>`<li>${esc(p)}</li>`).join('')}</ul><details class="fullsum"><summary>Read the full summary</summary>${full}</details>`
+        : full)
       + (foreign ? `<p class="lang">From ${esc(langName(article.lang))} Wikipedia. <a class="xlate" target="_blank" rel="noopener" href="${esc(translateLink(article.lang, article.title))}">Read it translated</a></p>` : '');
     addLink(`<a target="_blank" rel="noopener" href="${esc(article.url)}">Wikipedia</a>`);
   } else {
-    $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this place yet.</p>`;
+    $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this ${event ? 'event' : 'place'} yet.</p>`;
   }
 
   // Facts
   await factsP;
-  if(m.facts.length) section('facts', 'At a glance', `<dl class="factgrid">${m.facts.map(([l,v])=>`<div${textOf(v).length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('')}</dl>`);
+  const grid = F => `<dl class="factgrid">${F.map(([l,v])=>`<div${textOf(v).length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+  if(event && ev){
+    // date and place under the title
+    const place = ev.where.length ? ev.where.slice(0,2).map(w=>`<a href="place.html?${esc(new URLSearchParams({id:w.qid, lang:ul, t:w.label}).toString())}">${esc(w.label)}</a>`).join(', ') : (ev.country ? esc(ev.country.label) : '');
+    const line = [ev.when ? esc(ev.when) : '', place].filter(Boolean).join('<span class="sep">·</span>');
+    if(line){ $('#when').innerHTML = line; $('#when').hidden = false; }
+    if(ev.facts.length) section('facts', 'Key facts', grid(ev.facts));
+  } else if(m.facts.length) section('facts', 'At a glance', grid(m.facts));
 
   // History: article sentences plus Wikidata milestones, in date order
   const hist = await histP;
@@ -403,15 +433,86 @@ async function main(){
   for(const f of [hero, ...cat, ...artImgs]) if(f && usable(f) && !seen.has(f.title)){ seen.add(f.title); all.push(f); }
   const heroPick = hero && usable(hero) ? hero : all[0];
   renderHero(heroPick);
-  const gal = all.filter(f=>f!==heroPick).slice(0, 48);
+  const gal = all.filter(f=>f!==heroPick).slice(0, event ? 60 : 48);
   gal.sort((a,b)=>(a.year||9999)-(b.year||9999));
   renderGallery(gal);
   renderCredits(article, all);
 
-  // The interactive timeline replaces the plain history list once everything is in
+  // The interactive timeline replaces the plain history list once everything is in (places only)
+  if(event) return;
   const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url});
   if(events.length >= 3) renderTimeline(events, hist ? hist.lang : ul);
 }
+/* ---------- Event layout ---------- */
+/* Is this item an event (anything Wikidata classes under "occurrence")? */
+async function isEvent(q){
+  // Walk up from the item's own classes (fast) rather than down from "occurrence" (huge, times out)
+  try{ const rows = await sparql(`SELECT DISTINCT ?c WHERE { wd:${q} wdt:P31/wdt:P279* ?c } LIMIT 3000`); return rows.some(r=>r.c.value.endsWith('/Q1190554')); }
+  catch(e){ return false; }
+}
+function qEvent(q, ul){
+  return `SELECT ?kind ?pid ?val ?valLabel ?amt ?unitLabel ?time ?prec WHERE {
+    { BIND("v" AS ?kind)
+      VALUES ?pid { wd:P276 wd:P17 wd:P361 wd:P828 wd:P1478 wd:P1542 wd:P1346 wd:P710 wd:P664 wd:P3342 wd:P8031 wd:P155 wd:P156 }
+      ?pid wikibase:directClaim ?wdt. wd:${q} ?wdt ?val. FILTER(isIRI(?val)) }
+    UNION
+    { BIND("n" AS ?kind)
+      VALUES ?pid { wd:P585 wd:P580 wd:P582 wd:P1120 wd:P1339 wd:P1132 wd:P1110 wd:P2047 }
+      ?pid wikibase:claim ?p; wikibase:statementValue ?psv.
+      wd:${q} ?p ?st. ?st ?psv ?node. ?st wikibase:rank ?r. FILTER(?r != wikibase:DeprecatedRank)
+      OPTIONAL { ?node wikibase:timeValue ?time; wikibase:timePrecision ?prec }
+      OPTIONAL { ?node wikibase:quantityAmount ?amt; wikibase:quantityUnit ?unit } }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${ul},en". }
+  } LIMIT 300`;
+}
+/* A date as precise as Wikidata knows it: "18 April 1906", "April 1906" or "1906" */
+function fmtDate(t, prec){
+  prec = +prec; const m = /^([+-]?)(\d+)-(\d\d)-(\d\d)/.exec(t||''); if(!m) return null;
+  // Wikidata stores old dates converted to the modern calendar, so day and month before 1583 would be off: show the year only
+  if(m[1]==='-' || prec < 10 || +m[2] < 1583) return fmtTime(t, Math.min(prec, 9));
+  const d = new Date(Date.UTC(2000, +m[3]-1, Math.max(1, +m[4]))); d.setUTCFullYear(+m[2]);
+  try{ return new Intl.DateTimeFormat(state.userLang, prec >= 11 ? {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'} : {month:'long', year:'numeric', timeZone:'UTC'}).format(d); }
+  catch(e){ return fmtTime(t, 9); }
+}
+function eventFacts(rows){
+  const by = {};
+  for(const r of rows){ const pid = r.pid.value.split('/').pop(); (by[pid] = by[pid] || []).push(r); }
+  const items = pid => { const seen = new Set(); return (by[pid]||[]).filter(r=>r.kind.value==='v' && r.valLabel && !isQ(r.valLabel.value))
+    .map(r=>({qid:r.val.value.split('/').pop(), label:r.valLabel.value})).filter(v=>!seen.has(v.qid) && seen.add(v.qid)); };
+  const link = v => `<a href="place.html?${esc(new URLSearchParams({id:v.qid, lang:state.userLang, t:v.label}).toString())}">${esc(cap(v.label))}</a>`;
+  const list = (pid, n=4) => { const L = items(pid); return L.length ? L.slice(0,n).map(link).join(', ') + (L.length > n ? ` <small>+${L.length-n} more</small>` : '') : ''; };
+  const date = pid => { const r = (by[pid]||[]).find(r=>r.kind.value==='n' && r.time); return r ? fmtDate(r.time.value, r.prec && r.prec.value) : null; };
+  const nums = pid => { const v = (by[pid]||[]).filter(r=>r.kind.value==='n' && r.amt).map(r=>Math.abs(+r.amt.value)); if(!v.length) return '';
+    const lo = Math.min(...v), hi = Math.max(...v); if(!hi) return ''; return lo===hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`; };
+  const at = date('P585'), from = date('P580'), to = date('P582');
+  const when = at || (from && to && from!==to ? `${from} – ${to}` : from || to || '');
+  const where = items('P276'), country = items('P17')[0];
+  const F = [], add = (l, v) => { if(v) F.push([l, v]); };
+  add('When', esc(when));
+  add('Where', [where.slice(0,3).map(link).join(', '), country && !where.some(w=>w.qid===country.qid) ? esc(country.label) : ''].filter(Boolean).join(', '));
+  add('Part of', list('P361', 2));
+  add('Cause', [list('P1478', 2), list('P828', 3)].filter(Boolean).join(', '));
+  add('Outcome', list('P1542', 3));
+  add('Winner', list('P1346', 3));
+  add('Participants', list('P710', 6));
+  add('Organised by', list('P664', 3));
+  add('Key people', list('P3342', 4));
+  add('Perpetrator', list('P8031', 3));
+  add('Deaths', nums('P1120')); add('Injured', nums('P1339'));
+  add('People involved', nums('P1132')); add('Attendance', nums('P1110'));
+  const dur = (by.P2047||[]).find(r=>r.amt);
+  if(dur){ const n = +dur.amt.value, u = (dur.unitLabel||{}).value || ''; add('Lasted', esc(`${fmtNum(n)} ${u}${n!==1 && state.userLang==='en' && u && !/s$/.test(u) ? 's' : ''}`)); }
+  add('Preceded by', list('P155', 1)); add('Followed by', list('P156', 1));
+  return {facts:F, when, where, country};
+}
+/* Key points: the opening sentence of each paragraph of the article's introduction */
+function keyPoints(extract){
+  const paras = extract.split(/\n+/).map(s=>s.trim()).filter(Boolean), pts = [];
+  for(const p of paras){ const s = sentences(p)[0]; if(s && s.length > 30) pts.push(s); if(pts.length >= 5) break; }
+  if(pts.length < 3) for(const s of sentences(paras[0]||'').slice(1)){ if(pts.length >= 4) break; if(s.length > 30) pts.push(s); }
+  return pts.map(s=>trimText(s, 300));
+}
+
 /* ---------- Interactive timeline ---------- */
 /* Dated things connected to the place: heritage listing, events held there, notable burials, works set there. */
 function qTimeline(q, ul){
