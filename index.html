@@ -252,7 +252,7 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .coords small{display:block;font-size:14px;font-weight:400;color:var(--muted);margin-bottom:2px}
 .coords{flex:1;min-width:0;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
 .mini{font-size:13px;font-weight:500;color:var(--brass);border:1px solid var(--brass)!important;border-radius:999px;padding:5px 12px}
-.seg{display:flex;gap:16px;flex:1;flex-wrap:wrap}
+.seg{display:flex;gap:10px 14px;flex:1;flex-wrap:wrap}
 .seg label{font-size:14px;display:inline-flex;align-items:center;gap:6px;color:var(--ink);flex:none}
 .seg input{accent-color:var(--brass);width:17px;height:17px;margin:0}
 #gPrompt,#gImport{display:block;width:100%;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border-radius:10px;border:1px solid var(--rule);
@@ -379,9 +379,11 @@ footer a{color:var(--muted)}
     <p class="note">Wander writes a research prompt for where you are. Paste it into Claude or ChatGPT: it searches local sources and replies with a block of data. Tap Copy on that block, then Paste guide here.</p>
     <div class="row"><span class="coords"><small>You are at</small><span id="gCoords">No location yet</span></span><button type="button" class="mini" id="gCopyCoords">Copy</button></div>
     <div class="row"><span class="lbl">Area</span><div class="seg">
+      <label><input type="radio" name="gRadius" value="402"> ¼ mi</label>
       <label><input type="radio" name="gRadius" value="805"> ½ mi</label>
       <label><input type="radio" name="gRadius" value="1609"> 1 mi</label>
-      <label><input type="radio" name="gRadius" value="3219"> 2 mi</label></div></div>
+      <label><input type="radio" name="gRadius" value="3219"> 2 mi</label>
+      <label><input type="radio" name="gRadius" value="8047"> Town</label></div></div>
     <div class="row"><span class="lbl">Depth</span><div class="seg">
       <label><input type="radio" name="gDepth" value="quick" checked> Quick</label>
       <label><input type="radio" name="gDepth" value="deep"> Deep dive</label></div></div>
@@ -399,7 +401,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.6.2"></script>
+<script src="common.js?v=2.6.3"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
@@ -1118,7 +1120,10 @@ const GUIDE_HINTS = {
   de:'state Denkmal lists, city heritage pages', es:'regional heritage catalogues (Bien de Interés Cultural), city heritage pages',
   kr:'the Cultural Heritage Administration (heritage.go.kr)', cn:'local heritage bureau pages', tw:'the Bureau of Cultural Heritage (nchdb.boch.gov.tw)'
 };
-const GUIDE_SIZES = {805:['½ mi', 10, 15, 10, 15], 1609:['1 mi', 12, 18, 12, 18], 3219:['2 mi', 15, 22, 15, 22]};   // label, places, searches
+// label, places (min, max), searches (min, max), scope. 'near' digs for small things close by; 'town' covers a wide area
+// with briefer entries, so the reply stays short enough to finish.
+const GUIDE_SIZES = {402:['¼ mi', 8, 12, 8, 12, 'near'], 805:['½ mi', 10, 15, 10, 15], 1609:['1 mi', 12, 18, 12, 18],
+  3219:['2 mi', 15, 22, 15, 22], 8047:['5 mi', 18, 22, 15, 22, 'town']};
 function guidePrompt(deep, radius){
   const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, size = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
   const locals = state.langs.filter(l=>l!==ul).map(l=>`${langName(l)} (${l})`);
@@ -1132,7 +1137,7 @@ function guidePrompt(deep, radius){
 RESEARCH
 - Search the web${locals.length ? ` in ${locals.join(' and ')} first, then English` : ''}. Favour local and native sources: city and regional government pages, tourism boards, local history societies, museum and religious-site websites, national heritage databases${GUIDE_HINTS[state.cc] ? ` (here: ${GUIDE_HINTS[state.cc]})` : ''}, historical-marker databases (they often give a marker's exact coordinates), local news, local blogs and Atlas Obscura. My app already shows Wikipedia, so use Wikipedia only to check facts.
 - ${deep ? `Deep dive: use your deep research mode if you have one, up to about 40 searches, and cover the ${size[1]+7}–${size[2]+8} most interesting places.` : `Keep it quick: about ${size[3]}–${size[4]} searches, then stop. Cover the ${size[1]}–${size[2]} most interesting places, spread across the area.`}
-- Every place must be a spot I can walk to. Mix the big landmarks with the small, easy-to-miss things a local would point out:
+${size[5] === 'near' ? `- This is a close-up guide for a few minutes' walk: dig for the small details on these streets rather than famous sights further away.\n` : ''}${size[5] === 'town' ? `- This is a town-wide guide: favour the most notable places, spread them across the whole area rather than clustering them near me, and keep each entry brief.\n` : ''}- Every place must be a spot I can walk to. Mix the big landmarks with the small, easy-to-miss things a local would point out:
   • Landmarks: buildings, temples, shrines, churches, monuments, plaques and markers, bridges, gates, walls, gardens, old streets, former sites.
   • Small and quirky things: statues and sculptures (pop-culture ones too, like a film character), murals and public art, old signs and neon, film and TV locations, long-running shops, bars and restaurants with a story, time capsules, notable trees, odd corners.
   • Where something notable happened: battles, assassinations, crimes, disasters, famous meetings or speeches, scenes from well-known stories. Include these whenever a source — obscure or not — ties the event to a specific spot (an address, coordinates, or a clear description such as "the corner of X and Y"), even if nothing marks it today. Dig for such sources.
@@ -1147,7 +1152,7 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
@@ -1442,7 +1447,7 @@ $('#guide').addEventListener('click', e=>{
 });
 document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];
-  (radios.find(r=>r.value===saved) || radios[1]).checked = true;
+  (radios.find(r=>r.value===saved) || radios.find(r=>r.value==='1609')).checked = true;
   radios.forEach(r=>r.onchange = ()=>{ store.set('guideRadius', +r.value); updateGuideSheet(); }); }
 $('#gCopy').onclick = ()=>copyText($('#gPrompt').value, $('#gCopy'));
 $('#gCopyCoords').onclick = ()=>copyText($('#gCoords').textContent, $('#gCopyCoords'));
