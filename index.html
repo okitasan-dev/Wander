@@ -279,6 +279,13 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .coords{flex:1;min-width:0;font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
 .mini{font-size:13px;font-weight:500;color:var(--brass);border:1px solid var(--brass)!important;border-radius:999px;padding:5px 12px}
 .seg{display:flex;gap:10px 14px;flex:1;flex-wrap:wrap}
+.lbl .help{display:inline-grid;place-items:center;width:20px;height:20px;margin-left:5px;border-radius:50%;border:1px solid var(--rule);background:var(--surface);
+  color:var(--muted);font:600 12px/1 var(--sans);vertical-align:1px}
+.lbl .help[aria-expanded="true"]{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.help-text{margin:10px 0 2px;padding:10px 12px;border-radius:10px;background:var(--brass-soft);font-size:13.5px;line-height:1.5;color:var(--ink)}
+.help-text p{margin:0}
+.help-text p+p{margin-top:6px}
+.help-text b{font-weight:600}
 .seg label{font-size:14px;display:inline-flex;align-items:center;gap:6px;color:var(--ink);flex:none}
 .seg input{accent-color:var(--brass);width:17px;height:17px;margin:0}
 #gPrompt,#gImport{display:block;width:100%;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border-radius:10px;border:1px solid var(--rule);
@@ -407,9 +414,10 @@ footer a{color:var(--muted)}
       <label><input type="radio" name="gRadius" value="1609"> 1 mi</label>
       <label><input type="radio" name="gRadius" value="3219"> 2 mi</label>
       <label><input type="radio" name="gRadius" value="8047"> Town</label></div></div>
-    <div class="row"><span class="lbl">Depth</span><div class="seg">
+    <div class="row"><span class="lbl">Depth <button type="button" class="help" id="depthHelpBtn" aria-expanded="false" aria-controls="depthHelp" aria-label="What's the difference?">?</button></span><div class="seg">
       <label><input type="radio" name="gDepth" value="quick" checked> Quick</label>
       <label><input type="radio" name="gDepth" value="deep"> Deep dive</label></div></div>
+    <div class="help-text" id="depthHelp" hidden></div>
     <textarea id="gPrompt" rows="7" readonly aria-label="Prompt for Claude"></textarea>
     <div class="btnrow"><button type="button" class="primary" id="gCopy">Copy prompt</button></div>
     <div class="btnrow"><a class="ghost" id="gOpen" target="_blank" rel="noopener">Open in Claude</a><a class="ghost" id="gOpenGpt" target="_blank" rel="noopener">Open in ChatGPT</a></div>
@@ -441,7 +449,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.7.3"></script>
+<script src="common.js?v=2.7.4"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1202,6 +1210,9 @@ function updateGuideSheet(){
   $('#gCopyCoords').hidden = !has;
   const prompt = has ? guidePrompt(deep, radius) : '';
   $('#gPrompt').value = prompt; $('#gCopy').disabled = !has;
+  const sz = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
+  $('#depthHelp').innerHTML = `<p><b>Quick</b> — about ${sz[3]}–${sz[4]} web searches for the ${sz[1]}–${sz[2]} most interesting places. The reply usually arrives in a few minutes. Right for most walks.</p>`
+    + `<p><b>Deep dive</b> — asks the assistant to use its deep research mode if your plan has one (Research in Claude, Deep research in ChatGPT): up to about 40 searches and ${sz[1]+7}–${sz[2]+8} places, digging further into local and obscure sources. It often takes 10 minutes or more, uses more of your plan's limits, and the longer reply is likelier to be cut off. Worth it for somewhere you'll spend a day.</p>`;
   $('#gOpen').href = has ? 'https://claude.ai/new?q=' + encodeURIComponent(prompt) : '#';
   $('#gOpenGpt').href = has ? 'https://chatgpt.com/?q=' + encodeURIComponent(prompt) : '#';
   const list = loadGuides().slice().reverse();
@@ -1496,6 +1507,8 @@ $('#guide').addEventListener('click', e=>{
   if(all){ const before = loadGuides(), n = before.length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after(before, 'All guides removed.'); } }
 });
 document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
+$('#depthHelpBtn').onclick = ()=>{ const b = $('#depthHelpBtn'), open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open)); $('#depthHelp').hidden = !open; };
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];
   (radios.find(r=>r.value===saved) || radios.find(r=>r.value==='1609')).checked = true;
   radios.forEach(r=>r.onchange = ()=>{ store.set('guideRadius', +r.value); updateGuideSheet(); }); }
