@@ -251,7 +251,6 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .explore button{flex:none;font-weight:600;font-size:13px;color:var(--on-brass);background:var(--brass);border-radius:999px;padding:6px 11px}
 #mapWrap.collapsed .explore{position:static;margin:10px 16px 0;max-width:none;width:max-content;max-width:calc(100% - 32px)}
 #settingsDone,#guideDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
-#openGuide{display:block;width:100%;margin-top:14px;height:46px;border-radius:14px;border:1px solid var(--brass);color:var(--brass);font-weight:500}
 
 /* AI guide: content that came back from a Claude research pamphlet */
 .card .src.gtag{color:var(--brass);font-weight:500}
@@ -392,7 +391,6 @@ footer a{color:var(--muted)}
     <h4>Places</h4>
     <div class="lib-list" id="libShort"></div>
     <button type="button" id="libAll">See all places</button>
-    <button type="button" id="openGuide">Make an AI guide for this spot</button>
     <button type="button" id="settingsDone">Done</button>
   </div>
 </details>
@@ -443,7 +441,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.7.2"></script>
+<script src="common.js?v=2.7.3"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1481,7 +1479,6 @@ document.querySelector('.legend').addEventListener('click', e=>{
 document.addEventListener('click', e=>{ if(e.target.closest('#showAllSrc')) setHiddenSrc(new Set()); });
 let guideUndo = null, guideUndoTimer = null;
 $('#ver').textContent = 'Wander ' + WANDER_VERSION;
-$('#openGuide').onclick = openGuide;
 $('#guideDone').onclick = ()=>{ $('#guide').open = false; };
 $('#guide').addEventListener('click', e=>{
   if(e.target===$('#guide')) $('#guide').open = false;
