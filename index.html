@@ -388,7 +388,7 @@ footer a{color:var(--muted)}
     <textarea id="gPrompt" rows="7" readonly aria-label="Prompt for Claude"></textarea>
     <div class="btnrow"><button type="button" class="primary" id="gCopy">Copy prompt</button></div>
     <div class="btnrow"><a class="ghost" id="gOpen" target="_blank" rel="noopener">Open in Claude</a><a class="ghost" id="gOpenGpt" target="_blank" rel="noopener">Open in ChatGPT</a></div>
-    <h4>Bring a guide back</h4>
+    <h4>Import a generated guide</h4>
     <div class="btnrow"><button type="button" class="primary" id="gPaste">Paste guide</button></div>
     <textarea id="gImport" rows="3" placeholder="Or paste the data block here by hand" aria-label="Guide data from the assistant"></textarea>
     <div class="btnrow"><button type="button" class="ghost" id="gImportBtn">Add guide</button></div>
@@ -399,7 +399,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.6.1"></script>
+<script src="common.js?v=2.6.2"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
