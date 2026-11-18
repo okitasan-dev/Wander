@@ -241,7 +241,10 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .gitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:14px}
 .gitem span{min-width:0}
 .gitem small{display:block;color:var(--muted);font-size:12px}
-.gitem button{color:var(--muted);font-size:13px;flex:none}
+.gitem button{color:var(--muted);font-size:13px;flex:none;padding:6px 0}
+.gacts{display:flex;gap:14px;flex:none}
+.gitem button[data-fresh]{color:var(--brass)}
+.gall{display:block;margin:14px 0 0;font-size:14px;color:#a33a2a;padding:6px 0}
 
 footer{font-size:12px;color:var(--muted);padding:28px 20px 20px;max-width:760px;margin:0 auto;border-top:1px solid var(--rule)}
 footer a{color:var(--muted)}
@@ -1043,6 +1046,7 @@ function lookApply(force){
 function applyGuides(){
   const guides = loadGuides(), ul = state.userLang;
   state.areaGuide = null; let best = 3000;
+  for(const k of [...state.items.keys()]) if(k.startsWith('guide:')) state.items.delete(k);   // rebuilt below, so merged guides leave no stale copies
   const byQid = new Map(); for(const it of state.items.values()){ if(it.qid) byQid.set(it.qid, it); delete it.ai; }
   for(const g of guides){
     const a = g.area || {};
@@ -1051,7 +1055,7 @@ function applyGuides(){
       const known = p.id && byQid.get(p.id);
       if(known){ known.ai = p; return; }
       if(p.lat == null || p.lon == null) return;
-      const key = p.id || `guide:${g.id}:${i}`;
+      const key = p.id || `guide:${g.id}:${normText(p.name)}:${i}`;
       const it = state.items.get(key) || {key, qid:p.id || undefined, lat:p.lat, lon:p.lon, src:'AI guide', facts:[], addedAt:0,
         versions:{[ul]:{title:p.name, extract:p.summary, url:(p.sources[0]||{}).url || ''}}};
       it.ai = p; state.items.set(key, it); if(p.id) byQid.set(p.id, it);
@@ -1115,7 +1119,9 @@ function updateGuideSheet(){
   $('#gOpen').href = has ? 'https://claude.ai/new?q=' + encodeURIComponent(prompt) : '#';
   $('#gOpenGpt').href = has ? 'https://chatgpt.com/?q=' + encodeURIComponent(prompt) : '#';
   const list = loadGuides().slice().reverse();
-  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.places.length} places · ${new Date(g.savedAt).toLocaleDateString()}</small></span><button type="button" data-rm="${esc(g.id)}">Remove</button></div>`).join('') : '';
+  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.places.length} places${(g.count||1) > 1 ? ` · from ${g.count} guides` : ''} · ${new Date(g.savedAt).toLocaleDateString()}</small></span>
+      <span class="gacts">${(g.count||1) > 1 && g.latest ? `<button type="button" data-fresh="${esc(g.id)}">Start fresh</button>` : ''}<button type="button" data-rm="${esc(g.id)}">Remove</button></span></div>`).join('')
+    + `<button type="button" class="gall" id="gRemoveAll">Remove all guides</button>` : '';
 }
 function openGuide(){ $('#settings').open = false; updateGuideSheet(); $('#gMsg').textContent = ''; $('#guide').open = true; }
 async function copyText(text, btn){
@@ -1124,9 +1130,11 @@ async function copyText(text, btn){
   const was = btn.textContent; btn.textContent = 'Copied'; setTimeout(()=>{ btn.textContent = was; }, 1500);
 }
 function importGuide(text){
-  const g = addGuide(decodeGuidePayload(text));
+  const r = addGuide(decodeGuidePayload(text)), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
   render();
-  return `Added ${g.places.length} place${g.places.length===1?'':'s'}${g.area.name ? ' for ' + g.area.name : ''}.`;
+  return r.merged
+    ? `Merged into ${g.area.name || 'your guide'}: ${n(r.added)} added, ${n(r.updated)} combined (${g.places.length} in total).`
+    : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`;
 }
 
 /* ---------- rendering ---------- */
@@ -1303,8 +1311,11 @@ $('#openGuide').onclick = openGuide;
 $('#guideDone').onclick = ()=>{ $('#guide').open = false; };
 $('#guide').addEventListener('click', e=>{
   if(e.target===$('#guide')) $('#guide').open = false;
-  const rm = e.target.closest('[data-rm]');
-  if(rm){ saveGuides(loadGuides().filter(g=>g.id !== rm.dataset.rm)); for(const [k,it] of state.items) if(it.src==='AI guide') state.items.delete(k); render(); updateGuideSheet(); }
+  const rm = e.target.closest('[data-rm]'), fresh = e.target.closest('[data-fresh]'), all = e.target.closest('#gRemoveAll');
+  const after = msg => { for(const [k,it] of state.items) if(it.src==='AI guide') state.items.delete(k); render(); updateGuideSheet(); $('#gMsg').textContent = msg; };
+  if(rm){ saveGuides(loadGuides().filter(g=>g.id !== rm.dataset.rm)); after('Guide removed.'); }
+  if(fresh){ guideStartFresh(fresh.dataset.fresh); after('Kept only the newest guide for that area.'); }
+  if(all){ const n = loadGuides().length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after('All guides removed.'); } }
 });
 document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];
@@ -1356,9 +1367,9 @@ $('#placeForm').onsubmit = async e=>{
 // Arriving from a Claude pamphlet's "Send to Wander" link: …#import=<data>
 if(location.hash.startsWith('#import=')){
   try{
-    const g = addGuide(decodeGuidePayload(location.hash));
+    const r = addGuide(decodeGuidePayload(location.hash)), g = r.guide;
     history.replaceState(null, '', location.pathname + location.search);
-    setStatus(`AI guide added: ${g.places.length} places${g.area.name ? ' for ' + esc(g.area.name) : ''}`);
+    setStatus(r.merged ? `AI guide merged into ${esc(g.area.name || 'your guide')}: ${r.added} added, ${r.updated} combined` : `AI guide added: ${g.places.length} places${g.area.name ? ' for ' + esc(g.area.name) : ''}`);
     if(!state.pos && g.area.lat != null) setManual(g.area.lat, g.area.lon);   // show it where it was made; Start switches back to GPS
   }catch(e){ setStatus('Could not read that AI guide: ' + esc(e.message)); }
 }

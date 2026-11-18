@@ -303,10 +303,68 @@ function normalizeGuide(g){
 }
 function loadGuides(){ try{ const v = JSON.parse(localStorage.getItem(GUIDE_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
 function saveGuides(list){ try{ localStorage.setItem(GUIDE_KEY, JSON.stringify(list.slice(-GUIDE_MAX))); return true; }catch(e){ return false; } }
-function addGuide(g){
-  const list = loadGuides().filter(x => !(x.area && g.area && x.area.name && x.area.name === g.area.name));   // a new guide for the same area replaces the old one
-  const saved = {...g, id: Date.now().toString(36), savedAt: Date.now()};
-  list.push(saved); saveGuides(list); return saved;
+/* ---- merging: guides for the same area combine; the same place found twice becomes one ---- */
+const GUIDE_AREA_M = 800, GUIDE_PLACE_M = 150;   // guides centred within half a mile merge; places normally within ~500 ft to match
+const metres = (a, b) => { const r = Math.PI/180, dLat = (b.lat-a.lat)*r, dLon = (b.lon-a.lon)*r;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2; return 2*6371000*Math.asin(Math.sqrt(x)); };
+const GUIDE_STOP = new Set(['the','a','an','of','and','at','in','on','site','former','old','historic','historical','area','reported']);
+const nameTokens = n => new Set(String(n||'').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase()
+  .replace(/['’]s\b/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').split(' ').filter(w => w && !GUIDE_STOP.has(w)));
+function nameOverlap(a, b){ const A = nameTokens(a), B = nameTokens(b); if(!A.size || !B.size) return {jac: 0, cont: 0, shared: 0};
+  let n = 0; for(const w of A) if(B.has(w)) n++; return {jac: n / (A.size + B.size - n), cont: n / Math.min(A.size, B.size), shared: n}; }
+const nameSim = (a, b) => nameOverlap(a, b).jac;
+const hasPos = p => p && p.lat != null && p.lon != null;
+/* Same place? Same Wikidata ID: yes. Different IDs: no. Otherwise similar names close together
+   (a stricter name match when only one of them has an ID, so "City Hall" and "First City Hall site" stay apart). */
+function samePlace(a, b){
+  if(a.id && b.id) return a.id === b.id;
+  if(!hasPos(a) || !hasPos(b)) return false;
+  const d = metres(a, b), o = nameOverlap(a.name, b.name);
+  if(a.id || b.id) return d <= GUIDE_PLACE_M && o.jac >= .8;
+  // Assistants' pins for the same place can disagree by a lot, so a more distinctive name match allows a wider gap
+  return (d <= GUIDE_PLACE_M && o.jac >= .5)
+      || (d <= 400 && o.shared >= 2 && o.cont >= .66)
+      || (d <= 2500 && o.shared >= 3 && o.jac >= .75);
 }
+const CONF = {high:3, medium:2, low:1};
+const normText = t => String(t||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+const unionBy = (list, key, max) => { const seen = new Set(), out = []; for(const x of list){ const k = key(x); if(k && !seen.has(k)){ seen.add(k); out.push(x); } } return out.slice(0, max); };
+const byDate = list => list.map((t, i) => ({t, i, y: (yearOf(t.date) || yearOf(t.text) || {}).y})).sort((a, b) => (a.y ?? 1e9) - (b.y ?? 1e9) || a.i - b.i).map(x => x.t);
+/* Combine two versions of a place or area; b is the newer one */
+function mergeEntry(a, b){
+  const better = (CONF[b.confidence]||0) >= (CONF[a.confidence]||0) && hasPos(b) ? b : hasPos(a) ? a : b;   // the more precisely located
+  return {...a, ...b,
+    id: a.id || b.id || null, name: b.name || a.name, localName: b.localName || a.localName, kind: b.kind || a.kind,
+    lat: better.lat ?? a.lat ?? null, lon: better.lon ?? a.lon ?? null, located: better.located || b.located || a.located || '', confidence: better.confidence || b.confidence || a.confidence || '',
+    summary: b.summary || a.summary, seeToday: b.seeToday || a.seeToday,
+    keyPoints: unionBy([...(b.keyPoints||[]), ...(a.keyPoints||[])], normText, 8),
+    timeline: byDate(unionBy([...(a.timeline||[]), ...(b.timeline||[])], t => (t.date||'') + '|' + normText(t.text).slice(0, 40), 14)),
+    trivia: unionBy([...(b.trivia||[]), ...(a.trivia||[])], normText, 8),
+    sources: unionBy([...(b.sources||[]), ...(a.sources||[])], s => s.url, 12)};
+}
+const guideCentre = g => { if(g.area && hasPos(g.area)) return g.area;
+  const ps = (g.places||[]).filter(hasPos); return ps.length ? {lat: ps.reduce((s, p) => s + p.lat, 0)/ps.length, lon: ps.reduce((s, p) => s + p.lon, 0)/ps.length} : null; };
+/* Fold a newly imported guide into storage: merge with a guide for the same area, or add it. Returns what happened. */
+function addGuide(g){
+  const list = loadGuides(), c = guideCentre(g);
+  const host = c && list.slice().reverse().find(x => { const xc = guideCentre(x); return xc && metres(xc, c) <= GUIDE_AREA_M; });
+  if(!host){
+    const saved = {...g, id: Date.now().toString(36), savedAt: Date.now(), count: 1, latest: g};
+    list.push(saved); saveGuides(list); return {guide: saved, merged: false, added: g.places.length, updated: 0};
+  }
+  const places = (host.places || []).slice(); let added = 0, updated = 0;
+  for(const p of g.places){
+    const i = places.findIndex(q => samePlace(q, p));
+    if(i >= 0){ places[i] = mergeEntry(places[i], p); updated++; } else { places.push(p); added++; }
+  }
+  const area = mergeEntry(host.area || {}, g.area || {});
+  area.name = (host.area && host.area.name) || area.name; area.lat = host.area && host.area.lat != null ? host.area.lat : area.lat; area.lon = host.area && host.area.lon != null ? host.area.lon : area.lon;
+  const merged = {...host, area, places, count: (host.count || 1) + 1, savedAt: Date.now(), latest: g};
+  saveGuides([...list.filter(x => x !== host), merged]);
+  return {guide: merged, merged: true, added, updated};
+}
+/* Keep only the newest guide imported for that area */
+function guideStartFresh(id){ const list = loadGuides(); const i = list.findIndex(g => g.id === id); if(i < 0 || !list[i].latest) return;
+  list[i] = {...list[i], area: list[i].latest.area, places: list[i].latest.places, count: 1, savedAt: Date.now()}; saveGuides(list); }
 /* The newest guide entry for a Wikidata ID, if any */
 function guideFor(qid){ let hit = null; for(const g of loadGuides()) for(const p of g.places || []) if(p.id === qid) hit = p; return hit; }
