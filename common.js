@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '2.6.0';
+const WANDER_VERSION = '2.6.1';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -623,3 +623,23 @@ document.addEventListener('click', e => {
   const a = e.target.closest('a.wl'); if(!a || e.metaKey || e.ctrlKey) return;
   e.preventDefault(); openWikiPanel(a.dataset.lang, a.dataset.title);
 });
+
+/* ---------- A light haptic tap ---------- */
+/* Android: the vibration API. iPhone: Safari has no vibration API, but toggling its built-in switch control
+   (an <input type="checkbox" switch>) plays the system's light haptic on iOS 18 and later, so tap a hidden one.
+   Call only from a tap or click. Silently does nothing where neither is available. */
+const haptic = (() => {
+  let label = null;
+  return () => {
+    try{ if(navigator.vibrate && navigator.vibrate(12)) return; }catch(e){}
+    try{
+      if(!label){
+        label = document.createElement('label'); label.setAttribute('aria-hidden', 'true');
+        label.style.cssText = 'position:fixed;left:-200px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+        const input = document.createElement('input'); input.type = 'checkbox'; input.setAttribute('switch', ''); input.tabIndex = -1;
+        label.append(input); document.body.append(label);
+      }
+      label.click();
+    }catch(e){}
+  };
+})();

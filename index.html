@@ -171,6 +171,14 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
   box-shadow:var(--shadow);border:1px solid var(--rule);width:min(440px,calc(100% - 24px))}
 .dock button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:16px;font-size:15px;font-weight:500;color:var(--ink)}
 .dock button.icon{flex:0 0 52px}
+.dock button:active{transform:scale(.93)}
+.dock button{transition:transform .12s}
+@media (prefers-reduced-motion:no-preference){
+  #refreshBtn.busy svg{animation:busyspin 1.2s linear infinite}
+  #refreshBtn.tap svg{animation:tapspin .55s cubic-bezier(.3,.7,.4,1)}
+  @keyframes tapspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes busyspin{to{transform:rotate(360deg)}}
+}
 .dock button.primary{background:var(--brass);color:var(--on-brass)}
 .dock button.on{color:var(--brass);background:var(--brass-soft)}
 .dock button.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--brass)}
@@ -391,7 +399,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.6.0"></script>
+<script src="common.js?v=2.6.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
@@ -436,7 +444,7 @@ const store = {
 };
 const navLang = (navigator.language||'en').split('-')[0].toLowerCase();
 const state = {
-  pos:null, lastLoad:null, lastLoadTime:0, loading:false, watchId:null, manual:false,
+  pos:null, lastLoad:null, lastLoadTime:0, loading:false, gen:0, watchId:null, manual:false,
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
   radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(), hiddenSrc: new Set(store.get('hiddenSrc', [])),
@@ -487,8 +495,9 @@ async function geosearch(lang, lat, lon, radius){
 }
 
 /* ---------- Area intro (neighbourhood + city) ---------- */
-async function loadArea(lat, lon){
+async function loadArea(lat, lon, live = () => true){
   const z14 = await nominatim('reverse', {lat, lon, zoom:'14', addressdetails:'1', extratags:'1', polygon_geojson:'1', polygon_threshold:'0.0003'});
+  if(!live()) return;
   const a = z14.address || {};
   state.areaGeo = (z14.geojson && /Polygon/.test(z14.geojson.type)) ? z14.geojson : null;
   state.langs = langsFor(a);
@@ -501,6 +510,7 @@ async function loadArea(lat, lon){
   state.areaKey = key;
   const qids = [z14.extratags?.wikidata];
   try{ const z10 = await nominatim('reverse', {lat, lon, zoom:'10', extratags:'1'}); qids.push(z10.extratags?.wikidata); }catch(e){}
+  if(!live()){ state.areaKey = ''; return; }
   const ids = [...new Set(qids.filter(Boolean))];
   if(!ids.length){ state.area=[]; return; }
   const sites = state.langs.map(l=>l.replace(/-/g,'_')+'wiki').join('|');
@@ -512,6 +522,7 @@ async function loadArea(lat, lon){
     const ex = await extractsFor(lang, titles).catch(()=>({}));
     area.forEach(it=>{ const t=wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title; if(t && ex[t]){ it.versions[lang]=ex[t]; it.thumb = it.thumb || ex[t].thumb; } });
   }));
+  if(!live()){ state.areaKey = ''; return; }
   state.area = area.filter(it=>Object.keys(it.versions).length);
   const mine = state.area;
   loadAreaDetails(mine).then(()=>{ if(state.area===mine) render(); }).catch(()=>{});
@@ -659,9 +670,10 @@ function placeDetailsHTML(it){
 }
 
 /* ---------- Nearby places ---------- */
-async function loadNearby(lat, lon){
+async function loadNearby(lat, lon, live = () => true){
   const ul = state.userLang;
   const results = await Promise.allSettled(state.langs.map(l=>geosearch(l, lat, lon, state.radius).then(p=>({lang:l, pages:p}))));
+  if(!live()) return 0;
   let added = 0;
   for(const r of results){
     if(r.status!=='fulfilled') continue;
@@ -823,36 +835,42 @@ async function loadFacts(){
 }
 
 /* ---------- refresh cycle ---------- */
+/* Each search has a number; starting a new one (refresh, or a settings change) makes the one in progress stale,
+   and a stale search writes nothing. GPS movement never interrupts a search (see onFix). */
 async function refresh(force){
-  if(!state.pos || state.loading) return;
+  if(!state.pos) return;
+  const gen = ++state.gen, live = () => gen === state.gen;
   const {lat, lon} = state.pos;
-  state.loading = true;
+  state.loading = true; setBusy(true);
   setStatus('<span class="spin"></span>Looking around…');
   try{
-    await loadArea(lat, lon);
+    await loadArea(lat, lon, live); if(!live()) return;
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Reading ${state.langs.map(langName).join(' and ')} Wikipedia…</span>`);
     const extra = Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
-    const added = await loadNearby(lat, lon);
+    const added = await loadNearby(lat, lon, live); if(!live()) return;
     state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
     render();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Checking plaques and heritage registers…</span>`);
-    const [wdRows, osmEls] = await extra;
-    mergeWD(wdRows); mergeOSM(osmEls);
+    const [wdRows, osmEls] = await extra; if(!live()) return;
+    if(state.useWd) mergeWD(wdRows); if(state.useOsm) mergeOSM(osmEls);
     if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
     loadFacts();
   }catch(e){
+    if(!live()) return;
     setStatus('Could not load: '+esc(e.message)+' — check your connection and tap ↻');
-    state.loading=false; return;
+    state.loading=false; setBusy(false); return;
   }
-  state.loading = false;
+  if(!live()) return;
+  state.loading = false; setBusy(false);
   updateStatus(); render();
 }
+function setBusy(on){ $('#refreshBtn').classList.toggle('busy', on); }
 function updateStatus(){ if(!state.loading) setStatus(''); }   // all loaded: clear the notice
 function onFix(lat, lon, acc){
   state.pos = {lat, lon, acc};
   const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
   const age = Date.now() - state.lastLoadTime;
-  if((moved > Math.max(120, state.radius/4) || age > STALE) && age > 15000) refresh();
+  if(!state.loading && (moved > Math.max(120, state.radius/4) || age > STALE) && age > 15000) refresh();   // never interrupts a search
   else { updateStatus(); renderSoon(); }
   if($('#guide').open) updateGuideSheet();
 }
@@ -1441,7 +1459,13 @@ $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
 $('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
 $('#mapToggle').onclick = toggleMap;
 $('#recenterBtn').onclick = recenter;
-$('#refreshBtn').onclick = ()=>{ if(!state.pos){ startGPS(); return; } state.areaKey=''; state.lastLoadTime=0; refresh(true); };
+$('#refreshBtn').onclick = ()=>{
+  const btn = $('#refreshBtn'); haptic();
+  btn.classList.remove('tap'); void btn.offsetWidth; btn.classList.add('tap');   // restart the spin on every tap
+  if(!state.pos){ startGPS(); return; }
+  state.areaKey=''; state.lastLoadTime=0; refresh(true);   // starts over, even mid-search
+};
+$('#refreshBtn').addEventListener('animationend', e=>{ if(e.animationName === 'tapspin') $('#refreshBtn').classList.remove('tap'); });
 { const opts = [...$('#radius').options].map(o=>+o.value);
   if(!opts.includes(state.radius)){ state.radius = opts.reduce((a,b)=>Math.abs(b-state.radius)<Math.abs(a-state.radius)?b:a); store.set('radius',state.radius); } }
 $('#radius').value = String(state.radius);
