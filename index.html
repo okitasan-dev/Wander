@@ -172,7 +172,8 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
   border-radius:22px;background:color-mix(in srgb,var(--raise) 86%,transparent);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);
   box-shadow:var(--shadow);border:1px solid var(--rule);width:min(440px,calc(100% - 24px))}
 .dock button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:16px;font-size:15px;font-weight:500;color:var(--ink)}
-.dock button.icon{flex:0 0 52px}
+.dock button.icon{flex:1}
+.dock button{position:relative}
 .dock button:active{transform:scale(.93)}
 .dock button{transition:transform .12s}
 @media (prefers-reduced-motion:no-preference){
@@ -183,7 +184,7 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 }
 .dock button.primary{background:var(--brass);color:var(--on-brass)}
 .dock button.on{color:var(--brass);background:var(--brass-soft)}
-.dock button.on::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--brass)}
+.dock button.on::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--brass)}
 @media (prefers-reduced-motion:no-preference){.dock button.on::after{animation:blink 2s ease-in-out infinite}@keyframes blink{50%{opacity:.25}}}
 
 /* look mode panel */
@@ -333,10 +334,11 @@ footer a{color:var(--muted)}
 </footer>
 
 <nav class="dock" aria-label="Controls">
-  <button id="gpsBtn" class="primary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Start</span></button>
-  <button id="lookBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13.4 13.4 8.5 15.5 10.6 10.6Z" fill="currentColor" fill-opacity=".25"/></svg><span>Look</span></button>
-  <button id="refreshBtn" class="icon" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
-  <button id="settingsBtn" class="icon" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+  <button id="gpsBtn" class="primary" aria-label="Start" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button id="lookBtn" aria-label="Look" title="Look"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13.4 13.4 8.5 15.5 10.6 10.6Z" fill="currentColor" fill-opacity=".25"/></svg></button>
+  <button id="refreshBtn" class="icon" aria-label="Refresh" title="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
+  <button id="guideBtn" class="icon" aria-label="AI guide" title="AI guide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3C12.6 8.4 12.6 8.4 18 10.5C12.6 12.6 12.6 12.6 10.5 18C8.4 12.6 8.4 12.6 3 10.5C8.4 8.4 8.4 8.4 10.5 3Z"/><path d="M18.5 14.9C19.2 16.8 19.2 16.8 21.1 17.5C19.2 18.2 19.2 18.2 18.5 20.1C17.8 18.2 17.8 18.2 15.9 17.5C17.8 16.8 17.8 16.8 18.5 14.9Z" fill="currentColor" stroke="none"/></svg></button>
+  <button id="settingsBtn" class="icon" aria-label="Settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
 </nav>
 
 <div class="look" id="look" hidden aria-live="polite">
@@ -441,10 +443,10 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.7.1"></script>
+<script src="common.js?v=2.7.2"></script>
 <script>
 "use strict";
-const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
+const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 /* ---------- config ---------- */
 const COUNTRY_LANGS = {
@@ -1198,7 +1200,7 @@ Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
   const radius = +document.querySelector('input[name="gRadius"]:checked').value;
-  $('#gCoords').textContent = has ? `${state.pos.lat.toFixed(5)}, ${state.pos.lon.toFixed(5)}` : 'No location yet — tap Start first';
+  $('#gCoords').textContent = has ? `${state.pos.lat.toFixed(5)}, ${state.pos.lon.toFixed(5)}` : 'No location yet — tap the location button first';
   $('#gCopyCoords').hidden = !has;
   const prompt = has ? guidePrompt(deep, radius) : '';
   $('#gPrompt').value = prompt; $('#gCopy').disabled = !has;
@@ -1510,6 +1512,7 @@ $('#gPaste').onclick = async ()=>{
   catch(e){ $('#gMsg').textContent = 'The clipboard doesn’t hold a guide yet: tap Copy on the code block in Claude or ChatGPT first.'; }
 };
 $('#gImportBtn').onclick = ()=>{ try{ $('#gMsg').textContent = importGuide($('#gImport').value); $('#gImport').value = ''; updateGuideSheet(); }catch(e){ $('#gMsg').textContent = 'Could not read that: ' + e.message; } };
+$('#guideBtn').onclick = ()=>{ $('#guide').open ? ($('#guide').open = false) : openGuide(); };
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
 $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
 $('#settings').addEventListener('click', e=>{ if(e.target===$('#settings')) $('#settings').open=false; });
