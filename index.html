@@ -401,7 +401,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.6.4"></script>
+<script src="common.js?v=2.6.5"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
@@ -893,7 +893,7 @@ function startGPS(){
 function stopGPS(){
   if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);
   state.watchId=null;
-  label('#gpsBtn','Use GPS'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
+  label('#gpsBtn','Start'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
 }
 function setManual(lat, lon){
   stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
@@ -1405,7 +1405,15 @@ document.addEventListener('click', e=>{
   if(b.dataset.act==='guide'){ openGuide(); }
   if(b.dataset.act==='orig'){ state.showOrig.has(key)?state.showOrig.delete(key):state.showOrig.add(key); render(); }
 });
-$('#gpsBtn').onclick = ()=>{ if(state.watchId!=null) return; state.lastLoad=null; state.lastLoadTime=0; startGPS(); };
+// Tap Start to find yourself and follow along; tap Following to stop tracking and stay put at the last fix
+$('#gpsBtn').onclick = ()=>{
+  if(state.watchId!=null){
+    stopGPS(); state.manual = true; haptic();
+    if(!state.pos || /Getting your location/.test($('#status').textContent)) setStatus('');
+    saveSessionSoon(); return;
+  }
+  state.lastLoad=null; state.lastLoadTime=0; startGPS();
+};
 $('#status').onclick = ()=>setStatus('');
 $('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
 $('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card); });
