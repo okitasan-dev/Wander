@@ -42,7 +42,7 @@ svg{flex:none}
 #mapWrap{position:relative;display:none;border-bottom:1px solid var(--rule)}
 #mapWrap.show{display:block}
 #map{height:44vh;min-height:260px;z-index:1;background:var(--surface)}
-#mapWrap.collapsed #map,#mapWrap.collapsed .legend{display:none}
+#mapWrap.collapsed #map{display:none}
 #map .leaflet-tile-pane{filter:grayscale(.8) contrast(.92) brightness(1.04)}
 @media (prefers-color-scheme:dark){#map .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) grayscale(.55) brightness(.78) contrast(1.08)}}
 .mapbtns{position:absolute;right:12px;top:12px;z-index:500;display:flex;gap:8px}
@@ -50,8 +50,15 @@ svg{flex:none}
 .mapbtns button{font-size:13px;font-weight:500;padding:8px 13px;border-radius:999px;background:color-mix(in srgb,var(--surface) 88%,transparent);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.14);border:1px solid var(--rule)}
 #recenterBtn{display:none;color:var(--brass)}
-.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 20px 12px;font-size:12px;color:var(--muted)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px 12px;font-size:12.5px;color:var(--muted)}
+.legend .lg-you{display:inline-flex;align-items:center;gap:6px;margin-right:4px;padding:0 4px}
+/* each source is a chip: tap to hide it from the map and the list */
+.legend button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px 6px 9px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);font-size:12.5px}
+.legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed;text-decoration:line-through}
+.legend button[aria-pressed="false"] .lg{opacity:.3}
+.legend button[hidden]{display:none}
+.hidden-note{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 20px 0;padding:9px 12px;border-radius:10px;background:var(--brass-soft);font-size:13.5px;color:var(--muted)}
+.hidden-note button{color:var(--brass);font-weight:500;font-size:13.5px;flex:none}
 .lg{width:11px;height:11px;border-radius:50%;display:inline-block}
 .lg.you{background:var(--you);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--you)}
 .lg.wiki{background:var(--brass)}
@@ -271,7 +278,7 @@ footer a{color:var(--muted)}
       <button id="recenterBtn">Recenter</button>
       <button id="mapToggle">Hide map</button>
     </div>
-    <div class="legend"><span><i class="lg you"></i>You</span><span><i class="lg wiki"></i>Wikipedia</span><span><i class="lg osm"></i>Plaque or landmark</span><span><i class="lg wd"></i>Heritage listing</span><span class="g-ai" hidden><i class="lg ai"></i>AI guide</span></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i>Wikipedia</button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i>Plaque or landmark</button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i>Heritage listing</button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i>AI guide</button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -428,7 +435,7 @@ const state = {
   pos:null, lastLoad:null, lastLoadTime:0, loading:false, watchId:null, manual:false,
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
-  radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(),
+  radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(), hiddenSrc: new Set(store.get('hiddenSrc', [])),
   expanded:new Set(), showOrig:new Set(),
   loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
@@ -1316,6 +1323,9 @@ function render(){
   const rows = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d);
+  const present = new Set(rows.map(r=>srcClass(r.it)));
+  const hiddenCount = rows.filter(r=>state.hiddenSrc.has(srcClass(r.it))).length;
+  if(hiddenCount) rows.splice(0, rows.length, ...rows.filter(r=>!state.hiddenSrc.has(srcClass(r.it))));
   rows.forEach(r=>{ r.band = bandOf(r.d); });
   state.nearby = rows;
   let html = '', band = -1;
@@ -1323,14 +1333,17 @@ function render(){
     if(r.band !== band){ band = r.band; html += bandHead(band, rows.filter(x=>x.band===band).length); }
     html += cardHTML(r.it, {num:i+1, band:r.band});
   });
-  $('#listWrap').innerHTML = rows.length ? html
-    : (state.loading ? '' : `<div class="empty">Nothing with a Wikipedia article within ${radiusLabel()}. Try a bigger radius in Settings.</div>`);
+  const SRC_NAMES = {wiki:'Wikipedia', osm:'plaques and landmarks', wd:'heritage listings', ai:'AI guide places'};
+  const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x]).join(', ')}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
+  $('#listWrap').innerHTML = note + (rows.length ? html
+    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">Nothing with a Wikipedia article within ${radiusLabel()}. Try a bigger radius in Settings.</div>`));
   state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
   const items = rows.map(r=>r.it);
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
   lookApply(true);
   updatePageLang(document.querySelector('main'), state.userLang);
-  const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !rows.some(r=>r.it.src==='AI guide');
+  const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !present.has('ai');
+  document.querySelectorAll('.legend [data-src]').forEach(b=>b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src))));
   saveSessionSoon();
 }
 /* Distance bands: what you can see, what is a short walk, and the rest */
@@ -1376,6 +1389,13 @@ document.querySelectorAll('details.sheet').forEach(sh=>{
   head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
 });
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape') document.querySelectorAll('details.sheet[open]').forEach(sh=>{ sh.open = false; }); });
+/* Source chips under the map: tap to hide or show that source on the map and in the list */
+function setHiddenSrc(set){ state.hiddenSrc = set; store.set('hiddenSrc', [...set]); render(); }
+document.querySelector('.legend').addEventListener('click', e=>{
+  const b = e.target.closest('[data-src]'); if(!b) return;
+  const set = new Set(state.hiddenSrc); set.has(b.dataset.src) ? set.delete(b.dataset.src) : set.add(b.dataset.src); setHiddenSrc(set);
+});
+document.addEventListener('click', e=>{ if(e.target.closest('#showAllSrc')) setHiddenSrc(new Set()); });
 $('#openGuide').onclick = openGuide;
 $('#guideDone').onclick = ()=>{ $('#guide').open = false; };
 $('#guide').addEventListener('click', e=>{
