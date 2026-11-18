@@ -275,8 +275,37 @@ function decodeGuidePayload(text){
   }
   const a = s.indexOf('{'), z = s.lastIndexOf('}');
   if(a < 0 || z <= a) throw new Error('No guide data found');
-  let data; try{ data = JSON.parse(s.slice(a, z + 1)); }catch(e){ throw new Error('The guide data is incomplete — copy the whole block'); }
-  return normalizeGuide(data);
+  let data; try{ data = JSON.parse(s.slice(a, z + 1)); }catch(e){ data = salvageGuide(s.slice(a)); }
+  const g = normalizeGuide(data);
+  if(data.partial) g.partial = true;
+  return g;
+}
+/* A reply that stopped partway: keep the area and every place whose data arrived complete */
+function salvageGuide(s){
+  const take = i => { const end = endOf(s, i); try{ return {o: JSON.parse(s.slice(i, end)), end}; }catch(e){ return null; } };
+  const am = /"area"\s*:\s*\{/.exec(s), area = am ? (take(am.index + am[0].length - 1) || {}).o : null;
+  const pm = /"places"\s*:\s*\[/.exec(s), places = [];
+  if(pm){
+    let i = pm.index + pm[0].length;
+    for(;;){
+      while(i < s.length && /[\s,]/.test(s[i])) i++;
+      if(s[i] !== '{') break;
+      const t = take(i); if(!t) break;   // this place was cut off: stop here
+      places.push(t.o); i = t.end;
+    }
+  }
+  if(!places.length && !area) throw new Error('The guide data is incomplete — copy the whole block');
+  return {wander: 1, area: area || {}, places, partial: true};
+}
+/* Index just past the {...} that starts at s[i] (the end of the text if it never closes) */
+function endOf(s, i){
+  let depth = 0, str = false, esc = false;
+  for(let j = i; j < s.length; j++){
+    const c = s[j];
+    if(str){ if(esc) esc = false; else if(c === '\\') esc = true; else if(c === '"') str = false; continue; }
+    if(c === '"') str = true; else if(c === '{') depth++; else if(c === '}' && --depth === 0) return j + 1;
+  }
+  return s.length;
 }
 function normalizeGuide(g){
   if(!g || typeof g !== 'object') throw new Error('Not a guide');
@@ -293,8 +322,9 @@ function normalizeGuide(g){
     const name = str(p.name, 120); if(!name) return null;
     const id = typeof p.id === 'string' && /^Q\d+$/.test(p.id.trim()) ? p.id.trim() : null;
     const lat = num(p.lat, -90, 90), lon = num(p.lon, -180, 180);
-    if(!id && (lat == null || lon == null)) return null;   // a new place needs a position
-    return {id, name, localName: str(p.localName, 120), kind: str(p.kind, 60), seeToday: str(p.seeToday, 300), located: str(p.located, 200), lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
+    const address = str(p.address, 200);
+    if(!id && (lat == null || lon == null) && !address) return null;   // a new place needs a position, or an address Wander can look up
+    return {id, name, localName: str(p.localName, 120), kind: str(p.kind, 60), seeToday: str(p.seeToday, 300), located: str(p.located, 200), address, lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
   });
   const ar = g.area && typeof g.area === 'object' ? g.area : {};
   const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar)};
@@ -368,3 +398,82 @@ function guideStartFresh(id){ const list = loadGuides(); const i = list.findInde
   list[i] = {...list[i], area: list[i].latest.area, places: list[i].latest.places, count: 1, savedAt: Date.now()}; saveGuides(list); }
 /* The newest guide entry for a Wikidata ID, if any */
 function guideFor(qid){ let hit = null; for(const g of loadGuides()) for(const p of g.places || []) if(p.id === qid) hit = p; return hit; }
+
+/* ---------- Translation: in place, Google Translate, or Claude ---------- */
+/* Under any passage in another language: [Translate] translates it here; [Google] and [Claude] open it there.
+   Translations are kept on the device so a passage is only translated once. */
+const XL = {texts: new Map(), shown: new Set(), cache: null};
+function xlCache(){ if(!XL.cache){ try{ XL.cache = JSON.parse(localStorage.getItem('wander.xl') || '{}'); }catch(e){ XL.cache = {}; } } return XL.cache; }
+function xlSave(){ try{ const c = xlCache(), keys = Object.keys(c); for(const k of keys.slice(0, Math.max(0, keys.length - 300))) delete c[k]; localStorage.setItem('wander.xl', JSON.stringify(c)); }catch(e){} }
+const xlKey = (lang, text) => { const s = lang + '|' + text; let h = 2166136261; for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return 'x' + (h >>> 0).toString(36) + s.length.toString(36); };
+function claudeTranslateURL(text, lang, about){
+  const to = langName(state.userLang);
+  const prompt = `Translate this ${langName(lang)} text into ${to}${about ? ` (it is about ${about})` : ''}.
+- Translate faithfully and completely; do not summarise.
+- The first time a place or person is named, give the name in ${to === 'English' ? 'romanised' : 'your'} form with the original script in brackets.
+- Where a ${to}-speaking reader would need it, explain a historical or cultural term briefly in brackets.
+- Reply with the translation only, then one line listing any terms you explained.
+
+${text.slice(0, 4000)}`;
+  return 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+}
+function xlateHTML(text, lang, opts = {}){
+  const ul = state.userLang; text = String(text || '').trim();
+  if(!text || !lang || lang.split('-')[0] === ul) return '';
+  const k = xlKey(lang, text); XL.texts.set(k, {text, lang, opts});
+  const tr = XL.shown.has(k) && xlCache()[k];
+  const google = opts.googleURL || `https://translate.google.com/?sl=${encodeURIComponent(lang)}&tl=${ul}&op=translate&text=${encodeURIComponent(text.slice(0, 1800))}`;
+  return `<div class="xl" data-xl="${k}">${tr ? `<p class="xl-out" lang="${esc(ul)}">${esc(tr)}<small>Machine translation · ${esc(langName(lang))}</small></p>` : ''}<span class="xl-row">`
+    + `<button type="button" class="xl-b" data-xl-act="in">${tr ? 'Hide translation' : 'Translate'}</button>`
+    + `<a class="xl-b" target="_blank" rel="noopener" href="${esc(google)}">Google</a>`
+    + `<a class="xl-b" target="_blank" rel="noopener" href="${esc(claudeTranslateURL(text, lang, opts.about))}">Claude</a></span></div>`;
+}
+/* Split text into pieces of at most n UTF-8 bytes, at sentence breaks where possible */
+function xlChunks(text, n){
+  const enc = new TextEncoder(), out = []; let cur = '';
+  const push = piece => { if(enc.encode(piece).length <= n){ out.push(piece); return; } let part = ''; for(const ch of piece){ if(enc.encode(part + ch).length > n){ out.push(part); part = ''; } part += ch; } if(part) out.push(part); };
+  for(const line of text.split(/\n+/)){
+    for(const s of sentences(line)){ const next = cur ? cur + ' ' + s : s; if(enc.encode(next).length > n && cur){ push(cur); cur = s; } else cur = next; }
+    if(cur){ push(cur); cur = ''; }
+    out.push('\n');
+  }
+  return out.filter((x, i, a) => !(x === '\n' && (i === 0 || a[i-1] === '\n'))).slice(0, -1);
+}
+async function machineTranslate(text, from, to){
+  // The browser's own on-device translator where it has one (desktop Chrome); otherwise MyMemory, a free service
+  // (only when the language is already on the device, and never waiting long: it can stall)
+  const within = (ms, p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('slow')), ms))]);
+  try{
+    if('Translator' in self){
+      const av = await within(1500, self.Translator.availability({sourceLanguage: from, targetLanguage: to}));
+      if(av === 'available'){ const t = await within(4000, self.Translator.create({sourceLanguage: from, targetLanguage: to})); return await within(8000, t.translate(text)); }
+    }
+  }catch(e){}
+  let out = '';
+  for(const c of xlChunks(text, 480)){
+    if(c === '\n'){ out += '\n'; continue; }
+    const d = await fetchJSON('https://api.mymemory.translated.net/get?' + new URLSearchParams({q: c, langpair: `${from}|${to}`}), 15000);
+    const t = d && d.responseData && d.responseData.translatedText;
+    if(!t || +d.responseStatus !== 200 || /MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(t)) throw new Error('quota');
+    out += (out && !out.endsWith('\n') ? ' ' : '') + t;
+  }
+  return out;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-xl-act]'); if(!b) return;
+  const box = b.closest('[data-xl]'), k = box.dataset.xl, item = XL.texts.get(k); if(!item) return;
+  if(XL.shown.has(k)){ XL.shown.delete(k); box.outerHTML = xlateHTML(item.text, item.lang, item.opts); return; }
+  if(!xlCache()[k]){
+    b.disabled = true; b.textContent = 'Translating…';
+    try{ xlCache()[k] = await machineTranslate(item.text, item.lang.split('-')[0], state.userLang); xlSave(); }
+    catch(err){ b.disabled = false; b.textContent = 'Translate';
+      box.querySelector('.xl-note')?.remove(); box.insertAdjacentHTML('beforeend', '<small class="xl-note">The free translator isn’t answering (it allows a limited amount a day). Try Google or Claude.</small>'); return; }
+  }
+  XL.shown.add(k);
+  const fresh = document.querySelector(`[data-xl="${k}"]`); if(fresh) fresh.outerHTML = xlateHTML(item.text, item.lang, item.opts);
+});
+
+/* ---------- Installable app: keep the app and what it has loaded for use offline ---------- */
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}

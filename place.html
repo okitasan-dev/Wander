@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0C2123" media="(prefers-color-scheme: dark)">
 <title>Wander</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Wander">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
 <style>
@@ -57,6 +59,13 @@ h2 span{font-weight:400}
 .summary p{margin:14px 0 0;font-size:17px;line-height:1.65;max-width:64ch}
 .summary p:first-child{margin-top:18px}
 .lang{font-size:12px;color:var(--muted)}
+/* translate a passage: in place, Google, or Claude */
+.xl{margin:8px 0 0}
+.xl-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.xl-b{font-size:13px;font-weight:500;color:var(--brass);text-decoration:none;padding:3px 0}
+.xl-b:first-child{border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);border-radius:999px;padding:3px 11px}
+.xl-out{margin:10px 0;padding:11px 13px;border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:0 8px 8px 0;font-size:16px;line-height:1.6;white-space:pre-line}
+.xl-out small,.xl-note{display:block;margin-top:6px;font-size:12px;color:var(--muted);white-space:normal}
 .xlate{display:inline-block;margin-top:10px;font-size:14px;font-weight:500;color:var(--brass);text-decoration:none}
 .gather{font-size:14px;color:var(--muted);margin:12px 0 0}
 .spin{display:inline-block;width:11px;height:11px;border:1.5px solid var(--brass);border-top-color:transparent;border-radius:50%;margin-right:7px;vertical-align:-1px}
@@ -190,7 +199,7 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
 </style>
 </head>
 <body lang="en">
-<a class="home" href="./"><svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="16" cy="16" r="14.5"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" stroke="none"/></svg>Wander</a>
+<a class="home" href="./" id="homeBtn"><svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="16" cy="16" r="14.5"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" stroke="none"/></svg>Wander</a>
 <main id="page">
   <figure class="hero" id="hero" hidden><img id="heroImg" alt=""><a class="credit" id="heroCredit" target="_blank" rel="noopener"></a></figure>
   <div class="nohero" id="nohero"></div>
@@ -220,11 +229,11 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
   <div class="ev-panel">
     <div class="ev-top"><button class="ev-close" id="evClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div><img id="evImg" alt="" hidden>
-    <div class="ev-body"><div class="ev-date" id="evDate"></div><h3 id="evTitle"></h3><p id="evText"></p><div class="ev-src" id="evSrc"></div></div>
+    <div class="ev-body"><div class="ev-date" id="evDate"></div><h3 id="evTitle"></h3><p id="evText"></p><div id="evXl"></div><div class="ev-src" id="evSrc"></div></div>
   </div>
 </div>
 
-<script src="common.js"></script>
+<script src="common.js?v=20261118"></script>
 <script>
 "use strict";
 /* Wander place page: richer detail about one place, opened from a card title on the main page.
@@ -403,7 +412,7 @@ async function main(){
     $('#summary').innerHTML = (pts.length >= 2
         ? `<h2>Key points</h2><ul class="points" lang="${L}">${pts.map(p=>`<li>${esc(p)}</li>`).join('')}</ul><details class="fullsum"><summary>Read the full summary</summary>${full}</details>`
         : full)
-      + (foreign ? `<p class="lang">From ${esc(langName(article.lang))} Wikipedia. <a class="xlate" target="_blank" rel="noopener" href="${esc(translateLink(article.lang, article.title))}">Read it translated</a></p>` : '');
+      + (foreign ? `<p class="lang">From ${esc(langName(article.lang))} Wikipedia.</p>` + xlateHTML(article.extract, article.lang, {about: title, googleURL: translateLink(article.lang, article.title)}) : '');
     addLink(`<a target="_blank" rel="noopener" href="${esc(article.url)}">Wikipedia</a>`);
   } else {
     $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this ${event ? 'event' : 'place'} yet.</p>`;
@@ -442,7 +451,7 @@ async function main(){
   if(rows.length){
     const foreign = histLang !== ul;
     section('history', 'History', `<ol class="timeline" lang="${esc(histLang)}">${rows.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 320))}</span></li>`).join('')}</ol>`
-      + (foreign ? `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(rows.map(r=>r.s).join('\n\n').slice(0,1800))}">Translate this history</a>` : ''),
+      + (foreign ? xlateHTML(rows.map(r=>`${r.label}: ${r.s}`).join('\n'), histLang, {about: title}) : ''),
       foreign ? esc(langName(histLang)) : '');
   }
 
@@ -600,7 +609,7 @@ function renderTimeline(events, histLang){
         <div class="tl-ctrl"><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button><button data-z="fit" aria-label="Show everything">Fit</button></div></div>
     </div>
     <ol class="timeline tl-list">${events.map((e,i)=>`<li data-i="${i}"><span class="yr">${esc(e.label)}</span><span class="tx">${e.thumb?`<img loading="lazy" alt="" src="${esc(e.thumb)}">`:''}<span${e.lang?` lang="${esc(e.lang)}"`:''}>${esc(e.kind==='history' ? trimText(e.text, 320) : e.title)}</span></span></li>`).join('')}</ol>`
-    + (foreign ? `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(events.filter(e=>e.kind==='history').map(e=>e.text).join('\n\n').slice(0,1800))}">Translate this history</a>` : ''),
+    + (foreign ? xlateHTML(events.filter(e=>e.kind==='history').map(e=>`${e.label}: ${e.text}`).join('\n'), histLang, {about: document.title.replace(/ · Wander$/, '')}) : ''),
     `${events.length} moments`);
   const rows = [...document.querySelectorAll('.tl-list li')];
   const tl = makeTimeline($('#tl'), events, i=>openEvent(events[i]), vis=>rows.forEach((r,i)=>r.classList.toggle('vis', vis.has(i))));
@@ -742,9 +751,10 @@ async function openEvent(e){
   if(e.photo) src = `${esc(creditText(e.photo) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.photo.page)}">Photo source</a>`;
   else if(e.kind==='guide') src = `From your AI guide${e.url ? ` · <a target="_blank" rel="noopener" href="${esc(e.url)}">source</a>` : ''}`;
   else if(e.src==='Wikipedia' && e.url) src = `From <a target="_blank" rel="noopener" href="${esc(e.url)}">Wikipedia</a>`;
-  else if(e.qid) src = `<a target="_blank" rel="noopener" href="place.html?${esc(new URLSearchParams({id:e.qid, lang:state.userLang, t:e.title}).toString())}">More about this</a> · from Wikidata`;
+  else if(e.qid) src = `<a href="place.html?${esc(new URLSearchParams({id:e.qid, lang:state.userLang, t:e.title}).toString())}">More about this</a> · from Wikidata`;
   else src = `From <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>`;
   $('#evSrc').innerHTML = src;
+  $('#evXl').innerHTML = e.text && e.lang ? xlateHTML(e.text, e.lang, {about: document.title.replace(/ · Wander$/, '')}) : '';
   $('#ev').hidden = false; document.body.style.overflow = 'hidden'; $('#evClose').focus();
   // a sharper image and its credit, fetched only when opened
   if(e.file && !e.info){
@@ -760,6 +770,12 @@ $('#evClose').onclick = closeEvent;
 $('#ev').addEventListener('click', ev=>{ if(ev.target.id==='ev') closeEvent(); });
 document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && !$('#ev').hidden) closeEvent(); });
 
+/* Back to Wander: return to the list where you left it if you came from there */
+$('#homeBtn').addEventListener('click', e => {
+  // Came straight from the main list: step back, which returns to it exactly as it was. Otherwise open it; it restores itself.
+  let from = null; try{ from = document.referrer ? new URL(document.referrer) : null; }catch(_){}
+  if(history.length > 1 && from && from.origin === location.origin && !/place\.html$/.test(from.pathname)){ e.preventDefault(); history.back(); }
+});
 function fail(msg){
   $('#page').innerHTML = `<div class="err"><h1>${esc(P.get('t') || 'Place not found')}</h1><p>${esc(msg)}</p><p><a href="./">Back to Wander</a></p></div>`;
 }

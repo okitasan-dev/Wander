@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0C2123" media="(prefers-color-scheme: dark)">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Wander">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png">
 <title>Wander — local history around you</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
@@ -218,6 +219,13 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .kp li{position:relative;padding:5px 0 5px 18px;font-size:15px;line-height:1.5}
 .kp li::before{content:"";position:absolute;left:3px;top:13px;width:7px;height:7px;border-radius:2px;background:var(--brass);transform:rotate(45deg)}
 .gsrc{list-style:none;margin:12px 0 0;padding:0;font-size:13px;color:var(--muted);line-height:1.45}
+/* translate a passage: in place, Google, or Claude */
+.xl{grid-column:1 / -1;margin:6px 0 0}
+.xl-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.xl-b{font-size:12.5px;font-weight:500;color:var(--brass);text-decoration:none;padding:3px 0}
+.xl-b:first-child{border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);border-radius:999px;padding:3px 10px}
+.xl-out{margin:8px 0 8px;padding:10px 12px;border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:0 8px 8px 0;font-size:15px;line-height:1.55;white-space:pre-line}
+.xl-out small,.xl-note{display:block;margin-top:5px;font-size:11.5px;color:var(--muted);white-space:normal}
 .see{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:var(--brass-soft);font-size:15px;line-height:1.5}
 .see b{display:block;font:600 12px/1.3 var(--sans);color:var(--brass);letter-spacing:.02em;margin-bottom:3px}
 .see small{display:block;margin-top:5px;font-size:12.5px;color:var(--muted)}
@@ -372,7 +380,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js"></script>
+<script src="common.js?v=20261118"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
@@ -629,7 +637,7 @@ function placeDetailsHTML(it){
     const foreign = m.histLang!==ul;
     h += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(m.histLang))})</span>`:''}</h4>
       <ol class="timeline" lang="${esc(m.histLang)}">${m.hist.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 260))}</span></li>`).join('')}</ol>`;
-    if(foreign) h += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(m.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(m.hist.map(r=>r.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
+    if(foreign) h += xlateHTML(m.hist.map(r=>`${r.label}: ${r.s}`).join('\n'), m.histLang, {about: (bestVersion(it).v||{}).title});
   }
   if(m.events.length){
     h += `<h4>Milestones</h4><ol class="timeline">${m.events.sort((a,b)=>a.y-b.y).slice(0,6).map(e=>`<li><span class="yr">${esc(e.label)}</span><span>${esc(e.s)}</span></li>`).join('')}</ol>`;
@@ -832,7 +840,8 @@ function updateStatus(){ if(!state.loading) setStatus(''); }   // all loaded: cl
 function onFix(lat, lon, acc){
   state.pos = {lat, lon, acc};
   const moved = state.lastLoad ? hav(state.lastLoad, state.pos) : Infinity;
-  if(moved > Math.max(120, state.radius/4) && Date.now()-state.lastLoadTime > 15000) refresh();
+  const age = Date.now() - state.lastLoadTime;
+  if((moved > Math.max(120, state.radius/4) || age > STALE) && age > 15000) refresh();
   else { updateStatus(); renderSoon(); }
   if($('#guide').open) updateGuideSheet();
 }
@@ -1087,7 +1096,7 @@ function guidePrompt(deep, radius){
     return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
   const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
   const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}]},'
-    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the history around me, within about ${size[0]} (${radius} m), and give it to me as data for my walking app, Wander.
 
 RESEARCH
@@ -1107,7 +1116,7 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
@@ -1130,12 +1139,75 @@ async function copyText(text, btn){
   const was = btn.textContent; btn.textContent = 'Copied'; setTimeout(()=>{ btn.textContent = was; }, 1500);
 }
 function importGuide(text){
-  const r = addGuide(decodeGuidePayload(text)), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
+  const incoming = decodeGuidePayload(text), r = addGuide(incoming), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
   render();
-  return r.merged
-    ? `Merged into ${g.area.name || 'your guide'}: ${n(r.added)} added, ${n(r.updated)} combined (${g.places.length} in total).`
-    : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`;
+  geocodeGuide(g.id);
+  return (incoming.partial ? `The reply was cut off, so only the ${n(incoming.places.length)} that arrived complete were kept. ` : '')
+    + (r.merged ? `Merged into ${g.area.name || 'your guide'}: ${n(r.added)} added, ${n(r.updated)} combined (${g.places.length} in total).`
+                : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`);
 }
+/* Assistants' coordinates are often off; addresses are usually right. Look each address up in OpenStreetMap
+   (one a second, in the background) and move the pin there, unless the guide's pin came from a precise source. */
+let geocoding = null;
+async function geocodeGuide(id){
+  if(geocoding) return geocoding.then(() => geocodeGuide(id));
+  geocoding = (async () => {
+    const g = loadGuides().find(x => x.id === id); if(!g) return;
+    const todo = g.places.filter(p => p.address && !p.geocoded); if(!todo.length) return;
+    const c = guideCentre(g), city = (g.area && g.area.name) || state.city || '', updates = new Map(); let moved = 0, i = 0;
+    const note = t => { if($('#guide').open) $('#gMsg').dataset.geo = t; const m = $('#gMsg'); if($('#guide').open && m) m.textContent = (m.textContent.split(' · Checking')[0]) + (t ? ' · ' + t : ''); };
+    const save = () => {   // write back onto the latest stored copy (another guide may have been added meanwhile)
+      const list = loadGuides(), gi = list.findIndex(x => x.id === id); if(gi < 0) return;
+      list[gi] = {...list[gi], places: list[gi].places.map(p => updates.has(p.name) && !p.geocoded ? {...p, ...updates.get(p.name)} : p)};
+      saveGuides(list); render();
+    };
+    for(const p of todo){
+      note(`Checking addresses ${++i}/${todo.length}…`);
+      const precise = p.confidence === 'high' && hasPos(p) && /coordinat|marker|hmdb|gps|survey/i.test(p.located || '');
+      if(precise){ updates.set(p.name, {geocoded: 'kept'}); continue; }
+      let hit = null;
+      try{
+        const q = {q: /,/.test(p.address) || !city ? p.address : `${p.address}, ${city}`, limit: '1'};
+        if(c) Object.assign(q, {viewbox: [c.lon - .1, c.lat + .1, c.lon + .1, c.lat - .1].join(','), bounded: '1'});
+        hit = (await nominatim('search', q) || [])[0];
+      }catch(e){}
+      if(hit){
+        const pt = {lat: +hit.lat, lon: +hit.lon};
+        if(!hasPos(p) || metres(p, pt) > 60){ updates.set(p.name, {lat: pt.lat, lon: pt.lon, geocoded: 'address', located: ((p.located || '') + ' Pin placed from the address.').trim()}); moved++; }
+        else updates.set(p.name, {geocoded: 'address'});
+      } else updates.set(p.name, {geocoded: 'none'});
+      if(i % 5 === 0) save();
+    }
+    save();
+    note(moved ? `Moved ${moved} pin${moved===1?'':'s'} to ${moved===1?'its address':'their addresses'}.` : '');
+  })().finally(() => { geocoding = null; });
+  return geocoding;
+}
+
+/* ---------- picking up where you left off ---------- */
+/* What Wander last showed is kept on the device: reopening shows it at once, then refreshes it. */
+const SESSION_KEY = 'wander.session', SESSION_MAX_AGE = 24 * 3600e3, STALE = 30 * 60e3;
+function saveSession(){
+  if(!state.pos || !state.lastLoadTime) return;
+  try{
+    const items = [...state.items.values()].filter(it => it.src !== 'AI guide').map(({ai, ...it}) => (it.more && it.more.loading ? {...it, more: undefined} : it));
+    const area = state.area.map(a => (a.details && a.details.loading ? {...a, details: undefined} : a));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual,
+      place: state.place, cc: state.cc, hood: state.hood, city: state.city, langs: state.langs, areaKey: state.areaKey, area, areaGeo: state.areaGeo,
+      lastLoad: state.lastLoad, items, expanded: [...state.expanded]}));
+  }catch(e){ /* storage full: skip */ }
+}
+let sessionTimer = null;
+function saveSessionSoon(){ clearTimeout(sessionTimer); sessionTimer = setTimeout(saveSession, 1500); }
+function restoreSession(){
+  let s = null; try{ s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){}
+  if(!s || s.v !== 1 || !s.pos || Date.now() - s.savedAt > SESSION_MAX_AGE) return false;
+  Object.assign(state, {pos: s.pos, manual: !!s.manual, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
+    areaKey: s.areaKey || '', area: s.area || [], areaGeo: s.areaGeo || null, lastLoad: s.lastLoad || s.pos, lastLoadTime: s.loadedAt || s.savedAt,
+    items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || [])});
+  return true;
+}
+addEventListener('pagehide', () => { try{ sessionStorage.setItem('wander.scroll', String(scrollY)); }catch(e){} saveSession(); });
 
 /* ---------- rendering ---------- */
 /* Titles with a Wikidata ID open the place page in a new tab */
@@ -1144,7 +1216,7 @@ function titleLink(it, title, localLang, kind){
   const q = new URLSearchParams({id: it.qid, lang: state.userLang, t: title});
   if(localLang) q.set('local', localLang);
   if(kind) q.set('kind', kind);
-  return `<a class="ttl" href="place.html?${esc(q.toString())}" target="_blank" rel="noopener">${esc(title)}</a>`;
+  return `<a class="ttl" href="place.html?${esc(q.toString())}">${esc(title)}</a>`;
 }
 function cardHTML(it, opts={}){
   const ul = state.userLang;
@@ -1170,9 +1242,6 @@ function cardHTML(it, opts={}){
   const k = esc(it.key);
   let actions = `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
-  if(lv && !(uv && uv.extract) && !it.src) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
-  const foreignText = [ (lv && !(uv && uv.extract)) ? lv.extract : '', it.inscription && it.inscrLang!==ul ? it.inscription : '' ].filter(Boolean).join('\n\n');
-  if(it.src && foreignText) actions += `<a class="btn" target="_blank" rel="noopener" href="https://translate.google.com/?sl=auto&tl=${ul}&op=translate&text=${encodeURIComponent(foreignText.slice(0,1500))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">Directions</a>`;
@@ -1187,8 +1256,8 @@ function cardHTML(it, opts={}){
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
     ${facts && !(expanded && it.more && it.more.facts && it.more.facts.length)?`<div class="facts">${facts}</div>`:''}
     ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}">${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
-      : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` : ''}
-    ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>`:''}
+      : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` + (text ? xlateHTML(full, bodyLang, {about: head.title, googleURL: !it.src && lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''}) : '') : ''}
+    ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>` + xlateHTML(it.inscription, it.inscrLang, {about: head.title}) :''}
     ${expanded ? (it.ai ? guideHTML(it.ai) : '') + placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>
   </article>`;
@@ -1221,18 +1290,17 @@ function areaHTML(it, idx){
     const foreign = d.histLang!==ul;
     more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
       <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
-    if(foreign) more += `<a class="xlate" target="_blank" rel="noopener" href="https://translate.google.com/?sl=${esc(d.histLang)}&tl=${ul}&op=translate&text=${encodeURIComponent(d.hist.map(h=>h.s).join('\n\n').slice(0,1800))}">Translate timeline</a>`;
+    if(foreign) more += xlateHTML(d.hist.map(h=>`${h.label}: ${h.s}`).join('\n'), d.histLang, {about: head.title});
   }
   if(ag) more = guideHTML(ag).replace(/^<div class="more gd">|<\/div>$/g, '') + more;
   more += factoidsHTML(d.factoids);
   const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
   let actions = toggle + (idx===0 ? `<button data-act="guide" data-key="${k}">AI guide</button>` : '');
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
-  if(lv && !(uv && uv.extract)) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(translateLink(localLang, lv.title))}">Translate</a>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   return `<article class="card area open${idx>0?' secondary':''}" data-key="${k}">
     ${headline}
-    ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>`:''}
+    ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>` + (ag && ag.summary ? '' : xlateHTML(intro, bodyLang, {about: head.title, googleURL: lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''})):''}
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
     ${more?`<div class="more">${more}</div>`:''}
@@ -1263,6 +1331,7 @@ function render(){
   lookApply(true);
   updatePageLang(document.querySelector('main'), state.userLang);
   const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !rows.some(r=>r.it.src==='AI guide');
+  saveSessionSoon();
 }
 /* Distance bands: what you can see, what is a short walk, and the rest */
 function bandOf(d){ return d <= state.sight ? 0 : d <= Math.max(WALK, state.sight) ? 1 : 2; }
@@ -1364,10 +1433,20 @@ $('#placeForm').onsubmit = async e=>{
     else setStatus('Could not find “'+esc(v)+'”.');
   }catch(err){ setStatus('Search failed: '+esc(err.message)); }
 };
+// Reopening: show what Wander last showed, then bring it up to date
+if(restoreSession()){
+  render(); updateStatus();
+  let y = 0; try{ y = +sessionStorage.getItem('wander.scroll') || 0; }catch(e){}
+  if(y) requestAnimationFrame(() => scrollTo(0, y));
+  if(state.manual && Date.now() - state.lastLoadTime > STALE) refresh();
+}
+if(!state.manual && navigator.permissions && navigator.permissions.query){
+  navigator.permissions.query({name: 'geolocation'}).then(p => { if(p.state === 'granted' && state.watchId == null) startGPS(); }).catch(() => {});
+}
 // Arriving from a Claude pamphlet's "Send to Wander" link: …#import=<data>
 if(location.hash.startsWith('#import=')){
   try{
-    const r = addGuide(decodeGuidePayload(location.hash)), g = r.guide;
+    const r = addGuide(decodeGuidePayload(location.hash)), g = r.guide; setTimeout(() => geocodeGuide(g.id), 1500);
     history.replaceState(null, '', location.pathname + location.search);
     setStatus(r.merged ? `AI guide merged into ${esc(g.area.name || 'your guide')}: ${r.added} added, ${r.updated} combined` : `AI guide added: ${g.places.length} places${g.area.name ? ' for ' + esc(g.area.name) : ''}`);
     if(!state.pos && g.area.lat != null) setManual(g.area.lat, g.area.lon);   // show it where it was made; Start switches back to GPS
