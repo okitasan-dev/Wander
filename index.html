@@ -221,8 +221,32 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .chk input{width:18px;height:18px;accent-color:var(--brass)}
 .row .srcs{display:flex;flex-direction:column;gap:8px;flex:1}
 #placeForm button{color:var(--on-brass);background:var(--brass);border-radius:10px;padding:9px 16px;font-weight:500}
-.chips{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 6px}
-.chip{font-size:13px;padding:7px 12px;border-radius:999px;border:1px solid var(--rule)!important;color:var(--ink)}
+/* places library */
+.lib-row{display:flex;align-items:center;gap:2px;border-top:1px solid var(--rule)}
+.lib-list .lib-row:first-child{border-top:0}
+.lib-go{flex:1;min-width:0;text-align:left;padding:10px 0;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+.lib-go b{font:600 16px/1.25 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-go small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-go small .t{color:var(--brass);font-weight:500}
+.lib-pin,.lib-x{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex:none}
+.lib-pin[aria-pressed="true"]{color:var(--brass)}
+.lib-pin[aria-pressed="true"] path{fill:currentColor}
+.lib-empty{font-size:14px;color:var(--muted);margin:12px 0}
+.lib-filter{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.lib-filter button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--rule);color:var(--ink)}
+.lib-filter button[aria-pressed="true"]{background:var(--brass);color:var(--on-brass);border-color:var(--brass)}
+#libAll{display:block;margin:4px 0 0;font-size:14px;font-weight:500;color:var(--brass);padding:6px 0}
+.lib-opts{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+#libClear{font-size:13.5px;font-weight:500;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+#libDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
+/* exploring somewhere other than where you are */
+.explore{position:absolute;left:12px;top:calc(max(44vh, 260px) - 60px);z-index:500;display:flex;align-items:center;gap:8px;max-width:calc(100% - 72px);padding:5px 5px 5px 12px;
+  border-radius:999px;background:color-mix(in srgb,var(--raise) 92%,transparent);box-shadow:0 2px 10px rgba(0,0,0,.18);font-size:13px}
+.explore[hidden]{display:none}
+.explore span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.explore b{color:var(--ink);font-weight:600}
+.explore button{flex:none;font-weight:600;font-size:13px;color:var(--on-brass);background:var(--brass);border-radius:999px;padding:6px 11px}
+#mapWrap.collapsed .explore{position:static;margin:10px 16px 0;max-width:none;width:max-content;max-width:calc(100% - 32px)}
 #settingsDone,#guideDone{display:block;width:100%;margin-top:16px;height:48px;border-radius:14px;background:var(--ink);color:var(--ground);font-weight:500}
 #openGuide{display:block;width:100%;margin-top:14px;height:46px;border-radius:14px;border:1px solid var(--brass);color:var(--brass);font-weight:500}
 
@@ -285,6 +309,7 @@ footer a{color:var(--muted)}
 <main>
   <div id="mapWrap">
     <div id="map"></div>
+    <div class="explore" id="explore" hidden><span>Exploring <b id="exploreName"></b></span><button type="button" id="backToMe">Back to me</button></div>
     <div class="mapbtns">
       <button id="recenterBtn">Recenter</button>
       <button id="mapToggle">Hide map</button>
@@ -360,13 +385,9 @@ footer a{color:var(--muted)}
       <input type="text" id="placeInput" placeholder="Place, address, coordinates or a Maps link" autocomplete="off">
       <button type="submit">Go</button>
     </form>
-    <div class="chips">
-      <button class="chip" data-ll="35.0037,135.7788">Gion, Kyoto</button>
-      <button class="chip" data-ll="48.8575,2.3600">Le Marais, Paris</button>
-      <button class="chip" data-ll="38.7115,-9.1300">Alfama, Lisbon</button>
-      <button class="chip" data-ll="41.3839,2.1763">Barri Gòtic, Barcelona</button>
-      <button class="chip" data-ll="50.0875,14.4213">Old Town, Prague</button>
-    </div>
+    <h4>Places</h4>
+    <div class="lib-list" id="libShort"></div>
+    <button type="button" id="libAll">See all places</button>
     <button type="button" id="openGuide">Make an AI guide for this spot</button>
     <button type="button" id="settingsDone">Done</button>
   </div>
@@ -400,8 +421,25 @@ footer a{color:var(--muted)}
   </div>
 </details>
 
+<details class="sheet" id="lib">
+  <summary>Places</summary>
+  <div class="sheet-body">
+    <div class="sheet-head"><div class="grab"></div><h3>Places</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <p class="note">Places you've searched for, been to and made guides for. Tap one to explore it from wherever you are.</p>
+    <div class="lib-filter" id="libFilter">
+      <button type="button" data-f="" aria-pressed="true">All</button><button type="button" data-f="guide" aria-pressed="false">Guides</button><button type="button" data-f="searched" aria-pressed="false">Searched</button><button type="button" data-f="visited" aria-pressed="false">Been to</button><button type="button" data-f="sample" aria-pressed="false">Samples</button>
+    </div>
+    <div class="lib-list" id="libList"></div>
+    <div class="lib-opts">
+      <span class="chk"><input type="checkbox" id="libVisits"> Remember places I've been</span>
+      <button type="button" id="libClear">Clear history</button>
+    </div>
+    <button type="button" id="libDone">Done</button>
+  </div>
+</details>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.6.5"></script>
+<script src="common.js?v=2.7.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const sp = document.querySelector(sel+' span'); if(sp) sp.textContent = t; };
@@ -847,6 +885,7 @@ async function refresh(force){
   setStatus('<span class="spin"></span>Looking around…');
   try{
     await loadArea(lat, lon, live); if(!live()) return;
+    libAfterArea({lat, lon}); updateExplore();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Reading ${state.langs.map(langName).join(' and ')} Wikipedia…</span>`);
     const extra = Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
     const added = await loadNearby(lat, lon, live); if(!live()) return;
@@ -881,7 +920,7 @@ function onFix(lat, lon, acc){
 function startGPS(){
   if(!('geolocation' in navigator)){ setStatus('This browser has no location access. Use Settings → manual location.'); return; }
   if(!window.isSecureContext){ setStatus('GPS needs the page to be opened over https://. Use Settings → manual location, or host the file (see notes).'); $('#settings').open=true; return; }
-  stopGPS(); state.manual=false;
+  stopGPS(); state.manual=false; state.remote=false; updateExplore();
   setStatus('<span class="spin"></span>Getting your location…');
   state.watchId = navigator.geolocation.watchPosition(
     p => onFix(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
@@ -896,7 +935,7 @@ function stopGPS(){
   label('#gpsBtn','Start'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
 }
 function setManual(lat, lon){
-  stopGPS(); state.manual=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
+  stopGPS(); state.manual=true; state.remote=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
   M.follow = true; if($('#recenterBtn')) $('#recenterBtn').style.display='none';
   for(const p of M.pins.values()) p.remove(); M.pins.clear();
   onFix(lat, lon, null);
@@ -1228,7 +1267,7 @@ function saveSession(){
   try{
     const items = [...state.items.values()].filter(it => it.src !== 'AI guide').map(({ai, ...it}) => (it.more && it.more.loading ? {...it, more: undefined} : it));
     const area = state.area.map(a => (a.details && a.details.loading ? {...a, details: undefined} : a));
-    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual,
+    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
       place: state.place, cc: state.cc, hood: state.hood, city: state.city, langs: state.langs, areaKey: state.areaKey, area, areaGeo: state.areaGeo,
       lastLoad: state.lastLoad, items, expanded: [...state.expanded]}));
   }catch(e){ /* storage full: skip */ }
@@ -1238,7 +1277,7 @@ function saveSessionSoon(){ clearTimeout(sessionTimer); sessionTimer = setTimeou
 function restoreSession(){
   let s = null; try{ s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){}
   if(!s || s.v !== 1 || !s.pos || Date.now() - s.savedAt > SESSION_MAX_AGE) return false;
-  Object.assign(state, {pos: s.pos, manual: !!s.manual, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
+  Object.assign(state, {pos: s.pos, manual: !!s.manual, remote: s.remote == null ? !!s.manual : !!s.remote, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
     areaKey: s.areaKey || '', area: s.area || [], areaGeo: s.areaGeo || null, lastLoad: s.lastLoad || s.pos, lastLoadTime: s.loadedAt || s.savedAt,
     items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || [])});
   return true;
@@ -1345,7 +1384,7 @@ function areaHTML(it, idx){
 }
 function render(){
   if(!state.pos) return;
-  applyGuides();
+  applyGuides(); updateExplore();
   try{ initMap(); }catch(e){ console.warn('map init', e); }
   const area = state.area.map((it,i)=>areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
@@ -1493,7 +1532,105 @@ const ulSel = $('#ulang');
 ulSel.innerHTML = UI_LANGS.map(l=>`<option value="${l}">${esc(langName(l))}</option>`).join('');
 ulSel.value = state.userLang;
 ulSel.onchange = e=>{ state.userLang=e.target.value; store.set('userLang',state.userLang); state.items.clear(); state.areaKey=''; state.loads=0; state.lastLoadTime=0; refresh(); };
-document.querySelectorAll('.chip[data-ll]').forEach(c=>c.onclick=()=>{ const [a,b]=c.dataset.ll.split(',').map(Number); setManual(a,b); });
+/* ---------- Places library: samples, searches, places you've been, and AI guides ----------
+   Searches and visits are kept on this device under wander.places, each {id, name, lat, lon, kinds, at, pinned}.
+   Guides and samples are not copied in: they join the list as it is drawn, so removing a guide removes its row.
+   Anything within half a mile of another counts as the same place, and its row carries every tag that applies. */
+const LIB_KEY = 'places', LIB_NEAR = 800, LIB_MAX = 50;
+const LIB_SAMPLES = [['Gion, Kyoto', 35.0037, 135.7788], ['Le Marais, Paris', 48.8575, 2.3600], ['Alfama, Lisbon', 38.7115, -9.1300],
+  ['Barri Gòtic, Barcelona', 41.3839, 2.1763], ['Old Town, Prague', 50.0875, 14.4213]].map(([name, lat, lon]) => ({id: 's:' + name, name, lat, lon}));
+const LIB_TAGS = {guide: 'Guide', searched: 'Searched', visited: 'Been to', sample: 'Sample'};
+const libLoad = () => { const v = store.get(LIB_KEY, []); return Array.isArray(v) ? v : []; };
+function libSave(list){
+  const keep = list.filter(e => e.pinned || (e.kinds || []).length);
+  store.set(LIB_KEY, [...keep.filter(e => e.pinned), ...keep.filter(e => !e.pinned).sort((a, b) => b.at - a.at).slice(0, LIB_MAX)]);
+}
+const libName = () => [state.hood, state.city].filter(Boolean).join(', ') || state.place || '';
+// Note a place. 'opened' (picked from the list) only marks it as recently used.
+function libRecord(kind, pos, name){
+  if(!pos || !okLL(pos.lat, pos.lon)) return;
+  const list = libLoad(); let e = list.find(x => metres(x, pos) <= LIB_NEAR);
+  if(!e){ e = {id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lat: +pos.lat.toFixed(5), lon: +pos.lon.toFixed(5), kinds: [], at: 0}; list.push(e); }
+  if(!e.kinds.includes(kind)) e.kinds.push(kind);
+  if(name && (kind !== 'opened' || !e.name)) e.name = name;
+  if(!e.name) e.name = `${pos.lat.toFixed(4)}, ${pos.lon.toFixed(4)}`;
+  e.at = Date.now(); libSave(list);
+}
+// Once a search's neighbourhood is known: name what was searched for, or note where GPS has taken you
+function libAfterArea(pos){
+  if(state.libPending){ libRecord(state.libPending.kind, pos, libName() || state.libPending.text); state.libPending = null; }
+  else if(state.watchId != null && !state.manual && store.get('recordVisits', true)) libRecord('visited', pos, libName());
+}
+function libEntries(){
+  const rows = libLoad().map(e => ({...e, saved: e.id, tags: new Set(e.kinds.filter(k => LIB_TAGS[k]))}));
+  const join = (pos, tag, name, id, at) => {
+    const r = rows.find(x => metres(x, pos) <= LIB_NEAR);
+    if(r){ r.tags.add(tag); if(!r.name) r.name = name; r.at = Math.max(r.at || 0, at || 0); }
+    else rows.push({id, name, lat: pos.lat, lon: pos.lon, tags: new Set([tag]), at: at || 0});
+  };
+  for(const g of loadGuides()){ const c = guideCentre(g); if(c) join(c, 'guide', (g.area && g.area.name) || 'AI guide', 'g:' + g.id, g.savedAt); }
+  for(const x of LIB_SAMPLES) join(x, 'sample', x.name, x.id, 0);
+  return rows.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0) || a.name.localeCompare(b.name));
+}
+function libWhen(t){
+  if(!t) return '';
+  const d = Math.floor((new Date().setHours(0,0,0,0) - new Date(t).setHours(0,0,0,0)) / 864e5);
+  return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : d < 7 ? d + ' days ago' : new Date(t).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: d > 300 ? 'numeric' : undefined});
+}
+const LIB_STAR = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="m12 3.2 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>', LIB_X = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+function libRowHTML(r){
+  const here = state.pos && metres(r, state.pos) <= LIB_NEAR;
+  const bits = [[...r.tags].map(t => `<span class="t">${LIB_TAGS[t]}</span>`).join(' · '), here ? (state.remote ? 'Exploring now' : 'You are here') : '', libWhen(r.at)].filter(Boolean);
+  const canX = r.saved && libLoad().some(e => e.id === r.saved && e.kinds.some(k => k !== 'pin'));
+  return `<div class="lib-row"><button type="button" class="lib-go" data-lib-go="${esc(r.id)}"><b>${esc(r.name)}</b><small>${bits.join(' · ')}</small></button>`
+    + `<button type="button" class="lib-pin" data-lib-pin="${esc(r.id)}" aria-pressed="${r.pinned ? 'true' : 'false'}" aria-label="${r.pinned ? 'Unpin' : 'Pin to the top'}">${LIB_STAR}</button>`
+    + (canX ? `<button type="button" class="lib-x" data-lib-x="${esc(r.id)}" aria-label="Remove from history">${LIB_X}</button>` : '') + `</div>`;
+}
+let libFilter = '';
+function renderLib(){
+  const all = libEntries();
+  $('#libShort').innerHTML = all.slice(0, 5).map(libRowHTML).join('');
+  $('#libAll').textContent = all.length > 5 ? `See all ${all.length} places` : 'See all places';
+  if($('#lib').open){
+    const rows = libFilter ? all.filter(r => r.tags.has(libFilter)) : all;
+    $('#libList').innerHTML = rows.map(libRowHTML).join('') || `<p class="lib-empty">Nothing here yet.</p>`;
+    document.querySelectorAll('#libFilter button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === libFilter)));
+    $('#libVisits').checked = store.get('recordVisits', true);
+  }
+}
+function libGo(r){
+  libRecord('opened', r, r.name); state.libPending = null;
+  $('#lib').open = false; setManual(r.lat, r.lon);
+}
+function libPin(r){
+  const list = libLoad(); let e = r.saved && list.find(x => x.id === r.saved);
+  if(e) e.pinned = !e.pinned;
+  else list.push({id: 'p' + Date.now().toString(36), name: r.name, lat: r.lat, lon: r.lon, kinds: [], at: r.at || 0, pinned: true});
+  libSave(list); renderLib();
+}
+function libRemove(r){ libSave(libLoad().map(x => x.id === r.saved ? {...x, kinds: []} : x)); renderLib(); }   // a pinned place keeps its pin
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lib-go],[data-lib-pin],[data-lib-x]'); if(!b) return;
+  const id = b.dataset.libGo || b.dataset.libPin || b.dataset.libX, r = libEntries().find(x => x.id === id); if(!r) return;
+  if(b.dataset.libGo) libGo(r); else if(b.dataset.libPin) libPin(r); else libRemove(r);
+});
+$('#libAll').onclick = () => { $('#settings').open = false; $('#lib').open = true; renderLib(); };
+$('#libDone').onclick = () => { $('#lib').open = false; };
+$('#libFilter').onclick = e => { const b = e.target.closest('[data-f]'); if(!b) return; libFilter = b.dataset.f; renderLib(); };
+$('#libVisits').onchange = e => store.set('recordVisits', e.target.checked);
+$('#libClear').onclick = () => {
+  if(!confirm('Clear the places you have searched for and been to? Pinned places and guides stay.')) return;
+  libSave(libLoad().filter(e => e.pinned).map(e => ({...e, kinds: []}))); renderLib();
+};
+$('#settings').addEventListener('toggle', () => { if($('#settings').open) renderLib(); });
+// The map shows where you're exploring when it isn't where you are
+function updateExplore(){
+  const on = !!(state.remote && state.pos);
+  $('#explore').hidden = !on;
+  if(on) $('#exploreName').textContent = libName() || 'another place';
+}
+$('#backToMe').onclick = () => { haptic(); state.lastLoad = null; state.lastLoadTime = 0; startGPS(); };
+
 /* ---------- Typed place: coordinates, a map link, a place name or a street address ---------- */
 const okLL = (a, b) => isFinite(a) && isFinite(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180 && !(a === 0 && b === 0);
 // Coordinates written out: 34°10'54.2"N 118°18'41.1"W · 34.1817° N, 118.3114° W · 34.1817, -118.3114
@@ -1558,7 +1695,7 @@ $('#placeForm').onsubmit = async e=>{
   const rest = (link ? v.replace(link, ' ') : v).replace(/\s+/g, ' ').trim();   // shared links often come with the place's name
   const got = link ? fromMapLink(link) : null;
   const ll = (got && got.ll) || coordsIn(rest) || (link && !got ? coordsIn(link) : null);
-  if(ll){ setManual(ll[0], ll[1]); return; }
+  if(ll){ state.libPending = {kind: 'searched', text: rest || (got && got.text) || ''}; setManual(ll[0], ll[1]); return; }
   const text = rest || (got && got.text);
   if(!text){
     setStatus(got && got.short
@@ -1568,7 +1705,7 @@ $('#placeForm').onsubmit = async e=>{
   }
   setStatus('<span class="spin"></span>Finding “'+esc(text)+'”…');
   const hit = await geocodeText(text);
-  if(hit) setManual(hit[0], hit[1]);
+  if(hit){ state.libPending = {kind: 'searched', text}; setManual(hit[0], hit[1]); }
   else setStatus('Couldn’t find “'+esc(text)+'”. Try adding the city, or paste coordinates.');
 };
 // Reopening: show what Wander last showed, then bring it up to date
