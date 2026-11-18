@@ -320,7 +320,9 @@ function normalizeGuide(g){
   const sources = v => arr(v, 8, s => { const u = url(s && s.url); return u ? {title: str(s.title, 120) || u.replace(/^https?:\/\/(www\.)?/, '').split('/')[0], url: u} : null; });
   const timeline = v => arr(v, 12, t => { const text = str(t && t.text, 300), date = str(t && t.date, 40); return text ? {date, text} : null; });
   const body = p => ({ summary: str(p.summary, 900), keyPoints: arr(p.keyPoints, 6, k => str(k, 300)), timeline: timeline(p.timeline),
-    trivia: arr(p.trivia, 6, k => str(k, 300)), sources: sources(p.sources) });
+    trivia: arr(p.trivia, 6, k => str(k, 300)), sources: sources(p.sources),
+    terms: arr(p.terms, 8, t => { const text = str(t && t.text, 80), title = str(t && (t.wiki || t.title), 150), lang = String((t && t.lang) || 'en').toLowerCase();
+      return text && title && /^[a-z]{2,3}(-[a-z]+)?$/.test(lang) ? {text, title, lang} : null; }) });
   const places = arr(g.places, 40, p => {
     if(!p || typeof p !== 'object') return null;
     const name = str(p.name, 120); if(!name) return null;
@@ -374,7 +376,8 @@ function mergeEntry(a, b){
     keyPoints: unionBy([...(b.keyPoints||[]), ...(a.keyPoints||[])], normText, 8),
     timeline: byDate(unionBy([...(a.timeline||[]), ...(b.timeline||[])], t => (t.date||'') + '|' + normText(t.text).slice(0, 40), 14)),
     trivia: unionBy([...(b.trivia||[]), ...(a.trivia||[])], normText, 8),
-    sources: unionBy([...(b.sources||[]), ...(a.sources||[])], s => s.url, 12)};
+    sources: unionBy([...(b.sources||[]), ...(a.sources||[])], s => s.url, 12),
+    terms: unionBy([...(b.terms||[]), ...(a.terms||[])], t => t.text.toLowerCase(), 10)};
 }
 const guideCentre = g => { if(g.area && hasPos(g.area)) return g.area;
   const ps = (g.places||[]).filter(hasPos); return ps.length ? {lat: ps.reduce((s, p) => s + p.lat, 0)/ps.length, lon: ps.reduce((s, p) => s + p.lon, 0)/ps.length} : null; };
@@ -481,3 +484,138 @@ document.addEventListener('click', async e => {
 if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+
+/* ---------- Wikipedia links in text, with a preview panel ---------- */
+/* Two sources of links, both checked against Wikipedia before use:
+   - Wikipedia text: the links that article itself contains (plain-text summaries lose them; this puts them back).
+   - AI guide text: the terms the assistant listed with their Wikipedia titles.
+   Elements opt in with data-wl="a:<lang>:<article title>" or data-wl="t:<key>" (a term list registered with wlTerms). */
+const WL = {links: new Map(), terms: new Map(), pending: new Map(), seen: null};
+function wlSeen(){ if(!WL.seen){ try{ WL.seen = JSON.parse(localStorage.getItem('wander.wl') || '{}'); }catch(e){ WL.seen = {}; } } return WL.seen; }
+function wlSaveSeen(){ try{ const c = wlSeen(), k = Object.keys(c); for(const x of k.slice(0, Math.max(0, k.length - 1500))) delete c[x]; localStorage.setItem('wander.wl', JSON.stringify(c)); }catch(e){} }
+/* Register a guide's term list; returns the key for data-wl="t:<key>" */
+function wlTerms(terms){ if(!terms || !terms.length) return ''; const k = 'g' + xlKey('t', JSON.stringify(terms)); WL.terms.set(k, terms); return k; }
+const wlUsable = t => t && t.length >= 4 && !/^\d+(s| BC| BCE| AD)?$/.test(t) && !/^(January|February|March|April|May|June|July|August|September|October|November|December) \d+$/.test(t)
+  && !/^(List|Lists|Index|Outline|Category|Template|Portal|Help|Wikipedia) /.test(t);
+async function wlLoad(spec){
+  if(WL.pending.has(spec)) return WL.pending.get(spec);
+  const job = (async () => {
+    if(spec.startsWith('a:')){
+      const [, lang, ...rest] = spec.split(':'), title = rest.join(':');
+      const d = await fetchJSON(wikiURL(lang, {action:'query', titles:title, redirects:'1', prop:'links', pllimit:'max', plnamespace:'0'}), 15000);
+      const page = d.query && d.query.pages && d.query.pages[0], out = [];
+      for(const l of (page && page.links) || []){ const text = l.title.replace(/\s*\([^)]*\)$/, ''); if(wlUsable(text) && text !== title) out.push({text, title: l.title, lang}); }
+      WL.links.set(spec, out);
+    } else {
+      const terms = WL.terms.get(spec.slice(2)) || [], seen = wlSeen(), byLang = {};
+      for(const t of terms){ const k = t.lang + '|' + t.title; if(!(k in seen)) (byLang[t.lang] = byLang[t.lang] || []).push(t.title); }
+      for(const lang in byLang){
+        const titles = [...new Set(byLang[lang])].slice(0, 50);
+        const d = await fetchJSON(wikiURL(lang, {action:'query', titles:titles.join('|'), redirects:'1', prop:'pageprops', ppprop:'disambiguation'}), 15000);
+        const map = {}; for(const n of [...(d.query?.normalized || []), ...(d.query?.redirects || [])]) map[n.from] = n.to;
+        const ok = {}; for(const p of d.query?.pages || []) if(!p.missing && !p.invalid && !(p.pageprops && 'disambiguation' in p.pageprops)) ok[p.title] = true;
+        for(const t of titles){ let r = t; for(let i = 0; i < 3 && map[r]; i++) r = map[r]; seen[lang + '|' + t] = ok[r] ? r : ''; }
+      }
+      wlSaveSeen();
+    }
+  })().catch(() => { if(spec.startsWith('a:')) WL.links.set(spec, []); }).finally(() => WL.pending.delete(spec));
+  WL.pending.set(spec, job); return job;
+}
+function wlListFor(spec){
+  if(spec.startsWith('a:')) return WL.links.has(spec) ? WL.links.get(spec) : null;
+  const terms = WL.terms.get(spec.slice(2)); if(!terms) return [];
+  const seen = wlSeen(); if(terms.some(t => !((t.lang + '|' + t.title) in seen))) return null;
+  return terms.filter(t => seen[t.lang + '|' + t.title]).map(t => ({text: t.text, title: seen[t.lang + '|' + t.title], lang: t.lang}));
+}
+/* Wrap the first mention of each linkable term inside el (text only; never inside links, buttons or translations) */
+function wlLinkIn(el, list, max = 12){
+  const isWord = c => !!c && /[\p{L}\p{N}]/u.test(c);
+  const cjk = s => /[　-鿿가-힯]/.test(s);
+  let made = 0;
+  for(const t of [...list].sort((a, b) => b.text.length - a.text.length)){
+    if(made >= max) break;
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: n => n.parentElement.closest('a,button,.xl,.wl,script,style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+    for(let n; (n = walk.nextNode());){
+      const s = n.nodeValue; let i = s.indexOf(t.text);
+      if(i < 0 && !cjk(t.text)){ const j = s.toLowerCase().indexOf(t.text.toLowerCase()); if(j >= 0 && t.text.length >= 8) i = j; }
+      if(i < 0) continue;
+      if(!cjk(t.text) && (isWord(s[i - 1]) || isWord(s[i + t.text.length]))) continue;   // whole words only
+      const a = document.createElement('a');
+      a.className = 'wl'; a.href = `https://${t.lang}.wikipedia.org/wiki/${encodeURIComponent(t.title.replace(/ /g, '_'))}`;
+      a.dataset.lang = t.lang; a.dataset.title = t.title; a.textContent = s.slice(i, i + t.text.length);
+      const rest = n.splitText(i); rest.nodeValue = rest.nodeValue.slice(t.text.length); n.parentNode.insertBefore(a, rest);
+      made++; break;
+    }
+  }
+}
+/* Link every opted-in element on the page; elements whose links are still loading are linked when they arrive */
+function applyWikiLinks(root = document){
+  for(const el of root.querySelectorAll('[data-wl]:not([data-wl-done])')){
+    const spec = el.dataset.wl, list = wlListFor(spec);
+    if(list === null){ wlLoad(spec).then(() => applyWikiLinks(document)); continue; }
+    if(list.length) wlLinkIn(el, list);
+    el.dataset.wlDone = '1';
+  }
+}
+
+/* The panel a link opens: the article's summary, then Read on Wikipedia (in the browser) or open it as a place */
+(function(){
+  const css = document.createElement('style');
+  css.textContent = `a.wl{color:inherit;text-decoration:underline;text-decoration-style:dotted;text-decoration-color:var(--brass);text-decoration-thickness:1.5px;text-underline-offset:3px}
+.wlp{position:fixed;inset:0;z-index:1200;background:rgba(5,16,17,.5);display:flex;align-items:flex-end;justify-content:center;padding-top:calc(env(safe-area-inset-top) + 12px)}
+.wlp[hidden]{display:none}
+.wlp-panel{position:relative;width:100%;max-width:560px;max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--raise);color:var(--ink);border-radius:20px 20px 0 0;box-shadow:var(--shadow);padding-bottom:calc(env(safe-area-inset-bottom) + 18px)}
+.wlp-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:16px 16px 10px 20px;background:var(--raise)}
+.wlp-head b{flex:1;font:600 21px/1.25 var(--serif)}
+.wlp-x{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
+.wlp-body{padding:0 20px}
+.wlp img{display:block;width:100%;max-height:34vh;max-height:34dvh;object-fit:cover;margin-bottom:12px}
+.wlp-desc{font-size:13.5px;color:var(--muted);margin:0 0 8px}
+.wlp-text{font-size:15.5px;line-height:1.6;margin:0}
+.wlp-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.wlp-btns a{display:flex;align-items:center;justify-content:center;height:46px;border-radius:12px;font-weight:500;font-size:15px;text-decoration:none}
+.wlp-open{background:var(--brass);color:var(--on-brass)}
+.wlp-place{border:1px solid var(--rule);color:var(--ink);background:var(--surface)}
+.wlp-src{font-size:12px;color:var(--muted);margin:12px 0 0}
+.wlp-load{color:var(--muted);font-size:14px;margin:6px 0 0}`;
+  document.head.append(css);
+})();
+function wlPanel(){
+  let p = document.getElementById('wlp'); if(p) return p;
+  p = document.createElement('div'); p.id = 'wlp'; p.className = 'wlp'; p.hidden = true;
+  p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('aria-label', 'Wikipedia article');
+  p.innerHTML = `<div class="wlp-panel"><div class="wlp-head"><b id="wlpTitle"></b><button type="button" class="wlp-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div id="wlpContent"></div></div>`;
+  document.body.append(p);
+  const close = () => { p.hidden = true; document.body.style.overflow = ''; };
+  p.addEventListener('click', e => { if(e.target === p || e.target.closest('.wlp-x')) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && !p.hidden) close(); });
+  return p;
+}
+async function openWikiPanel(lang, title){
+  const p = wlPanel(), url = `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+  const buttons = qid => `<div class="wlp-btns"><a class="wlp-open" href="${esc(url)}" target="_blank" rel="noopener">Read on Wikipedia ↗</a>`
+    + (qid ? `<a class="wlp-place" href="place.html?${esc(new URLSearchParams({id: qid, lang: state.userLang, t: title}).toString())}">Open as a place in Wander</a>` : '') + `</div>`;
+  $('#wlpTitle').textContent = title; $('#wlpTitle').lang = lang;
+  $('#wlpContent').innerHTML = `<div class="wlp-body"><p class="wlp-load"><span class="spin"></span>Loading…</p>${buttons('')}</div>`;
+  p.hidden = false; document.body.style.overflow = 'hidden';
+  try{
+    const d = await fetchJSON(wikiURL(lang, {action:'query', titles:title, redirects:'1', prop:'extracts|pageimages|pageprops|info', exintro:'1', explaintext:'1',
+      piprop:'thumbnail', pithumbsize:'500', ppprop:'wikibase_item|wikibase-shortdesc', inprop:'url'}), 15000);
+    const pg = d.query && d.query.pages && d.query.pages[0];
+    if(!pg || pg.missing) throw new Error('missing');
+    if($('#wlpTitle').textContent !== title) return;   // another link was opened meanwhile
+    const pp = pg.pageprops || {}, text = trimText((pg.extract || '').replace(/\n+/g, '\n'), 1100);
+    $('#wlpTitle').textContent = pg.title;
+    $('#wlpContent').innerHTML = (pg.thumbnail ? `<img alt="" src="${esc(pg.thumbnail.source)}">` : '')
+      + `<div class="wlp-body">${pp['wikibase-shortdesc'] ? `<p class="wlp-desc">${esc(cap(pp['wikibase-shortdesc']))}</p>` : ''}`
+      + `<p class="wlp-text" lang="${esc(lang)}" style="white-space:pre-line">${esc(text || 'This article has no summary.')}</p>`
+      + (text ? xlateHTML(text, lang, {about: pg.title, googleURL: translateLink(lang, pg.title)}) : '')
+      + buttons(pp.wikibase_item) + `<p class="wlp-src">From ${esc(langName(lang))} Wikipedia (CC BY-SA)</p></div>`;
+  }catch(e){
+    $('#wlpContent').innerHTML = `<div class="wlp-body"><p class="wlp-load">Couldn’t load a preview${navigator.onLine === false ? ' while offline' : ''}.</p>${buttons('')}</div>`;
+  }
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a.wl'); if(!a || e.metaKey || e.ctrlKey) return;
+  e.preventDefault(); openWikiPanel(a.dataset.lang, a.dataset.title);
+});

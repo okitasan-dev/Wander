@@ -645,7 +645,7 @@ function placeDetailsHTML(it){
   if(m.hist.length){
     const foreign = m.histLang!==ul;
     h += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(m.histLang))})</span>`:''}</h4>
-      <ol class="timeline" lang="${esc(m.histLang)}">${m.hist.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 260))}</span></li>`).join('')}</ol>`;
+      <ol class="timeline" lang="${esc(m.histLang)}"${it.versions[m.histLang] ? ` data-wl="a:${esc(m.histLang)}:${esc(it.versions[m.histLang].title)}"` : ''}>${m.hist.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 260))}</span></li>`).join('')}</ol>`;
     if(foreign) h += xlateHTML(m.hist.map(r=>`${r.label}: ${r.s}`).join('\n'), m.histLang, {about: (bestVersion(it).v||{}).title});
   }
   if(m.events.length){
@@ -1087,7 +1087,8 @@ function guideHTML(g){
   if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
   if(g.trivia && g.trivia.length) h += `<h4>Local finds</h4><ul class="factoids">${g.trivia.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
   if(g.sources && g.sources.length) h += `<ul class="gsrc">${g.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('')}</ul>`;
-  return h ? `<div class="more gd"><p class="gh">From your AI guide</p>${h}</div>` : '';
+  const wk = wlTerms(g.terms);
+  return h ? `<div class="more gd"${wk ? ` data-wl="t:${wk}"` : ''}><p class="gh">From your AI guide</p>${h}</div>` : '';
 }
 const GUIDE_HINTS = {
   jp:'Cultural Heritage Online (bunka.nii.ac.jp), Japan Search (jpsearch.go.jp), prefecture and city 文化財 pages, temple and shrine websites',
@@ -1104,8 +1105,8 @@ function guidePrompt(deep, radius){
   const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it);
     return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
   const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
-  const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}]},'
-    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","folklore":false,"summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
+  const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","folklore":false,"summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the history around me, within about ${size[0]} (${radius} m), and give it to me as data for my walking app, Wander.
 
 RESEARCH
@@ -1126,7 +1127,7 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
@@ -1265,8 +1266,8 @@ function cardHTML(it, opts={}){
     </div>
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}
     ${facts && !(expanded && it.more && it.more.facts && it.more.facts.length)?`<div class="facts">${facts}</div>`:''}
-    ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}">${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
-      : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}">${esc(text||'No summary available yet.')}${text?langNote:''}</p>` + (text ? xlateHTML(full, bodyLang, {about: head.title, googleURL: !it.src && lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''}) : '') : ''}
+    ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}"${expanded && wlTerms(it.ai.terms) ? ` data-wl="t:${wlTerms(it.ai.terms)}"` : ''}>${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
+      : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}"${expanded && !it.src && /wikipedia\.org/.test(bodyV.url||'') ? ` data-wl="a:${esc(bodyLang)}:${esc(bodyV.title)}"` : ''}>${esc(text||'No summary available yet.')}${text?langNote:''}</p>` + (text ? xlateHTML(full, bodyLang, {about: head.title, googleURL: !it.src && lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''}) : '') : ''}
     ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>` + xlateHTML(it.inscription, it.inscrLang, {about: head.title}) :''}
     ${expanded ? (it.ai ? guideHTML(it.ai) : '') + placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>
@@ -1299,10 +1300,10 @@ function areaHTML(it, idx){
   if(d.hist && d.hist.length){
     const foreign = d.histLang!==ul;
     more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
-      <ol class="timeline" lang="${esc(d.histLang)}">${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
+      <ol class="timeline" lang="${esc(d.histLang)}"${it.versions[d.histLang] ? ` data-wl="a:${esc(d.histLang)}:${esc(it.versions[d.histLang].title)}"` : ''}>${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
     if(foreign) more += xlateHTML(d.hist.map(h=>`${h.label}: ${h.s}`).join('\n'), d.histLang, {about: head.title});
   }
-  if(ag) more = guideHTML(ag).replace(/^<div class="more gd">|<\/div>$/g, '') + more;
+  if(ag) more = guideHTML(ag) + more;
   more += factoidsHTML(d.factoids);
   const loading = d.loading ? `<p class="gather"><span class="spin"></span>Gathering facts about ${esc(head.title)}…</p>` : '';
   let actions = toggle + (idx===0 ? `<button data-act="guide" data-key="${k}">AI guide</button>` : '');
@@ -1310,7 +1311,7 @@ function areaHTML(it, idx){
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   return `<article class="card area open${idx>0?' secondary':''}" data-key="${k}">
     ${headline}
-    ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>` + (ag && ag.summary ? '' : xlateHTML(intro, bodyLang, {about: head.title, googleURL: lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''})):''}
+    ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}" data-wl="${ag && ag.summary ? (wlTerms(ag.terms) ? 't:' + wlTerms(ag.terms) : '') : `a:${esc(bodyLang)}:${esc(bodyV.title)}`}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>` + (ag && ag.summary ? '' : xlateHTML(intro, bodyLang, {about: head.title, googleURL: lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''})):''}
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
     ${more?`<div class="more">${more}</div>`:''}
@@ -1348,6 +1349,7 @@ function render(){
   const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !present.has('ai');
   document.querySelectorAll('.legend [data-src]').forEach(b=>b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src))));
   saveSessionSoon();
+  applyWikiLinks();
 }
 /* Distance bands: what you can see, what is a short walk, and the rest */
 function bandOf(d){ return d <= state.sight ? 0 : d <= Math.max(WALK, state.sight) ? 1 : 2; }

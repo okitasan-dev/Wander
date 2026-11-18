@@ -414,6 +414,8 @@ async function main(){
         : full)
       + (foreign ? `<p class="lang">From ${esc(langName(article.lang))} Wikipedia.</p>` + xlateHTML(article.extract, article.lang, {about: title, googleURL: translateLink(article.lang, article.title)}) : '');
     addLink(`<a target="_blank" rel="noopener" href="${esc(article.url)}">Wikipedia</a>`);
+    $('#summary').dataset.wl = `a:${article.lang}:${article.title}`; delete $('#summary').dataset.wlDone;
+    applyWikiLinks();
   } else {
     $('#summary').innerHTML = item.desc ? '' : `<p class="gather">No article has been written about this ${event ? 'event' : 'place'} yet.</p>`;
   }
@@ -426,7 +428,9 @@ async function main(){
     if(gp.seeToday) h += `<p class="see"><b>What to look for${gp.kind ? ` · ${esc(gp.kind)}` : ''}</b>${esc(gp.seeToday)}${gp.located ? `<small>Location: ${esc(gp.located)}</small>` : ''}</p>`;
     if(gp.keyPoints.length) h += `<ul class="points">${gp.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
     if(gp.sources.length) h += `<ul class="gsrc">${gp.sources.map(x=>`<li><a target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.title)}</a></li>`).join('')}</ul>`;
-    section('guideSec', 'From your AI guide', h, gp.folklore ? 'Folklore' : '');
+    const wk = wlTerms(gp.terms); PAGE.guideKey = wk;
+    section('guideSec', 'From your AI guide', wk ? `<div data-wl="t:${wk}">${h}</div>` : h, gp.folklore ? 'Folklore' : '');
+    applyWikiLinks();
   }
 
   // Facts
@@ -450,7 +454,8 @@ async function main(){
   rows.sort((a,b)=>a.y-b.y);
   if(rows.length){
     const foreign = histLang !== ul;
-    section('history', 'History', `<ol class="timeline" lang="${esc(histLang)}">${rows.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 320))}</span></li>`).join('')}</ol>`
+    if(hist) PAGE.hist = {lang: hist.lang, title: item.articles[hist.lang]};
+    section('history', 'History', `<ol class="timeline" lang="${esc(histLang)}"${hist && histLang === hist.lang ? ` data-wl="a:${esc(hist.lang)}:${esc(item.articles[hist.lang])}"` : ''}>${rows.map(r=>`<li><span class="yr">${esc(r.label)}</span><span>${esc(trimText(r.s, 320))}</span></li>`).join('')}</ol>`
       + (foreign ? xlateHTML(rows.map(r=>`${r.label}: ${r.s}`).join('\n'), histLang, {about: title}) : ''),
       foreign ? esc(langName(histLang)) : '');
   }
@@ -475,8 +480,13 @@ async function main(){
   if(event) return;
   const events = timelineEvents({hist, milestones: m.events, factRows, tlRows: await tlP, photos: gal, articleURL: article && article.url, guide: gp});
   if(events.length >= 3) renderTimeline(events, hist ? hist.lang : ul);
+  applyWikiLinks();
   updatePageLang($('#page'), ul);
 }
+/* What to link a passage with: Wikipedia history uses that article's links; AI guide moments use the guide's terms */
+const PAGE = {hist: null, guideKey: ''};
+const wlSpecFor = e => e.kind === 'history' && PAGE.hist ? `a:${PAGE.hist.lang}:${PAGE.hist.title}` : e.kind === 'guide' && PAGE.guideKey ? `t:${PAGE.guideKey}` : '';
+
 /* ---------- Event layout ---------- */
 /* Is this item an event (anything Wikidata classes under "occurrence")? */
 async function isEvent(q){
@@ -608,7 +618,7 @@ function renderTimeline(events, histLang){
       <div class="tl-bar"><p class="tl-hint">Drag to move · pinch or + − to zoom · tap a moment</p>
         <div class="tl-ctrl"><button data-z="out" aria-label="Zoom out">−</button><button data-z="in" aria-label="Zoom in">+</button><button data-z="fit" aria-label="Show everything">Fit</button></div></div>
     </div>
-    <ol class="timeline tl-list">${events.map((e,i)=>`<li data-i="${i}"><span class="yr">${esc(e.label)}</span><span class="tx">${e.thumb?`<img loading="lazy" alt="" src="${esc(e.thumb)}">`:''}<span${e.lang?` lang="${esc(e.lang)}"`:''}>${esc(e.kind==='history' ? trimText(e.text, 320) : e.title)}</span></span></li>`).join('')}</ol>`
+    <ol class="timeline tl-list">${events.map((e,i)=>`<li data-i="${i}"><span class="yr">${esc(e.label)}</span><span class="tx">${e.thumb?`<img loading="lazy" alt="" src="${esc(e.thumb)}">`:''}<span${e.lang?` lang="${esc(e.lang)}"`:''}${wlSpecFor(e) ? ` data-wl="${esc(wlSpecFor(e))}"` : ''}>${esc(e.kind==='history' ? trimText(e.text, 320) : e.title)}</span></span></li>`).join('')}</ol>`
     + (foreign ? xlateHTML(events.filter(e=>e.kind==='history').map(e=>`${e.label}: ${e.text}`).join('\n'), histLang, {about: document.title.replace(/ · Wander$/, '')}) : ''),
     `${events.length} moments`);
   const rows = [...document.querySelectorAll('.tl-list li')];
@@ -746,6 +756,7 @@ async function openEvent(e){
   $('#evDate').textContent = e.label;
   $('#evTitle').textContent = e.kind==='history' || e.kind==='photo' || e.kind==='guide' ? '' : e.title;
   $('#evText').textContent = e.text || '';
+  delete $('#evText').dataset.wlDone; $('#evText').dataset.wl = wlSpecFor(e); applyWikiLinks();
   if(e.lang) $('#evText').lang = e.lang;
   let src = '';
   if(e.photo) src = `${esc(creditText(e.photo) || 'Wikimedia Commons')} · <a target="_blank" rel="noopener" href="${esc(e.photo.page)}">Photo source</a>`;
