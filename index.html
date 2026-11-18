@@ -346,7 +346,7 @@ footer a{color:var(--muted)}
   <summary>AI guide</summary>
   <div class="sheet-body">
     <div class="sheet-head"><div class="grab"></div><h3>AI guide</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-    <p class="note">Wander writes a research prompt for where you are. Paste it into Claude or ChatGPT: it searches local sources and builds a pamphlet. Tap “Send to Wander” in the pamphlet to bring its places back here.</p>
+    <p class="note">Wander writes a research prompt for where you are. Paste it into Claude or ChatGPT: it searches local sources and replies with a block of data. Tap Copy on that block, then Paste guide here.</p>
     <div class="row"><span class="coords"><small>You are at</small><span id="gCoords">No location yet</span></span><button type="button" class="mini" id="gCopyCoords">Copy</button></div>
     <div class="row"><span class="lbl">Area</span><div class="seg">
       <label><input type="radio" name="gRadius" value="805"> ½ mi</label>
@@ -359,7 +359,8 @@ footer a{color:var(--muted)}
     <div class="btnrow"><button type="button" class="primary" id="gCopy">Copy prompt</button></div>
     <div class="btnrow"><a class="ghost" id="gOpen" target="_blank" rel="noopener">Open in Claude</a><a class="ghost" id="gOpenGpt" target="_blank" rel="noopener">Open in ChatGPT</a></div>
     <h4>Bring a guide back</h4>
-    <textarea id="gImport" rows="3" placeholder="Paste the data block or the Send to Wander link from Claude or ChatGPT" aria-label="Guide data from the assistant"></textarea>
+    <div class="btnrow"><button type="button" class="primary" id="gPaste">Paste guide</button></div>
+    <textarea id="gImport" rows="3" placeholder="Or paste the data block here by hand" aria-label="Guide data from the assistant"></textarea>
     <div class="btnrow"><button type="button" class="ghost" id="gImportBtn">Add guide</button></div>
     <p id="gMsg" role="status"></p>
     <div id="gList"></div>
@@ -1074,42 +1075,35 @@ const GUIDE_HINTS = {
   de:'state Denkmal lists, city heritage pages', es:'regional heritage catalogues (Bien de Interés Cultural), city heritage pages',
   kr:'the Cultural Heritage Administration (heritage.go.kr)', cn:'local heritage bureau pages', tw:'the Bureau of Cultural Heritage (nchdb.boch.gov.tw)'
 };
-const GUIDE_SIZES = {805:['½ mi', 8, 12, 10, 15], 1609:['1 mi', 10, 15, 12, 18], 3219:['2 mi', 12, 18, 15, 22]};   // label, places, searches
+const GUIDE_SIZES = {805:['½ mi', 10, 15, 10, 15], 1609:['1 mi', 12, 18, 12, 18], 3219:['2 mi', 15, 22, 15, 22]};   // label, places, searches
 function guidePrompt(deep, radius){
   const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, size = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
   const locals = state.langs.filter(l=>l!==ul).map(l=>`${langName(l)} (${l})`);
   const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it);
     return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
   const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
-  const here = location.origin + location.pathname;
   const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}]},'
     + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}';
-  return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Make me a short, phone-friendly pamphlet about the history around me, within about ${size[0]} (${radius} m).
+  return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the history around me, within about ${size[0]} (${radius} m), and give it to me as data for my walking app, Wander.
 
 RESEARCH
-- Search the web${locals.length ? ` in ${locals.join(' and ')} first, then English` : ''}. Favour local and native sources: city and regional government pages, tourism boards, local history societies, museum and religious-site websites, national heritage databases${GUIDE_HINTS[state.cc] ? ` (here: ${GUIDE_HINTS[state.cc]})` : ''}, local blogs and Atlas Obscura. My app already shows Wikipedia, so use Wikipedia only to check facts.
+- Search the web${locals.length ? ` in ${locals.join(' and ')} first, then English` : ''}. Favour local and native sources: city and regional government pages, tourism boards, local history societies, museum and religious-site websites, national heritage databases${GUIDE_HINTS[state.cc] ? ` (here: ${GUIDE_HINTS[state.cc]})` : ''}, historical-marker databases (they often give a marker's exact coordinates), local news, local blogs and Atlas Obscura. My app already shows Wikipedia, so use Wikipedia only to check facts.
 - ${deep ? `Deep dive: use your deep research mode if you have one, up to about 40 searches, and cover the ${size[1]+7}–${size[2]+8} most interesting places.` : `Keep it quick: about ${size[3]}–${size[4]} searches, then stop. Cover the ${size[1]}–${size[2]} most interesting places, spread across the area.`}
-- Every place must be a spot I can walk to. Two kinds count:
-  • Landmarks: buildings, temples, shrines, churches, monuments, statues, plaques and markers, bridges, gates, walls, gardens, old shopfronts and streets, former sites.
+- Every place must be a spot I can walk to. Mix the big landmarks with the small, easy-to-miss things a local would point out:
+  • Landmarks: buildings, temples, shrines, churches, monuments, plaques and markers, bridges, gates, walls, gardens, old streets, former sites.
+  • Small and quirky things: statues and sculptures (pop-culture ones too, like a film character), murals and public art, old signs and neon, film and TV locations, long-running shops, bars and restaurants with a story, time capsules, notable trees, odd corners and local legends.
   • Where something notable happened: battles, assassinations, crimes, disasters, famous meetings or speeches, scenes from well-known stories. Include these whenever a source — obscure or not — ties the event to a specific spot (an address, coordinates, or a clear description such as "the corner of X and Y"), even if nothing marks it today. Dig for such sources.
-  Only history that cannot be pinned to a spot goes in the overview and the area timeline.
+  Only history that cannot be pinned to a spot goes in the area overview and timeline.
 - For each place, say how precisely its location is known and where that comes from (e.g. "address given in a 1923 newspaper report", "approximate: sources name only the street"), and set confidence to match.
 - Every fact needs a source link. Do not invent details or positions; if something is uncertain, say so.
 
 PLACES MY APP ALREADY KNOWS (id | name | lat, lon) — enrich these where you find more, and add places it is missing:
 ${[...areas, ...near].join('\n') || '(none yet)'}
 
-PAMPHLET (one interactive page — a Claude artifact or ChatGPT canvas — concise, in ${langName(ul)}, US units)
-1. Overview: 3–5 key points about the area's history.
-2. Area timeline: the major moments, tappable for detail.
-3. A card for each place: name (and its name in the local script), what kind of place it is, what you can see there today (or that nothing marks the spot), how precisely the location is known, key points, a short timeline, trivia, sources, and a Google Maps link: https://www.google.com/maps/search/?api=1&query=LAT,LON
-4. A map only if one works inside the page; otherwise leave it out — the Google Maps links are enough.
-5. A "Send to Wander" button (see below).
-
-DATA FOR WANDER
-Build this JSON (plain text only, no HTML or markdown; summary at most 60 words; at most 4 key points and 6 timeline items per place):
+REPLY
+Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-kind is a short label such as "Shrine", "Merchant house", "Site of a castle" or "Site of an assassination"; seeToday says in one sentence what is there to look at now; located says how precisely the spot is known and from what source. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates. In the page, the "Send to Wander" button opens ${here}#import= followed by that JSON as UTF-8 base64url, in a new tab (in JS: let b=''; new TextEncoder().encode(json).forEach(c=>b+=String.fromCharCode(c)); const code=btoa(b).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');). Also put the same JSON in a single \`\`\`json block at the very end of your chat reply, outside the page.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: summary at most 60 words, at most 4 key points and 6 timeline items. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
@@ -1318,6 +1312,13 @@ document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = update
   radios.forEach(r=>r.onchange = ()=>{ store.set('guideRadius', +r.value); updateGuideSheet(); }); }
 $('#gCopy').onclick = ()=>copyText($('#gPrompt').value, $('#gCopy'));
 $('#gCopyCoords').onclick = ()=>copyText($('#gCoords').textContent, $('#gCopyCoords'));
+$('#gPaste').onclick = async ()=>{
+  let text;
+  try{ text = await navigator.clipboard.readText(); }
+  catch(e){ $('#gMsg').textContent = 'Wander can’t read the clipboard here — paste into the box below instead.'; $('#gImport').focus(); return; }
+  try{ $('#gMsg').textContent = importGuide(text); updateGuideSheet(); }
+  catch(e){ $('#gMsg').textContent = 'The clipboard doesn’t hold a guide yet: tap Copy on the code block in Claude or ChatGPT first.'; }
+};
 $('#gImportBtn').onclick = ()=>{ try{ $('#gMsg').textContent = importGuide($('#gImport').value); $('#gImport').value = ''; updateGuideSheet(); }catch(e){ $('#gMsg').textContent = 'Could not read that: ' + e.message; } };
 $('#settingsBtn').onclick = ()=>{ $('#settings').open = !$('#settings').open; };
 $('#settingsDone').onclick = ()=>{ $('#settings').open = false; };
