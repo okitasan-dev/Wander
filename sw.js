@@ -4,7 +4,7 @@
    - Place data (Wikipedia, Wikidata, OpenStreetMap, Commons): fresh when the network answers within a few
      seconds, otherwise the copy kept from last time.
    - Libraries, fonts, map tiles and photos: kept copy first, since they rarely change. */
-const APP = 'wander-app-v2.6.3', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
+const APP = 'wander-app-v2.6.4', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
 const KEEP = [APP, DATA, STATIC, TILES, IMAGES];
 const SHELL = ['./', 'index.html', 'place.html', 'common.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 const LIMITS = {[DATA]: 400, [TILES]: 300, [IMAGES]: 150};
