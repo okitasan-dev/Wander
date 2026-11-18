@@ -64,6 +64,10 @@ function updatePageLang(root, readerLang){
   if(document.documentElement.lang !== pick) document.documentElement.lang = pick;
 }
 
+/* ---------- Google Maps ---------- */
+/* Opens Google Maps (the app if installed) with a pin dropped on the exact spot */
+const mapsURL = (lat, lon) => `https://www.google.com/maps/search/?api=1&query=${(+lat).toFixed(6)},${(+lon).toFixed(6)}`;
+
 /* ---------- Wikipedia ---------- */
 function wikiURL(lang, params){
   return `https://${lang}.wikipedia.org/w/api.php?` + new URLSearchParams({format:'json', formatversion:'2', origin:'*', ...params});

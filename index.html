@@ -1254,7 +1254,7 @@ function cardHTML(it, opts={}){
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
-  if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${it.lat},${it.lon}&travelmode=walking">Directions</a>`;
+  if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(mapsURL(it.lat, it.lon))}">Google Maps</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
   return `<article class="card${opts.area?' area':''}${opts.band===2?' far':''}" data-key="${k}">

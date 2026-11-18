@@ -311,7 +311,7 @@ function renderHead(item){
   $('#sub').textContent = item.localLabel && item.localLabel !== title ? item.localLabel : '';
   if(item.localLabel) $('#sub').lang = state.local;
   let links = '';
-  if(item.coord) links += `<a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${item.coord[0]},${item.coord[1]}&travelmode=walking">Directions</a>`;
+  if(item.coord) links += `<a target="_blank" rel="noopener" href="${esc(mapsURL(item.coord[0], item.coord[1]))}">Google Maps</a>`;
   if(navigator.share) links += `<button id="shareBtn">Share</button>`;
   $('#links').innerHTML = links;
   if($('#shareBtn')) $('#shareBtn').onclick = ()=>navigator.share({title, url: location.href}).catch(()=>{});
