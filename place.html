@@ -189,6 +189,7 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
 
 /* credits */
 .credits{font-size:13px;color:var(--muted);line-height:1.5}
+.credits .ver{font-size:11px;opacity:.7;margin-top:14px}
 .credits a{color:var(--muted)}
 .credits details{margin-top:8px}
 .credits summary{cursor:pointer;color:var(--ink)}
@@ -233,7 +234,7 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
   </div>
 </div>
 
-<script src="common.js?v=20261118"></script>
+<script src="common.js?v=2.6.0"></script>
 <script>
 "use strict";
 /* Wander place page: richer detail about one place, opened from a card title on the main page.
@@ -360,7 +361,7 @@ function renderCredits(article, images){
   h += `Facts from <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/${QID}">Wikidata</a>.`;
   if(images.length) h += ` Photos from Wikimedia Commons; each photo shows its author and licence when opened.
     <details><summary>Photo credits</summary><ol>${images.map(f=>`<li><a target="_blank" rel="noopener" href="${esc(f.page)}">${esc(trimText(f.caption, 80))}</a>${creditText(f)?' — '+esc(creditText(f)):''}</li>`).join('')}</ol></details>`;
-  section('credits', 'Sources', `<p>${h}</p>`);
+  section('credits', 'Sources', `<p>${h}</p><p class="ver">Wander ${esc(WANDER_VERSION)}</p>`);
 }
 
 /* ---------- page ---------- */
