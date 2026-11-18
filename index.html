@@ -254,6 +254,7 @@ select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radi
 .btnrow .primary{background:var(--brass);color:var(--on-brass)}
 .btnrow .ghost{border:1px solid var(--rule);color:var(--ink);background:var(--surface)}
 #gMsg{font-size:13.5px;margin:8px 0 0;color:var(--brass);min-height:1em}
+#gMsg .undo{font-size:13.5px;font-weight:600;color:var(--brass);text-decoration:underline;text-underline-offset:3px;margin-left:6px;padding:4px 2px}
 .gitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:14px}
 .gitem span{min-width:0}
 .gitem small{display:block;color:var(--muted);font-size:12px}
@@ -1398,15 +1399,23 @@ document.querySelector('.legend').addEventListener('click', e=>{
   const set = new Set(state.hiddenSrc); set.has(b.dataset.src) ? set.delete(b.dataset.src) : set.add(b.dataset.src); setHiddenSrc(set);
 });
 document.addEventListener('click', e=>{ if(e.target.closest('#showAllSrc')) setHiddenSrc(new Set()); });
+let guideUndo = null, guideUndoTimer = null;
 $('#openGuide').onclick = openGuide;
 $('#guideDone').onclick = ()=>{ $('#guide').open = false; };
 $('#guide').addEventListener('click', e=>{
   if(e.target===$('#guide')) $('#guide').open = false;
-  const rm = e.target.closest('[data-rm]'), fresh = e.target.closest('[data-fresh]'), all = e.target.closest('#gRemoveAll');
-  const after = msg => { for(const [k,it] of state.items) if(it.src==='AI guide') state.items.delete(k); render(); updateGuideSheet(); $('#gMsg').textContent = msg; };
-  if(rm){ saveGuides(loadGuides().filter(g=>g.id !== rm.dataset.rm)); after('Guide removed.'); }
-  if(fresh){ guideStartFresh(fresh.dataset.fresh); after('Kept only the newest guide for that area.'); }
-  if(all){ const n = loadGuides().length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after('All guides removed.'); } }
+  const rm = e.target.closest('[data-rm]'), fresh = e.target.closest('[data-fresh]'), all = e.target.closest('#gRemoveAll'), undo = e.target.closest('#gUndo');
+  const refresh = () => { for(const [k,it] of state.items) if(it.src==='AI guide') state.items.delete(k); render(); updateGuideSheet(); };
+  // Every change here can be undone: keep the guides as they were, and offer Undo for a while
+  const after = (before, msg) => {
+    refresh(); guideUndo = before; clearTimeout(guideUndoTimer);
+    $('#gMsg').innerHTML = `${esc(msg)} <button type="button" class="undo" id="gUndo">Undo</button>`;
+    guideUndoTimer = setTimeout(() => { guideUndo = null; $('#gUndo')?.remove(); }, 30000);
+  };
+  if(undo && guideUndo){ saveGuides(guideUndo); guideUndo = null; clearTimeout(guideUndoTimer); refresh(); $('#gMsg').textContent = 'Restored.'; return; }
+  if(rm){ const before = loadGuides(); saveGuides(before.filter(g=>g.id !== rm.dataset.rm)); after(before, 'Guide removed.'); }
+  if(fresh){ const before = loadGuides(); guideStartFresh(fresh.dataset.fresh); after(before, 'Kept only the newest guide for that area.'); }
+  if(all){ const before = loadGuides(), n = before.length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after(before, 'All guides removed.'); } }
 });
 document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];
