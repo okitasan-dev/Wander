@@ -312,9 +312,8 @@ body.looking{padding-bottom:calc(env(safe-area-inset-bottom) + 300px)}
 .sheet-body .grab{width:38px;height:4px;border-radius:2px;background:var(--rule);margin:2px auto 12px}
 .sheet-body h3{font:600 24px/1.2 var(--serif);margin:0 0 6px}
 /* header stays at the top while the sheet scrolls: close button, and swipe down to dismiss */
-.sheet-head{position:sticky;top:-10px;z-index:3;background:var(--raise);margin:-10px -22px 0;padding:10px 64px 8px 22px;border-radius:22px 22px 0 0;touch-action:none}
+.sheet-head{position:sticky;top:-10px;z-index:3;background:var(--raise);margin:-10px -22px 0;padding:10px 22px 8px;border-radius:22px 22px 0 0;touch-action:none}
 .sheet-head h3{margin:0}
-.sheet-x{position:absolute;right:14px;top:18px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
 .row{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
 .row label,.row .lbl{font-size:14px;color:var(--muted);flex:0 0 110px}
 select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
@@ -466,7 +465,7 @@ footer a{color:var(--muted)}
 <details class="sheet" id="settings">
   <summary>Settings</summary>
   <div class="sheet-body">
-    <div class="sheet-head"><div class="grab"></div><h3>Settings</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="sheet-head"><div class="grab"></div><h3>Settings</h3></div>
     <div class="row">
       <label for="radius">Search radius</label>
       <select id="radius">
@@ -521,7 +520,7 @@ footer a{color:var(--muted)}
 <details class="sheet" id="guide">
   <summary>AI guide</summary>
   <div class="sheet-body">
-    <div class="sheet-head"><div class="grab"></div><h3>AI guide</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="sheet-head"><div class="grab"></div><h3>AI guide</h3></div>
     <p class="note">Use an AI service to crawl the web and bring in a richer assortment of information to the map. Open the prompt in Claude or ChatGPT, then copy the generated JSON response and paste it into the import field below.</p>
     <div class="row"><span class="coords"><small>You are at</small><span id="gCoords">No location yet</span></span><button type="button" class="mini" id="gCopyCoords">Copy</button></div>
     <div class="row nat-row"><span class="lbl">Guide</span><div class="seg">
@@ -559,7 +558,7 @@ footer a{color:var(--muted)}
 <details class="sheet" id="lib">
   <summary>Places</summary>
   <div class="sheet-body">
-    <div class="sheet-head"><div class="grab"></div><h3>Places</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="sheet-head"><div class="grab"></div><h3>Places</h3></div>
     <p class="note">Places you've searched for, been to and made guides for. Tap one to explore it from wherever you are.</p>
     <div class="lib-filter" id="libFilter">
       <button type="button" data-f="" aria-pressed="true">All</button><button type="button" data-f="guide" aria-pressed="false">Guides</button><button type="button" data-f="searched" aria-pressed="false">Searched</button><button type="button" data-f="visited" aria-pressed="false">Been to</button><button type="button" data-f="sample" aria-pressed="false">Samples</button>
@@ -574,7 +573,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.6.1"></script>
+<script src="common.js?v=3.6.2"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2431,11 +2430,11 @@ $('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card
   if(pk && M.map){ const [la, lo] = pk.dataset.peak.split(',').map(Number); if($('#mapWrap').classList.contains('collapsed')) toggleMap();
     M.follow = false; $('#recenterBtn').style.display = 'inline-flex'; window.scrollTo({top: 0, behavior: 'smooth'});
     M.programmatic = true; M.map.setView([la, lo], 13); M.programmatic = false; L.popup().setLatLng([la, lo]).setContent(`<b>${esc(pk.dataset.name)}</b>`).openOn(M.map); } });
-/* Every sheet: the ✕ closes it, a downward swipe on its header closes it, and so does Escape */
+/* Every sheet: a downward swipe on its header closes it, as do a tap outside it and Escape */
 document.querySelectorAll('details.sheet').forEach(sh=>{
-  sh.querySelector('.sheet-x').onclick = ()=>{ sh.open = false; };
+  sh.addEventListener('click', e=>{ if(e.target === sh) sh.open = false; });   // a tap outside the sheet closes it
   const head = sh.querySelector('.sheet-head'), body = sh.querySelector('.sheet-body'); let y0 = null;
-  head.addEventListener('pointerdown', e=>{ if(e.target.closest('.sheet-x')) return; y0 = e.clientY; head.setPointerCapture(e.pointerId); });
+  head.addEventListener('pointerdown', e=>{ y0 = e.clientY; head.setPointerCapture(e.pointerId); });
   head.addEventListener('pointermove', e=>{ if(y0 == null) return; const dy = Math.max(0, e.clientY - y0); body.style.transform = dy ? `translateY(${dy}px)` : ''; });
   const end = e=>{ if(y0 == null) return; const dy = e.clientY - y0; y0 = null; body.style.transform = ''; if(dy > 70) sh.open = false; };
   head.addEventListener('pointerup', end); head.addEventListener('pointercancel', end);
