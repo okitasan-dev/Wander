@@ -635,7 +635,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.13.0"></script>
+<script src="common.js?v=3.13.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2840,11 +2840,13 @@ function farRows(){
   const R = state.farRadius * 1.15;
   return [...state.far.values()].map(it => ({it, d: hav(state.pos, it), b: bearing(state.pos, it)})).filter(r => r.d <= R).sort((a, b) => a.d - b.d);
 }
-function farShown(r){
-  const it = r.it; if(state.hiddenSrc.has(it.topic)) return false;
+// Does it pass the Wild/Developed filter? (the chip counts these, so it matches the list)
+function farFilterOK(r){
+  const it = r.it;
   if(it.topic === 'spring'){ const f = state.springFilter; if(f === 'wild' && it.developed === true) return false; if(f === 'dev' && it.developed !== true) return false; }
   return true;
 }
+const farShown = r => !state.hiddenSrc.has(r.it.topic) && farFilterOK(r);
 function farCardHTML(r){
   const it = r.it, ai = it.ai || {}, k = esc(it.key), open = state.expanded.has(it.key), dev = it.developed;
   const tag = dev === true ? '<span class="tag dev">Developed</span>' : dev === false && it.topic === 'spring' ? '<span class="tag">Wild</span>' : '';
@@ -2913,11 +2915,13 @@ function render(){
     html += cardHTML(r.it, {num:i+1, band:r.band});
   });
   const SRC_NAMES = MD().names, CL = CATS[state.mode === 'nature' ? 'nature' : 'history'];
-  const offNames = [...[...state.hiddenCat].filter(c=>perCat[c]).map(c=>CL.labels[c]), ...[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x])];
-  const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${esc(offNames.join(', '))}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
-  const far = farRows();
+  const far = farRows(), farOff = far.filter(r=>state.hiddenSrc.has(r.it.topic) && farFilterOK(r));   // Excursions switched off with their chips
+  const offNames = [...[...state.hiddenCat].filter(c=>perCat[c]).map(c=>CL.labels[c]), ...[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x]),
+    ...['spring', 'fish'].filter(t=>farOff.some(r=>r.it.topic===t)).map(t=>MD().legend[t])];
+  const offCount = hiddenCount + farOff.length;
+  const note = offCount ? `<div class="hidden-note"><span>${offCount} place${offCount===1?'':'s'} hidden: ${esc(offNames.join(', '))}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
   $('#listWrap').innerHTML = note + (rows.length ? html
-    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far);
+    : (state.loading ? '' : offCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far);
   state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
   const items = rows.map(r=>r.it);
   try{ updateMap(items); updateFarPins(far.filter(farShown)); }catch(e){ console.warn('map', e); }
@@ -2932,7 +2936,8 @@ function render(){
   const chips = CL.order.filter(c=>perCat[c]).map(c=>`<button type="button" data-cat="${c}" aria-pressed="${!state.hiddenCat.has(c)}"><i class="lg c-${c}"></i><span class="lg-t">${esc(CL.labels[c])}</span><span class="lg-n">${perCat[c]}</span></button>`).join('');
   const cw = document.querySelector('.lg-cats'); if(cw && cw.dataset.sig !== chips){ cw.innerHTML = chips; cw.dataset.sig = chips; }
   const dot = document.querySelector('.lg-srcbtn .lg-dot'); if(dot) dot.hidden = ![...state.hiddenSrc].some(x=>present.has(x));
-  document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
+  // Excursion chips count what the list shows (after the Wild/Developed filter); they stay visible while any exist in range
+  document.querySelectorAll('.legend .g-far').forEach(b => { const L = far.filter(r => r.it.topic === b.dataset.src); b.hidden = !L.length; b.querySelector('.lg-n').textContent = L.filter(farFilterOK).length; });
   document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; });   // keep the picked group in view
   saveSessionSoon();
   applyWikiLinks();
