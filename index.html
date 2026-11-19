@@ -138,6 +138,12 @@ svg{flex:none}
 .aibox .ldesc:first-of-type{margin-top:4px}
 .layer .ltop{margin-top:14px;font-size:16px}
 .seas{color:var(--brass);font-weight:600}
+.grp{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px -2px 2px;padding:2px}
+.grp::-webkit-scrollbar{display:none}
+.grp button{flex:none;font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--rule);color:var(--ink);background:var(--raise);white-space:nowrap}
+.grp button span{color:var(--muted);font-weight:500}
+.grp button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.grp button[aria-pressed="true"] span{color:inherit;opacity:.8}
 .trees{list-style:none;margin:6px 0 0;padding:0}
 .trees li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--rule);font-size:14.5px}
 .trees li i{color:var(--muted);font-size:13px}
@@ -573,7 +579,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.6.4"></script>
+<script src="common.js?v=3.7.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1157,16 +1163,21 @@ function pickUnit(d){
 }
 // Native and introduced plants: iNaturalist marks each species as native or introduced for a region (county, state…),
 // so find the most local region it knows here, then count plant sightings within the walking radius.
-async function loadPlants(lat, lon, rad){
+async function loadPlants(lat, lon, rad, group, placeId){
   const f = x => x.toFixed(4), d = .01;
-  const near = await fetchJSON('https://api.inaturalist.org/v1/places/nearby?' + new URLSearchParams({nelat: f(lat + d), nelng: f(lon + d), swlat: f(lat - d), swlng: f(lon - d), per_page: '30'}), 15000);
+  if(placeId) return plantsFor(lat, lon, rad, {id: placeId, display_name: group.region}, group.taxon);
+  const near = await inatJSON('https://api.inaturalist.org/v1/places/nearby?' + new URLSearchParams({nelat: f(lat + d), nelng: f(lon + d), swlat: f(lat - d), swlng: f(lon - d), per_page: '30'}), 15000);
   const place = ((near.results && near.results.standard) || []).filter(p => p.admin_level != null && p.admin_level >= 0).sort((a, b) => b.admin_level - a.admin_level)[0];
   if(!place) return null;
-  const q = extra => fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
-    verifiable: 'true', iconic_taxa: 'Plantae', place_id: String(place.id), locale: state.userLang, ...extra}), 15000);
+  return plantsFor(lat, lon, rad, place);
+}
+async function plantsFor(lat, lon, rad, place, taxon){
+  const f = x => x.toFixed(4);
+  const q = extra => inatJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+    verifiable: 'true', ...(taxon ? {taxon_id: taxon} : {iconic_taxa: 'Plantae'}), place_id: String(place.id), locale: state.userLang, ...extra}), 15000);
   const [nat, intro] = await Promise.all([q({native: 'true', per_page: '12'}), q({introduced: 'true', per_page: '6'})]);
   const sp = r => { const t = r.taxon; return {id: t.id, common: cap(t.preferred_common_name || t.name), sci: t.name, photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url), count: r.count || 0, url: `https://www.inaturalist.org/taxa/${t.id}`}; };
-  return {region: place.display_name, native: (nat.results || []).filter(r => r.taxon).map(sp), nativeTotal: nat.total_results || 0,
+  return {region: place.display_name, placeId: place.id, native: (nat.results || []).filter(r => r.taxon).map(sp), nativeTotal: nat.total_results || 0,
     introduced: (intro.results || []).filter(r => r.taxon).map(sp), introducedTotal: intro.total_results || 0};
 }
 // Street trees: many cities' tree inventories are in OpenStreetMap, each tree with its species
@@ -1188,15 +1199,17 @@ async function fetchStreetTrees(lat, lon){
 }
 // In season: what has been recorded here in this month of past years. Each species' count this month is set
 // against its count all year, so seasonal visitors (winter birds, spring wildflowers) stand out from year-round regulars.
-async function loadSeason(lat, lon, rad){
+async function loadSeason(lat, lon, rad, group){
   const month = new Date().getMonth() + 1, f = x => x.toFixed(4);
   const win = [month === 1 ? 12 : month - 1, month, month === 12 ? 1 : month + 1].join(',');   // this month and its neighbours: steadier than one month alone
-  const q = extra => fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
-    verifiable: 'true', locale: state.userLang, ...extra}), 15000);
+  const q = extra => inatJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+    verifiable: 'true', locale: state.userLang, ...(group ? {iconic_taxa: group} : {}), ...extra}), 15000);
   // how busy this month is for all sightings here: people post more in some months (spring bioblitzes), which says nothing about a species
-  const obs = extra => fetchJSON('https://api.inaturalist.org/v1/observations?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2), verifiable: 'true', per_page: '0', ...extra}), 15000).then(d => d.total_results || 0).catch(() => 0);
-  const [mon, flower, obsMonth, obsYear] = await Promise.all([q({month: win, per_page: '30'}), q({month: win, iconic_taxa: 'Plantae', term_id: '12', term_value_id: '13', per_page: '9'}),
-    obs({month: win}), obs({})]);
+  const obs = extra => inatJSON('https://api.inaturalist.org/v1/observations?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2), verifiable: 'true', per_page: '0', ...extra}), 15000).then(d => d.total_results || 0).catch(() => 0);
+  const wantFlowers = !group || group === 'Plantae';
+  const [mon, flower, obsMonth, obsYear, groups] = await Promise.all([q({month: win, per_page: '30'}),
+    wantFlowers ? q({month: win, iconic_taxa: 'Plantae', term_id: '12', term_value_id: '13', per_page: '9'}) : Promise.resolve({}),
+    obs({month: win}), obs({}), group ? Promise.resolve(null) : groupCounts(lat, lon, rad, {month: win})]);
   const expected = obsMonth && obsYear ? obsMonth / obsYear : 1 / 4;
   const rows = (mon.results || []).filter(r => r.taxon);
   const ids = rows.map(r => r.taxon.id);
@@ -1207,7 +1220,7 @@ async function loadSeason(lat, lon, rad){
       count: r.count || 0, share: a ? r.count / a : 1, url: `https://www.inaturalist.org/taxa/${t.id}`}; };
   // seasonal: these three months hold well over their usual share of the species' sightings
   const list = rows.map(sp).map(x => ({...x, seasonal: x.share >= 2.5 * expected && x.count >= 5})).sort((a, b) => (b.seasonal - a.seasonal) || b.count - a.count);
-  return {month, total: mon.total_results || 0, list, flowering: (flower.results || []).filter(r => r.taxon).map(sp), floweringTotal: flower.total_results || 0};
+  return {month, total: mon.total_results || 0, list, flowering: (flower.results || []).filter(r => r.taxon).map(sp), floweringTotal: flower.total_results || 0, groups};
 }
 // Soil (SoilGrids, a 250 m estimate), in plain words
 const SOIL_WORDS = {Acrisols: 'weathered, acidic, clay-rich soils of warm, wet regions', Albeluvisols: 'leached soils with tongues of bleached sand reaching into a clay subsoil',
@@ -1359,7 +1372,7 @@ async function loadFarFishing(lat, lon, R){
   return dedupeFar(out);
 }
 async function loadFarFish(lat, lon, R){   // fish species recorded in the area (iNaturalist, ray-finned fishes)
-  const d = await fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: lat.toFixed(3), lng: lon.toFixed(3), radius: (R / 1000).toFixed(0),
+  const d = await inatJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: lat.toFixed(3), lng: lon.toFixed(3), radius: (R / 1000).toFixed(0),
     verifiable: 'true', taxon_id: '47178', per_page: '12', locale: state.userLang}), 15000);
   return {total: d.total_results || 0, list: (d.results || []).filter(r => r.taxon).map(r => ({name: cap(r.taxon.preferred_common_name || r.taxon.name), sci: r.taxon.name, count: r.count, url: `https://www.inaturalist.org/taxa/${r.taxon.id}`}))};
 }
@@ -1385,6 +1398,59 @@ async function loadFar(lat, lon, live = () => true){
   state.farFish = fish.status === 'fulfilled' ? fish.value : null;
   render();
 }
+// iNaturalist asks apps to go gently: at most three requests at a time, a little apart
+const inatQ = {running: 0, waiting: []};
+function inatJSON(url, ms){
+  return new Promise((resolve, reject) => {
+    const go = () => { inatQ.running++;
+      fetchJSON(url, ms).then(resolve, reject).finally(() => setTimeout(() => { inatQ.running--; const next = inatQ.waiting.shift(); if(next) next(); }, 250)); };
+    inatQ.running < 3 ? go() : inatQ.waiting.push(go);
+  });
+}
+// Groups of living things, for the Life and In season filters (iNaturalist's iconic groups), and plant groups for Plants
+const LIFE_GROUPS = [['', 'All', 'species'], ['Aves', 'Birds', 'bird species'], ['Mammalia', 'Mammals', 'mammal species'], ['Reptilia,Amphibia', 'Reptiles & amphibians', 'reptile and amphibian species'],
+  ['Actinopterygii', 'Fish', 'fish species'], ['Insecta', 'Insects', 'insect species'], ['Arachnida', 'Spiders & kin', 'spider and other arachnid species'], ['Mollusca', 'Snails & kin', 'snail, slug and other mollusc species'],
+  ['Plantae', 'Plants', 'plant species'], ['Fungi', 'Fungi & lichens', 'fungus and lichen species']];
+const PLANT_GROUPS = [['', 'All', 'plant species'], ['47124', 'Broadleaf plants', 'broadleaf plant species'], ['47163', 'Grasses, lilies & orchids', 'grass, lily, orchid and other monocot species'],
+  ['136329', 'Conifers', 'conifer species'], ['121943', 'Ferns', 'fern species'], ['311249', 'Mosses', 'moss species']];
+const groupNoun = (groups, g) => (groups.find(x => x[0] === g) || groups[0])[2];
+async function groupCounts(lat, lon, rad, extra = {}){   // species per group: {Aves: 171, Insecta: 643, …}
+  const d = await inatJSON('https://api.inaturalist.org/v1/observations/iconic_taxa_species_counts?' + new URLSearchParams({lat: lat.toFixed(4), lng: lon.toFixed(4),
+    radius: (rad / 1000).toFixed(2), verifiable: 'true', ...extra}), 15000).catch(() => null);
+  return d ? Object.fromEntries((d.results || []).filter(r => r.taxon).map(r => [r.taxon.name, r.count])) : null;
+}
+const groupN = (counts, g) => counts ? g.split(',').reduce((a, k) => a + (counts[k] || 0), 0) : null;
+async function lifeFor(lat, lon, rad, group){
+  const d = await inatJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: lat.toFixed(5), lng: lon.toFixed(5), radius: (rad / 1000).toFixed(2),
+    verifiable: 'true', iconic_taxa: group, per_page: '12', locale: state.userLang}), 15000);
+  return {total: d.total_results || 0, list: (d.results || []).filter(r => r.taxon).map(r => { const t = r.taxon;
+    return {id: t.id, common: cap(t.preferred_common_name || t.name), sci: t.name, group: INAT_GROUPS[t.iconic_taxon_name] || '', photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url),
+      count: r.count || 0, url: `https://www.inaturalist.org/taxa/${t.id}`}; })};
+}
+// A group picked in one of the sections: fetch its list once for this spot, then show it
+const natGroup = Object.assign({life: '', season: '', plants: ''}, store.get('natGroup', {}));
+async function pickGroup(sec, g){
+  natGroup[sec] = g; store.set('natGroup', natGroup);
+  const n = state.nature; if(!n || !g){ render(); return; }
+  n.byGroup = n.byGroup || {};
+  const k = sec + '|' + g;
+  if(!n.byGroup[k]){
+    n.byGroup[k] = {loading: true}; render();
+    const rad = n.speciesRadius || Math.max(state.radius, 800);
+    try{ n.byGroup[k] = sec === 'life' ? await lifeFor(n.lat, n.lon, rad, g) : sec === 'season' ? await loadSeason(n.lat, n.lon, rad, g)
+                     : n.plants && n.plants.placeId ? await loadPlants(n.lat, n.lon, rad, {region: n.plants.region, taxon: g}, n.plants.placeId) : null; }
+    catch(e){ n.byGroup[k] = null; }
+    if(!n.byGroup[k]) n.byGroup[k] = {error: true};   // couldn't load: the section falls back to its usual list
+  }
+  if(state.nature === n) render();
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-grp]'); if(b) pickGroup(b.dataset.grp, b.dataset.g); });
+function groupChips(sec, groups, counts){
+  const cur = natGroup[sec];
+  return `<div class="grp">${groups.filter(([g]) => !g || !counts || groupN(counts, g) > 0 || g === cur).map(([g, label]) => {
+    const n = g && counts ? groupN(counts, g) : null;
+    return `<button type="button" data-grp="${sec}" data-g="${g}" aria-pressed="${g === cur}">${esc(label)}${n ? ` <span>${n.toLocaleString()}</span>` : ''}</button>`; }).join('')}</div>`;
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
   if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
@@ -1395,21 +1461,22 @@ async function loadNature(lat, lon, live = () => true){
   const later = (p, k) => p.then(v => { if(state.nature === n){ n[k] = v; renderSoon(); } }).catch(() => {});
   later(loadSoil(lat, lon), 'soil'); later(loadClimate(lat, lon), 'climate');
   if(!state.skyline || hav(state.skyline, {lat, lon}) > 3000) loadSkyline(lat, lon).then(sk => { state.skyline = sk; if(look.on) lookApply(true); }).catch(() => {});
-  const [geo, elev, life, local, plants, trees, season, quakes, water] = await Promise.allSettled([
+  const [geo, elev, life, local, plants, trees, season, quakes, water, counts] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
       const u = pickUnit(d);   // and the published map it comes from, which the AI guide can read
       if(u && u.sourceId != null){ try{ const s = ((await fetchJSON(`https://macrostrat.org/api/v2/defs/sources?source_id=${u.sourceId}`, 10000)).success.data || [])[0];
         if(s) u.map = {title: s.ref_title || s.name, by: [s.authors, s.ref_year].filter(Boolean).join(', '), pub: s.ref_source || '', url: /^https?:/.test(s.url || '') ? s.url : ''}; }catch(e){} }
       return u; }),
     fetchJSON(`https://api.open-meteo.com/v1/elevation?latitude=${f(lat)}&longitude=${f(lon)}`, 10000),
-    fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+    inatJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
       verifiable: 'true', per_page: '24', locale: state.userLang}), 15000),
     lookup ? lookup(lat, lon) : Promise.resolve(null),
     loadPlants(lat, lon, rad),
     state.useOsm ? fetchStreetTrees(lat, lon) : Promise.resolve(null),
     loadSeason(lat, lon, rad),
     loadQuakes(lat, lon),
-    loadWatershed(lat, lon)
+    loadWatershed(lat, lon),
+    groupCounts(lat, lon, rad)
   ]);
   if(!live() || state.nature !== n) return;
   if(geo.status === 'fulfilled') n.geo = geo.value;
@@ -1419,6 +1486,7 @@ async function loadNature(lat, lon, live = () => true){
   n.plants = plants.status === 'fulfilled' ? plants.value : null;
   n.trees = trees.status === 'fulfilled' && trees.value && trees.value.total ? trees.value : null;
   n.season = season.status === 'fulfilled' && season.value && season.value.total ? season.value : null;
+  n.groups = counts.status === 'fulfilled' ? counts.value : null;
   if(elev.status === 'fulfilled'){ const e = (elev.value.elevation || [])[0]; if(isFinite(e)) n.elev = e; }
   if(life.status === 'fulfilled'){
     n.speciesTotal = life.value.total_results || 0; n.speciesRadius = rad;
@@ -1427,6 +1495,7 @@ async function loadNature(lat, lon, live = () => true){
         photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url), count: r.count || 0, url: `https://www.inaturalist.org/taxa/${t.id}`}; });
   }
   n.loading = false; render();
+  for(const sec of ['life', 'season', 'plants']) if(natGroup[sec] && !(n.byGroup && n.byGroup[sec + '|' + natGroup[sec]])) pickGroup(sec, natGroup[sec]);
 }
 
 async function loadFacts(){
@@ -1765,33 +1834,42 @@ function natureAreaHTML(){
     + (n.quakes && n.quakes.length ? `<p class="ldesc">The strongest earthquakes recorded within about 50 miles since 1900:</p><ul class="trees">${n.quakes.map(q => `<li><span><a target="_blank" rel="noopener" href="${esc(q.url || '#')}">${esc(q.place.replace(/^\d+\s*km\s+\w+\s+of\s+/i, 'near '))}</a>, ${q.year}${q.d != null ? ` · ${esc(fmtDist(q.d))} away` : ''}</span><b>M${q.mag.toFixed(1)}</b></li>`).join('')}</ul><p class="lsrc">USGS earthquake catalogue</p>` : '')
     + (faults.length ? `<p class="lrock">Faults nearby: ${faults.map(r => esc((bestVersion(r.it).v || {}).title || '')).join(', ')}</p>` : '')
     + `${aiText(gd.hazards)}</section>`;
-  const se = n.season, MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  if(se && se.list.length){
+  const pickedG = sec => { const g = natGroup[sec], x = g && n.byGroup && n.byGroup[sec + '|' + g]; return !g || (x && x.error) ? null : x || {loading: true}; };
+  const gload = `<p class="gather"><span class="spin"></span>Loading…</p>`;
+  const seP = pickedG('season'), se = seP && !seP.loading ? seP : n.season, MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if(n.season && (se.list.length || seP)){
     const mname = MONTHS[se.month - 1], seasonal = se.list.filter(x => x.seasonal), short = m => MONTHS[(m + 11) % 12].slice(0, 3);
     const span = `${short(se.month - 1)}–${short(se.month + 1)}`;
     const stile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
       + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.seasonal ? `<span class="seas">${Math.round(sp.share * 100)}% of its sightings are in ${esc(span)}</span>` : `${sp.group ? esc(sp.group) + ' · ' : ''}Here all year`}</small></a>`;
-    layers += `<section class="layer"><h4>In season · ${esc(mname)}</h4><p class="ldesc">${se.total.toLocaleString()} species have been recorded within ${esc(fmtDist(n.speciesRadius))} in ${esc(span)} in past years.`
-      + `${seasonal.length ? ` Seasonal ones, seen here mostly at this time of year, come first; the rest are here all year.` : ` Most are here all year.`}</p><div class="species">${se.list.slice(0, 9).map(stile).join('')}</div>`
-      + (se.flowering.length ? `<p class="lname ltop">Flowering now</p><p class="lsrc">Plants photographed in flower here in ${esc(span)}:</p><div class="species">${se.flowering.slice(0, 6).map(sp => stile({...sp, seasonal: false, group: 'Plant'})).join('')}</div>` : '')
+    layers += `<section class="layer"><h4>In season · ${esc(mname)}</h4>${groupChips('season', LIFE_GROUPS, n.season.groups)}`
+      + (seP && seP.loading ? gload : `<p class="ldesc">${se.total.toLocaleString()} ${esc(groupNoun(LIFE_GROUPS, seP ? natGroup.season : ''))} have been recorded within ${esc(fmtDist(n.speciesRadius))} in ${esc(span)} in past years.`
+      + `${seasonal.length ? ` Seasonal ones, seen here mostly at this time of year, come first; the rest are here all year.` : ` Most are here all year.`}</p><div class="species">${se.list.slice(0, 9).map(stile).join('')}</div>`)
+      + (!(seP && seP.loading) && se.flowering && se.flowering.length ? `<p class="lname ltop">Flowering now</p><p class="lsrc">Plants photographed in flower here in ${esc(span)}:</p><div class="species">${se.flowering.slice(0, 6).map(sp => stile({...sp, seasonal: false, group: 'Plant'})).join('')}</div>` : '')
       + `</section>`;
   }
-  const pl = n.plants, tr = n.trees, tile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
+  const plP = pickedG('plants'), pl = plP && !plP.loading ? plP : n.plants, tr = n.trees, tile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
     + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.count.toLocaleString()} sightings</small></a>`;
   if((pl && pl.native.length) || (tr && tr.top.length) || gd.plants || gd.trees){
     layers += `<section class="layer"><h4>Plants</h4>`;
-    if(pl && pl.native.length) layers += `<p class="ldesc">${pl.nativeTotal.toLocaleString()} plant species native to ${esc(pl.region)} have been recorded within ${esc(fmtDist(n.speciesRadius))}${pl.introducedTotal ? `, and ${pl.introducedTotal.toLocaleString()} introduced ones` : ''}. Native plants seen most often:</p>`
+    const plLabel = groupNoun(PLANT_GROUPS, natGroup.plants);
+    if(n.plants && n.plants.native.length) layers += groupChips('plants', PLANT_GROUPS, null);
+    if(plP && plP.loading) layers += gload;
+    else if(plP && pl && !pl.native.length) layers += `<p class="ldesc">No native ${esc(plLabel)} recorded here yet.</p>`;
+    else if(pl && pl.native.length) layers += `<p class="ldesc">${pl.nativeTotal.toLocaleString()} ${esc(plLabel)} native to ${esc(pl.region)} have been recorded within ${esc(fmtDist(n.speciesRadius))}${pl.introducedTotal ? `, and ${pl.introducedTotal.toLocaleString()} introduced ones` : ''}. Native ones seen most often:</p>`
       + `<div class="species">${pl.native.slice(0, 9).map(tile).join('')}</div>`
-      + (pl.introduced.length ? `<p class="lsrc">Introduced plants seen most often: ${pl.introduced.slice(0, 5).map(x => esc(x.common)).join(', ')}</p>` : '');
+      + (pl.introduced.length ? `<p class="lsrc">Introduced ones seen most often: ${pl.introduced.slice(0, 5).map(x => esc(x.common)).join(', ')}</p>` : '');
     if(gd.plants) layers += aiText(gd.plants);
     if(tr && tr.top.length) layers += `<p class="lname ltop">Street trees</p><p class="ldesc">${tr.total.toLocaleString()} mapped trees of ${tr.kinds.toLocaleString()} kinds within ${esc(fmtDist(tr.radius))}. Most common:</p>`
       + `<ul class="trees">${tr.top.map(t => `<li><span>${esc(t.name)}${t.sci ? ` <i>${esc(t.sci)}</i>` : ''}</span><b>${t.n.toLocaleString()}</b></li>`).join('')}</ul><p class="lsrc">From OpenStreetMap, where many cities' tree inventories are mapped</p>`;
     if(gd.trees) layers += aiText(gd.trees);
     layers += `</section>`;
   }
-  if(n.species && n.species.length) layers += `<section class="layer"><h4>Life</h4><p class="ldesc">${n.speciesTotal.toLocaleString()} species recorded within ${esc(fmtDist(n.speciesRadius))} on iNaturalist. Seen most often:</p>`
-    + `<div class="species">${n.species.slice(0, 12).map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
-      + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.group ? esc(sp.group) + ' · ' : ''}${sp.count.toLocaleString()} sightings</small></a>`).join('')}</div></section>`;
+  const liP = pickedG('life'), li = liP && !liP.loading ? liP : {total: n.speciesTotal, list: n.species || []};
+  if(n.species && n.species.length) layers += `<section class="layer"><h4>Life</h4>${groupChips('life', LIFE_GROUPS, n.groups)}`
+    + (liP && liP.loading ? gload : `<p class="ldesc">${li.total.toLocaleString()} ${esc(groupNoun(LIFE_GROUPS, liP ? natGroup.life : ''))} recorded within ${esc(fmtDist(n.speciesRadius))} on iNaturalist. Seen most often:</p>`
+    + `<div class="species">${li.list.slice(0, 12).map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
+      + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.group ? esc(sp.group) + ' · ' : ''}${sp.count.toLocaleString()} sightings</small></a>`).join('')}</div>`) + `</section>`;
   if(n.loading) layers += `<p class="gather"><span class="spin"></span>Reading the ground…</p>`;
   else if(!layers) layers = `<p class="ldesc">No geology, elevation or species records came back for this spot. An AI guide (the sparkles button) can fill these in.</p>`;
   if(!n.loading && !ag && !svc) layers += `<p class="lsrc">No geologic map answered for this spot. Make an AI guide to fill in the bedrock from local surveys.</p>`;
@@ -2382,6 +2460,7 @@ function render(){
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
   document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
+  document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; });   // keep the picked group in view
   saveSessionSoon();
   applyWikiLinks();
 }
