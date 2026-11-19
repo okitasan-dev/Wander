@@ -1,0 +1,18 @@
+const {ROOT, FIX, OUT} = require('./paths');
+const {chromium}=require('playwright');
+const J=(r,body)=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)});
+(async()=>{ const srv = await require('./serve.js')(8773); const b=await chromium.launch(); const ctx=await b.newContext({serviceWorkers:'block'}); const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
+  await pg.route(/^https?:\/\//, r=>{ const u=new URL(r.request().url()), h=u.hostname;
+    if(/localhost|cdnjs|fonts|query\.wikidata\.org|tile\.openstreetmap/.test(h)) return r.continue();
+    if(h==='nominatim.openstreetmap.org') return J(r,{address:{city_district:'Westminster',city:'London',country:'United Kingdom',country_code:'gb'},extratags:{}});
+    if(h==='www.wikidata.org') return J(r,{entities:{}});
+    if(/wikipedia/.test(h)) return J(r,{query:{pages:[]}});
+    if(/overpass/.test(h)) return J(r,{elements:[]});
+    return r.abort(); });
+  await pg.goto('http://localhost:8773/index.html'); await pg.evaluate(()=>{ localStorage.clear(); }); await pg.reload(); await pg.waitForTimeout(300);
+  await pg.evaluate(()=>{ state.radius=3219; setManual(51.5115,-0.1040); });
+  await pg.waitForFunction(()=>!state.loading && state.lastLoadTime>0, null, {timeout:60000}); await pg.waitForTimeout(1500);
+  console.log(JSON.stringify(await pg.evaluate(()=>({mode:state.mode, wd:[...state.items.values()].filter(i=>i.src&&/Wikidata/.test(i.src)).map(i=>Object.values(i.versions)[0].title+' ['+(i.facts||[]).slice(0,2).join('; ')+']').filter(t=>/archae|wreck|Roman|Whitefriars|Blackfriars Ship|mithra|amphitheatre/i.test(t)).slice(0,10), legend:[...document.querySelectorAll('.legend [data-src]')].filter(b=>!b.hidden).map(b=>b.textContent)})),null,1));
+  const p = await pg.evaluate(()=>guidePrompt(false, 1609));
+  console.log(p.match(/• Deep human history[^\n]*/)[0].slice(0,160)+'…'); console.log(p.match(/starting with the earliest human presence[^.]*/)[0]);
+  console.log('errors', errs); await b.close(); srv.close && srv.close(); process.exit(0); })();

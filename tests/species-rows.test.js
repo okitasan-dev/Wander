@@ -1,0 +1,18 @@
+const {ROOT, FIX, OUT} = require('./paths');
+const {chromium}=require('playwright'); const SP=OUT;
+const J=(r,body)=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)});
+(async()=>{ const srv = await require('./serve.js')(8777); const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,serviceWorkers:'block'}); const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
+  await pg.route(/^https?:\/\//, r=>{ const u=new URL(r.request().url()), h=u.hostname;
+    if(/localhost|cdnjs|fonts|query\.wikidata\.org|tile\.openstreetmap|nominatim|api\.inaturalist|inaturalist-open-data/.test(h)) return r.continue();
+    if(h==='www.wikidata.org') return J(r,{entities:{}}); if(/wikipedia/.test(h)) return J(r,{query:{pages:[]}}); if(/overpass/.test(h)) return J(r,{elements:[]});
+    return J(r,{}); });
+  await pg.goto('http://localhost:8777/index.html'); await pg.evaluate(()=>{ localStorage.clear(); localStorage.setItem('wander.mode','"nature"'); }); await pg.reload(); await pg.waitForTimeout(300);
+  await pg.evaluate(()=>{ setManual(34.1366,-118.2942); });
+  await pg.waitForFunction(()=>state.nature && !state.nature.loading, null, {timeout:90000}); await pg.waitForTimeout(1500);
+  await pg.evaluate(()=>{ state.expanded.add('nature'); render(); });
+  const rows = await pg.evaluate(()=>[...document.querySelectorAll('.species')].map(el=>{ const sec=el.closest('.layer').querySelector('h4').textContent; const tiles=el.querySelectorAll('.sp');
+    const r0=tiles[0].getBoundingClientRect(), r1=tiles[1].getBoundingClientRect(); return `${sec}${el.previousElementSibling&&/Flowering|plants|Native/.test(el.previousElementSibling.textContent)?' / '+el.previousElementSibling.textContent.slice(0,22):''}: ${tiles.length} tiles, ${el.classList.contains('short')?'grid':'scrolls '+Math.round(el.scrollWidth)+'px in '+el.clientWidth+'px'}, tile ${Math.round(r0.width)}px, 2nd tile ${r1.top>r0.top+5?'below':'beside'} 1st`; }));
+  rows.forEach(r=>console.log(r));
+  await pg.evaluate(()=>{ const h=[...document.querySelectorAll('.layer h4')].find(x=>x.textContent==='Life'); h.scrollIntoView(); scrollBy(0,-10); const el=h.closest('.layer').querySelector('.species'); el.scrollLeft=170; });
+  await pg.waitForTimeout(1500); await pg.screenshot({path:SP+'/rows-life.png'});
+  console.log('errors', errs); await b.close(); srv.close && srv.close(); process.exit(0); })();

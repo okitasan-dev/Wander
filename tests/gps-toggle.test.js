@@ -1,0 +1,16 @@
+const {ROOT, FIX, OUT} = require('./paths');
+const {chromium}=require('playwright');
+(async()=>{ const srv = await require('./serve.js')(8765);
+  const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:390,height:844}, geolocation:{latitude:34.18172, longitude:-118.31143}, permissions:['geolocation']});
+  const pg=await ctx.newPage(); const errs=[]; pg.on('pageerror',e=>errs.push(e.message));
+  await pg.route(/^https?:\/\//, r=>/cdnjs|fonts|localhost/.test(r.request().url())?r.continue():r.abort());
+  await pg.goto('http://localhost:8765/index.html').catch(async()=>{});
+  await pg.waitForTimeout(800);
+  const st = async t => console.log(t, JSON.stringify(await pg.evaluate(()=>({watch: state.watchId!=null, manual: state.manual, pos: state.pos && [state.pos.lat, state.pos.lon], btn: document.querySelector('#gpsBtn').textContent.trim(), on: document.querySelector('#gpsBtn').classList.contains('on')}))));
+  await st('start');
+  await pg.evaluate(()=>document.querySelectorAll('details.sheet').forEach(x=>x.open=false)); await pg.click('#gpsBtn'); await pg.waitForTimeout(1500); await st('after tap 1');
+  await pg.evaluate(()=>document.querySelectorAll('details.sheet').forEach(x=>x.open=false)); await pg.click('#gpsBtn'); await pg.waitForTimeout(500); await st('after tap 2');
+  await ctx.setGeolocation({latitude:34.19, longitude:-118.32}); await pg.waitForTimeout(1500); await st('moved while off'); console.log('status:', await pg.$eval('#status', e=>e.textContent));
+  await pg.evaluate(()=>document.querySelectorAll('details.sheet').forEach(x=>x.open=false)); await pg.click('#gpsBtn'); await pg.waitForTimeout(1500); await st('after tap 3');
+  console.log('errors', errs); await b.close(); if(srv && srv.close) srv.close(); process.exit(0);
+})();
