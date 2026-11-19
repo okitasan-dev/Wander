@@ -574,7 +574,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.6.0"></script>
+<script src="common.js?v=3.6.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1312,7 +1312,7 @@ function skylineAhead(h){
    Live sources: NOAA's US Thermal Springs List (bundled), OpenStreetMap and Wikidata for springs; OpenStreetMap for
    fishing spots, and the fish iNaturalist users have recorded. AI guides of their own add the lesser-known places. */
 const FAR_ICON = {
-  spring: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3.5c-1.2 1.3 1.2 2.3 0 3.7M12 3c-1.2 1.3 1.2 2.3 0 3.7M16 3.5c-1.2 1.3 1.2 2.3 0 3.7"/><path d="M4 11.5h16M5 11.5c0 4.3 3.1 8 7 8s7-3.7 7-8"/></svg>',
+  spring: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17.4 13.3A8.6 4.6 0 1 1 6.6 13.3"/><path d="M8.4 14.6c-2-1.8 1.4-3.3 0-5.3s1.2-3.2-.2-4.9"/><path d="M12 15c-2-1.9 1.5-3.5 0-5.6s1.4-3.4 0-5.6"/><path d="M15.6 14.6c-2-1.8 1.4-3.3 0-5.3s1.2-3.2-.2-4.9"/></svg>',   // ♨: steam rising from an open ring
   fish: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12c3.2-4.4 9.6-5.4 13.5-1.8L20.5 7v10L16 13.8C12.1 17.4 5.7 16.4 2.5 12Z"/><circle cx="7.5" cy="11.3" r=".6" fill="currentColor"/></svg>'};
 let noaaSprings = null;
 async function loadNoaaSprings(){
