@@ -145,9 +145,8 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - A Terracotta, B Golden hour, C Dusk (dark A), from the Tuscan-sunset palette: #E35336, #FFD3AC, #9988A1, #8A2B0E.
   - D Slate, E Overcast, F Storm (dark D), from the Stormy-morning palette: #6A89A7, #BDDDFC, #88BDF2, #384959.
   - Planned as a Settings section with Appearance Auto/Light/Dark. B and E have no dark version yet.
-- **Status-bar blur** in the home-screen app: a solid strip under the status bar didn't help, because iOS fades below it. That was reverted in 2.7.8. The remaining option is a plain band at the top in standalone mode only; awaiting the owner's decision.
 - **Wales (Cadw)** register: not added; check whether DataMapWales WFS allows CORS.
-- **Indigenous territories:** Native Land Digital needs a key and licence.
+- **Indigenous history (History mode):** the owner wants Indigenous history, prehistory, prominent Indigenous cultural sites and original place names in the area info, not territory maps. Today only the AI guide prompt covers it. Ideas under discussion: Wikipedia's prehistory/Indigenous/name sections in the area card, Wikidata Indigenous site types (marae, pā, village sites) as cards, and Indigenous names from Wikidata `P1705`. Native Land Digital (territories) is not needed.
 - **Unverified live** (blocked from the sandbox): OSM Overpass features (street trees, OSM peaks and springs, fishing spots), the BRGM geology layer, and Wikivoyage/Commons (tested with simulated responses only).
 - **Only testable on a phone:** haptics, compass/Look, Add to Home Screen, and Google Maps links.
 - **Possible later:** more registers (Netherlands Rijksmonumenten, Wales), and France via the new data.gouv API if it gains geo search.
