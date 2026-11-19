@@ -3,11 +3,11 @@
    - Wander's own files: always asked fresh from the server (so updates arrive together), cached copy if offline.
    - Place data (Wikipedia, Wikidata, OpenStreetMap, Commons): fresh when the network answers within a few
      seconds, otherwise the copy kept from last time.
-   - Libraries, fonts, map tiles and photos: kept copy first, since they rarely change. */
-const APP = 'wander-app-v2.7.5', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
+   - Libraries, fonts, map tiles (street, satellite, terrain) and photos: kept copy first, since they rarely change. */
+const APP = 'wander-app-v2.7.6', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
 const KEEP = [APP, DATA, STATIC, TILES, IMAGES];
 const SHELL = ['./', 'index.html', 'place.html', 'common.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
-const LIMITS = {[DATA]: 400, [TILES]: 300, [IMAGES]: 150};
+const LIMITS = {[DATA]: 400, [TILES]: 600, [IMAGES]: 150};
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(APP).then(c => c.addAll(SHELL.map(u => new Request(u, {cache: 'reload'})))).catch(() => {}).then(() => self.skipWaiting()));
@@ -50,7 +50,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(networkFirst(DATA, req, {timeout: 6000}));
   } else if(/^(upload|thumb)\.wikimedia\.org$/.test(host)){
     e.respondWith(cacheFirst(IMAGES, req));
-  } else if(/^tile\.openstreetmap\.org$/.test(host)){
+  } else if(/^(tile\.openstreetmap\.org|[abc]\.tile\.opentopomap\.org|server\.arcgisonline\.com)$/.test(host)){
     e.respondWith(cacheFirst(TILES, req));
   } else if(/^(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(host)){
     e.respondWith(cacheFirst(STATIC, req));
