@@ -110,6 +110,11 @@ svg{flex:none}
 .aibox{margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--brass-soft)}
 .aibox .lname{font-size:16px}
 .aibox .ldesc:first-of-type{margin-top:4px}
+.layer .ltop{margin-top:14px;font-size:16px}
+.trees{list-style:none;margin:6px 0 0;padding:0}
+.trees li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--rule);font-size:14.5px}
+.trees li i{color:var(--muted);font-size:13px}
+.trees li b{font-weight:600;color:var(--muted)}
 .aitag{display:inline-block;font:600 11px/1.3 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--brass)}
 .timeline li.ld{grid-template-columns:1fr;gap:2px}
 .spl li small{display:block;color:var(--muted);font-size:13px}
@@ -390,7 +395,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage listing</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -518,7 +523,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.1.0"></script>
+<script src="common.js?v=3.2.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -880,18 +885,20 @@ function mergeOSM(elements){
   }
 }
 
-/* ---------- Wikidata: heritage-listed places without a Wikipedia article ---------- */
+/* ---------- Wikidata: heritage-listed places and archaeological sites without a Wikipedia article ---------- */
 async function fetchWDAround(lat, lon){
   const km = (Math.min(state.radius, 3000)/1000).toFixed(2);
   const langs = [...new Set([state.userLang, ...state.langs, 'en'])].join(',');
-  const q = `SELECT ?item ?itemLabel ?itemDescription ?coord ?typeLabel ?herLabel ?img WHERE {
+  // Heritage listings, and (in a query of its own, so a city full of listed buildings can't crowd them out) archaeological sites
+  const q = (match, limit) => `SELECT ?item ?itemLabel ?itemDescription ?coord ?typeLabel ?herLabel ?img WHERE {
     SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${km}". }
-    ?item wdt:P1435 ?her.
+    ${match}
     OPTIONAL { ?item wdt:P31 ?type. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "${langs}". }
-  } LIMIT 150`;
-  try{ const d = await fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q), 25000); return d.results.bindings; }
-  catch(e){ return []; }
+  } LIMIT ${limit}`;
+  const run = query => fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(query), 25000).then(d => d.results.bindings).catch(() => []);
+  const [her, arch] = await Promise.all([run(q('?item wdt:P1435 ?her.', 150)), run(q('?item wdt:P31/wdt:P279? wd:Q839954.', 80))]);
+  return [...arch, ...her];
 }
 function mergeWD(rows){
   const ul = state.userLang;
@@ -1097,13 +1104,44 @@ function pickUnit(d){
     interval: bi && ti && bi !== ti ? `${ti} to ${bi}` : bi || ti || clean(u.age), age: ageText(parseFloat(u.b_age), parseFloat(u.t_age)) || ageBetween([ti], [bi]),
     sourceId: u.source_id, src: 'Macrostrat geologic map', scale: u.scale || 'medium'};
 }
+// Native and introduced plants: iNaturalist marks each species as native or introduced for a region (county, state…),
+// so find the most local region it knows here, then count plant sightings within the walking radius.
+async function loadPlants(lat, lon, rad){
+  const f = x => x.toFixed(4), d = .01;
+  const near = await fetchJSON('https://api.inaturalist.org/v1/places/nearby?' + new URLSearchParams({nelat: f(lat + d), nelng: f(lon + d), swlat: f(lat - d), swlng: f(lon - d), per_page: '30'}), 15000);
+  const place = ((near.results && near.results.standard) || []).filter(p => p.admin_level != null && p.admin_level >= 0).sort((a, b) => b.admin_level - a.admin_level)[0];
+  if(!place) return null;
+  const q = extra => fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+    verifiable: 'true', iconic_taxa: 'Plantae', place_id: String(place.id), locale: state.userLang, ...extra}), 15000);
+  const [nat, intro] = await Promise.all([q({native: 'true', per_page: '12'}), q({introduced: 'true', per_page: '6'})]);
+  const sp = r => { const t = r.taxon; return {id: t.id, common: cap(t.preferred_common_name || t.name), sci: t.name, photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url), count: r.count || 0, url: `https://www.inaturalist.org/taxa/${t.id}`}; };
+  return {region: place.display_name, native: (nat.results || []).filter(r => r.taxon).map(sp), nativeTotal: nat.total_results || 0,
+    introduced: (intro.results || []).filter(r => r.taxon).map(sp), introducedTotal: intro.total_results || 0};
+}
+// Street trees: many cities' tree inventories are in OpenStreetMap, each tree with its species
+async function fetchStreetTrees(lat, lon){
+  const r = Math.min(state.radius, 800);
+  const q = `[out:json][timeout:25];node(around:${r},${lat},${lon})[natural=tree][~"^(species|genus|taxon|species:en|taxon:en|genus:en)$"~"."];out tags 5000;`;
+  for(const base of OVERPASS){
+    try{
+      const els = (await fetchJSON(base + '?data=' + encodeURIComponent(q), 30000)).elements || [];
+      const ul = state.userLang, by = new Map();
+      for(const e of els){ const t = e.tags || {};
+        const sci = t.species || t.taxon || t.genus || '', common = t['species:' + ul] || t['taxon:' + ul] || t['species:en'] || t['taxon:en'] || t['genus:' + ul] || t['genus:en'] || '';
+        const k = (sci || common).toLowerCase(); if(!k) continue;
+        const x = by.get(k) || {name: cap(common || sci), sci: common ? sci : '', n: 0}; x.n++; by.set(k, x); }
+      return {total: els.length, kinds: by.size, top: [...by.values()].sort((a, b) => b.n - a.n).slice(0, 8), radius: r};
+    }catch(e){}
+  }
+  return null;
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
-  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
+  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
   state.nature = n; renderSoon();
   const rad = Math.max(state.radius, 800), f = x => x.toFixed(5);
   const lookup = GEO_LOOKUP[state.cc];
-  const [geo, elev, life, local] = await Promise.allSettled([
+  const [geo, elev, life, local, plants, trees] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
       const u = pickUnit(d);   // and the published map it comes from, which the AI guide can read
       if(u && u.sourceId != null){ try{ const s = ((await fetchJSON(`https://macrostrat.org/api/v2/defs/sources?source_id=${u.sourceId}`, 10000)).success.data || [])[0];
@@ -1112,11 +1150,15 @@ async function loadNature(lat, lon, live = () => true){
     fetchJSON(`https://api.open-meteo.com/v1/elevation?latitude=${f(lat)}&longitude=${f(lon)}`, 10000),
     fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
       verifiable: 'true', per_page: '24', locale: state.userLang}), 15000),
-    lookup ? lookup(lat, lon) : Promise.resolve(null)
+    lookup ? lookup(lat, lon) : Promise.resolve(null),
+    loadPlants(lat, lon, rad),
+    state.useOsm ? fetchStreetTrees(lat, lon) : Promise.resolve(null)
   ]);
   if(!live() || state.nature !== n) return;
   if(geo.status === 'fulfilled') n.geo = geo.value;
   n.local = local.status === 'fulfilled' ? local.value : null;   // the national survey's map, when there is one
+  n.plants = plants.status === 'fulfilled' ? plants.value : null;
+  n.trees = trees.status === 'fulfilled' && trees.value && trees.value.total ? trees.value : null;
   if(elev.status === 'fulfilled'){ const e = (elev.value.elevation || [])[0]; if(isFinite(e)) n.elev = e; }
   if(life.status === 'fulfilled'){
     n.speciesTotal = life.value.total_results || 0; n.speciesRadius = rad;
@@ -1358,9 +1400,9 @@ document.addEventListener('click', e => { if(!$('#layerMenu').hidden && !e.targe
    Everything else (GPS, map, radius, Look, Places) is shared. */
 const MODES = {
   history: {hero: 'Explore the history around you.', areaHead: 'About this area', theme: ['#E6E9E4', '#0C2123'],
-    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage listing', ai: 'AI guide'},
-    names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage listings', ai: 'AI guide places'},
-    srcs: ['Street plaques and landmarks', 'Heritage registers'], checking: 'Checking plaques and heritage registers…',
+    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage site', ai: 'AI guide'},
+    names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage and archaeological sites', ai: 'AI guide places'},
+    srcs: ['Street plaques and landmarks', 'Heritage registers and archaeological sites'], checking: 'Checking plaques and heritage registers…',
     empty: 'Nothing with a Wikipedia article within {r}. Try a bigger radius in Settings.'},
   nature: {hero: 'Explore the land around you.', areaHead: 'About this land', theme: ['#E9F2EA', '#122019'],
     legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', ai: 'AI guide'},
@@ -1445,8 +1487,21 @@ function natureAreaHTML(){
   if(n.elev != null || gd.soil) layers += `<section class="layer"><h4>Ground</h4>${n.elev != null ? `<p class="lname">${esc(fmtElev(n.elev))} above sea level</p>` : ''}${gd.soil ? `<div class="aibox">${AI}<p class="ldesc"><b>Soil.</b> ${esc(gd.soil)}</p></div>` : ''}</section>`;
   if(gd.water) layers += `<section class="layer"><h4>Water</h4>${aiText(gd.water)}</section>`;
   if(gd.climate) layers += `<section class="layer"><h4>Climate</h4>${aiText(gd.climate)}</section>`;
+  const pl = n.plants, tr = n.trees, tile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
+    + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.count.toLocaleString()} sightings</small></a>`;
+  if((pl && pl.native.length) || (tr && tr.top.length) || gd.plants || gd.trees){
+    layers += `<section class="layer"><h4>Plants</h4>`;
+    if(pl && pl.native.length) layers += `<p class="ldesc">${pl.nativeTotal.toLocaleString()} plant species native to ${esc(pl.region)} have been recorded within ${esc(fmtDist(n.speciesRadius))}${pl.introducedTotal ? `, and ${pl.introducedTotal.toLocaleString()} introduced ones` : ''}. Native plants seen most often:</p>`
+      + `<div class="species">${pl.native.slice(0, 9).map(tile).join('')}</div>`
+      + (pl.introduced.length ? `<p class="lsrc">Introduced plants seen most often: ${pl.introduced.slice(0, 5).map(x => esc(x.common)).join(', ')}</p>` : '');
+    if(gd.plants) layers += aiText(gd.plants);
+    if(tr && tr.top.length) layers += `<p class="lname ltop">Street trees</p><p class="ldesc">${tr.total.toLocaleString()} mapped trees of ${tr.kinds.toLocaleString()} kinds within ${esc(fmtDist(tr.radius))}. Most common:</p>`
+      + `<ul class="trees">${tr.top.map(t => `<li><span>${esc(t.name)}${t.sci ? ` <i>${esc(t.sci)}</i>` : ''}</span><b>${t.n.toLocaleString()}</b></li>`).join('')}</ul><p class="lsrc">From OpenStreetMap, where many cities' tree inventories are mapped</p>`;
+    if(gd.trees) layers += aiText(gd.trees);
+    layers += `</section>`;
+  }
   if(n.species && n.species.length) layers += `<section class="layer"><h4>Life</h4><p class="ldesc">${n.speciesTotal.toLocaleString()} species recorded within ${esc(fmtDist(n.speciesRadius))} on iNaturalist. Seen most often:</p>`
-    + `<div class="species">${n.species.slice(0, 12).map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}">` : '<span class="ph"></span>'}`
+    + `<div class="species">${n.species.slice(0, 12).map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
       + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.group ? esc(sp.group) + ' · ' : ''}${sp.count.toLocaleString()} sightings</small></a>`).join('')}</div></section>`;
   if(n.loading) layers += `<p class="gather"><span class="spin"></span>Reading the ground…</p>`;
   else if(!layers) layers = `<p class="ldesc">No geology, elevation or species records came back for this spot. An AI guide (the sparkles button) can fill these in.</p>`;
@@ -1627,7 +1682,10 @@ function naturePrompt(deep, radius){
   if(n.elev != null) known.push(`Elevation: about ${Math.round(n.elev)} m.`);
   known.push('Wander has nothing on soil, water or climate here: fill those in too.');
   if(n.species && n.species.length) known.push(`Most-recorded species nearby on iNaturalist: ${n.species.slice(0, 10).map(x => x.sci).join(', ')}.`);
-  const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"ground":{"bedrock":{"name":"…","rock":"…","age":"…","notes":"…","mapSheet":"…"},"surface":"…","soil":"…","water":"…","climate":"…"},"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
+  if(n.plants && n.plants.native.length) known.push(`Native plants recorded nearby (iNaturalist, native to ${n.plants.region}): ${n.plants.native.slice(0, 10).map(x => x.sci).join(', ')}.${n.plants.introduced.length ? ` Commonest introduced: ${n.plants.introduced.slice(0, 5).map(x => x.sci).join(', ')}.` : ''}`);
+  if(n.trees) known.push(`Street trees mapped in OpenStreetMap within ${n.trees.radius} m: ${n.trees.total} trees; commonest ${n.trees.top.slice(0, 6).map(t => `${t.sci || t.name} (${t.n})`).join(', ')}.`);
+  else known.push('Wander found no mapped street trees here: look for the city\'s street-tree inventory or urban forest plan.');
+  const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"ground":{"bedrock":{"name":"…","rock":"…","age":"…","notes":"…","mapSheet":"…"},"surface":"…","soil":"…","water":"…","climate":"…","plants":"…","trees":"…"},"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
     + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the natural history of the land around me, within about ${size[0]} (${radius} m): what it is made of, how it took shape, its water, soil, plants and animals, and how all of that has changed. Give it to me as data for my walking app, Wander.
 
@@ -1647,7 +1705,7 @@ ${near.join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) and climate (zone, typical seasons, anything local such as fog or wind); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) climate (zone, typical seasons, anything local such as fog or wind), plants (the native plant community, what grew here before development, where remnants survive, and any rare or protected plants) and trees (the commonest street and park trees, which are native, and any notable ones, from the city's tree inventory or urban forest plan where there is one); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially, including native plants a walker can find; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function guidePrompt(deep, radius){
   if(state.mode === 'nature') return naturePrompt(deep, radius);
@@ -1667,6 +1725,7 @@ ${size[5] === 'near' ? `- This is a close-up guide for a few minutes' walk: dig 
   • Landmarks: buildings, temples, shrines, churches, monuments, plaques and markers, bridges, gates, walls, gardens, old streets, former sites.
   • Small and quirky things: statues and sculptures (pop-culture ones too, like a film character), murals and public art, old signs and neon, film and TV locations, long-running shops, bars and restaurants with a story, time capsules, notable trees, odd corners.
   • Where something notable happened: battles, assassinations, crimes, disasters, famous meetings or speeches, scenes from well-known stories. Include these whenever a source — obscure or not — ties the event to a specific spot (an address, coordinates, or a clear description such as "the corner of X and Y"), even if nothing marks it today. Dig for such sources.
+  • Deep human history: the Indigenous peoples of this place (use the names they use for themselves, and their own place names where known, citing tribal, community or academic sources), their villages, trails, gathering and trading places, and publicly acknowledged sacred places, and what happened to them (missions, treaties, removals) as well as their presence today; and prehistoric archaeology (early settlements, shell middens, burials, rock art, ancient roads and earthworks). Do not give the precise location of unprotected or sensitive archaeological or sacred sites: describe them at the level of the area, or by a public marker or museum display, and say so.
   • Folklore and legend: spots tied to myths, folk tales, local gods and spirits, ghost stories, curses and miracles, sacred stones, trees, springs and wells, and places from origin legends or festivals. Include them whenever a source ties the story to a spot. Set "folklore": true, tell the story as legend ("according to local legend…"), and keep it separate from what is documented about the place.
   Only history that cannot be pinned to a spot goes in the area overview and timeline.
 - For each place, say how precisely its location is known and where that comes from (e.g. "address given in a 1923 newspaper report", "approximate: sources name only the street"), and set confidence to match.
@@ -1678,7 +1737,7 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline, starting with the earliest human presence and the Indigenous peoples' history (not with colonial founding), with dates like "c. 8,000 years ago" where that is what sources give. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house", "Village site", "Shell midden", "Ancient trail" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
