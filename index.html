@@ -169,6 +169,7 @@ svg{flex:none}
 .lg.wiki{background:var(--brass)}
 .lg.osm{background:var(--patina);box-shadow:inset 0 0 0 2px var(--brass)}
 .lg.wd{background:var(--ink);box-shadow:inset 0 0 0 2px var(--brass)}
+.lg.voy{background:#3B7EA1}
 .lg.ai{background:var(--raise);box-shadow:inset 0 0 0 2px var(--brass)}
 .leaflet-container{font-family:var(--sans)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--rule)!important}
@@ -188,6 +189,11 @@ svg{flex:none}
 .wiki{background:var(--brass);color:var(--on-brass)}
 .osm{background:var(--patina);color:#fff;box-shadow:inset 0 0 0 2px var(--brass)}
 .wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
+.voy{background:#3B7EA1;color:#fff}
+.voy-note{font-size:14.5px}
+.voy-note b{font-weight:600;color:var(--muted)}
+.sp.photo b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;font-size:12px}
+.sp.photo img{border-radius:8px}
 .ai{background:var(--raise);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
 .pin.ai{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
 .pin.osm,.pin.wd{box-shadow:inset 0 0 0 2px var(--brass),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
@@ -437,7 +443,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -449,7 +455,7 @@ footer a{color:var(--muted)}
 </main>
 
 <footer>
-  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>.
+  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>. Listings from <a href="https://www.wikivoyage.org/">Wikivoyage</a> (CC BY-SA). Photos from <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>. English heritage from the <a href="https://historicengland.org.uk/listing/the-list/">National Heritage List for England</a> (Open Government Licence).
   <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a> and <a href="https://www.gbif.org/">GBIF.org</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>. US hot springs from NOAA's Thermal Springs List (Berry, Grim &amp; Ikelman 1980, via <a href="https://doi.org/10.1594/PANGAEA.981233">PANGAEA</a>, CC BY 4.0).</span>
   <span class="ver" id="ver"></span>
 </footer>
@@ -583,7 +589,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.8.0"></script>
+<script src="common.js?v=3.9.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1562,6 +1568,131 @@ async function loadNature(lat, lon, live = () => true){
   for(const sec of ['life', 'season', 'plants']) if(natGroup[sec] && !(n.byGroup && n.byGroup[sec + '|' + natGroup[sec]])) pickGroup(sec, natGroup[sec]);
 }
 
+/* ---------- Wikivoyage: the travel guide's listings (sights; in Nature mode, parks, trails and the outdoors) ----------
+   Listings live inside each destination's article as templates, {{see | name= | lat= | long= | content= }} and the like,
+   so read the nearest articles and pick out the listings that have coordinates. */
+const VOY_SEE = /^(see|voir|vedere|ver|sehen|見る|看)$/i, VOY_DO = /^(do|faire|fare|hacer|tun|する|做)$/i;
+function wikiPlain(s){
+  return String(s || '').replace(/<ref[\s\S]*?(<\/ref>|\/>)/g, '').replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, '$1').replace(/\[https?:\/\/\S+\s([^\]]*)\]/g, '$1')
+    .replace(/\{\{[^{}]*\}\}/g, '').replace(/'{2,}/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+function splitTop(s, ch){   // split on ch, but not inside [[…]] or {{…}}
+  const out = []; let depth = 0, cur = '';
+  for(let i = 0; i < s.length; i++){
+    const two = s.slice(i, i + 2);
+    if(two === '[[' || two === '{{'){ depth++; cur += two; i++; continue; }
+    if((two === ']]' || two === '}}') && depth){ depth--; cur += two; i++; continue; }
+    if(s[i] === ch && !depth){ out.push(cur); cur = ''; continue; }
+    cur += s[i];
+  }
+  out.push(cur); return out;
+}
+function voyParse(text){
+  const out = []; let i = 0;
+  while((i = text.indexOf('{{', i)) >= 0){
+    let depth = 0, j = i;
+    for(; j < text.length - 1; j++){
+      if(text[j] === '{' && text[j + 1] === '{'){ depth++; j++; }
+      else if(text[j] === '}' && text[j + 1] === '}'){ depth--; j++; if(!depth) break; }
+    }
+    const parts = splitTop(text.slice(i + 2, j - 1), '|'), tpl = parts[0].trim(); i = j + 1;
+    if(!/^(see|do|listing|marker|vcard|voir|faire|vedere|fare|ver|hacer|sehen|tun|見る|する|看|做)$/i.test(tpl)) continue;
+    const kv = {}; parts.slice(1).forEach(p => { const k = p.indexOf('='); if(k > 0) kv[p.slice(0, k).trim().toLowerCase()] = p.slice(k + 1).trim(); });
+    const type = (kv.type || tpl).toLowerCase(), lat = parseFloat(kv.lat), lon = parseFloat(kv.long ?? kv.lon ?? kv.lng);
+    const kind = VOY_SEE.test(type) || /see|sight|monument|museum|church|temple|shrine|castle|palace|park|view|garden|nature|lake|waterfall|beach|gallery|memorial|ruin/.test(type) ? 'see'
+      : VOY_DO.test(type) || /^do$|activit|hik|trail|walk/.test(type) ? 'do' : null;
+    const title = wikiPlain(kv.name || kv.nom || kv.nombre || kv.nome || kv['名称'] || kv['名前'] || '');
+    if(!kind || !title || !isFinite(lat) || !isFinite(lon)) continue;
+    out.push({kind, title, lat, lon, text: wikiPlain(kv.content || kv.description || kv['descripción'] || kv.descrizione || kv.beschreibung || kv['内容'] || kv['説明'] || '')});
+  }
+  return out;
+}
+async function fetchVoyage(lat, lon){
+  const langs = [...new Set([state.userLang, ...state.langs])].slice(0, 3), out = [];
+  await Promise.all(langs.map(async l => {
+    try{
+      const api = `https://${l}.wikivoyage.org/w/api.php?`;
+      const g = await fetchJSON(api + new URLSearchParams({action: 'query', list: 'geosearch', gscoord: `${lat}|${lon}`, gsradius: '10000', gslimit: '3', format: 'json', origin: '*'}), 12000);
+      const titles = ((g.query || {}).geosearch || []).slice(0, 2).map(p => p.title); if(!titles.length) return;
+      const r = await fetchJSON(api + new URLSearchParams({action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main', titles: titles.join('|'), format: 'json', formatversion: '2', origin: '*'}), 15000);
+      for(const p of (r.query || {}).pages || []){
+        const text = ((((p.revisions || [])[0] || {}).slots || {}).main || {}).content || '';
+        const pageUrl = `https://${l}.wikivoyage.org/wiki/${encodeURIComponent(p.title.replace(/ /g, '_'))}`;
+        voyParse(text).forEach(x => out.push({...x, lang: l, pageUrl}));
+      }
+    }catch(e){}
+  }));
+  return out;
+}
+const VOY_NATURE = /\b(park|parks|garden|gardens|trail|hike|hiking|lake|river|creek|falls|waterfall|beach|mountain|mount|hill|peak|view|viewpoint|lookout|overlook|forest|woods?|nature|reserve|wetland|cave|gorge|canyon|valley|spring|springs|onsen|island|botanic|arboretum|bird|marsh)\b|公園|庭園|滝|山|川|湖|温泉|森|渓谷/i;
+function mergeVoyage(list){
+  const nat = state.mode === 'nature';
+  for(const x of list){
+    if(nat ? !VOY_NATURE.test(x.title + ' ' + x.text) : x.kind !== 'see') continue;
+    if(!state.pos || hav(state.pos, x) > state.radius * 1.3) continue;
+    const dup = [...state.items.values()].find(it => it.lat != null && hav(it, x) < 250 && Object.values(it.versions || {}).some(v => nameOverlap(v.title, x.title).cont >= .5));
+    if(dup){ if(x.text && !dup.voyText){ dup.voyText = x.text; dup.voyUrl = x.pageUrl; } continue; }   // already listed: keep the travel guide's words with it
+    const key = `voy:${x.lang}:${normText(x.title)}`; if(state.items.has(key)) continue;
+    state.items.set(key, {key, src: 'Wikivoyage', lat: x.lat, lon: x.lon, versions: {[x.lang]: {title: x.title, extract: x.text, url: x.pageUrl}},
+      facts: [x.kind === 'see' ? 'Sight' : 'Outdoors'], isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+  }
+}
+/* ---------- Historic England: England's official heritage register (Grade I and II* listed buildings, scheduled monuments,
+   registered parks and gardens, battlefields, protected wrecks, World Heritage Sites) ---------- */
+const HE = 'https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/National_Heritage_List_for_England_NHLE_v02_VIEW/FeatureServer/';
+const HE_LAYERS = {0: 'Listed building', 6: 'Scheduled monument', 7: 'Registered park and garden', 8: 'Registered battlefield', 9: 'Protected wreck', 10: 'World Heritage Site'};
+async function fetchHE(lat, lon){
+  if(state.cc !== 'gb') return [];
+  const R = Math.round(Math.min(state.radius * 1.3, 3000));
+  const res = await Promise.all(Object.keys(HE_LAYERS).map(Number).map(L => fetchJSON(HE + L + '/query?' + new URLSearchParams({geometry: `${lon},${lat}`, geometryType: 'esriGeometryPoint', inSR: '4326',
+    distance: String(R), units: 'esriSRUnit_Meter', where: L === 0 ? "Grade IN ('I','II*')" : '1=1', outFields: '*', returnGeometry: L === 0 ? 'true' : 'false', returnCentroid: L === 0 ? 'false' : 'true',
+    outSR: '4326', f: 'json', resultRecordCount: '150'}), 20000)
+    .then(d => (d.features || []).map(f => { const g = f.geometry || {}, pt = L === 0 ? (g.points || [])[0] || (g.x != null ? [g.x, g.y] : null) : f.centroid && [f.centroid.x, f.centroid.y];
+      return {L, a: f.attributes || {}, pt}; })).catch(() => [])));
+  return res.flat().filter(x => x.pt && x.a.Name);
+}
+const heTitle = n => { n = n.trim(); if(n.length > 60) n = n.split(',')[0]; if(n.length > 60) n = n.split(' (')[0]; if(n.length > 60) n = n.split(/ with | including /i)[0];
+  return /[a-z]/.test(n) ? n : n.toLowerCase().replace(/(^|[\s(-])([a-z])/g, (m, a, c) => a + c.toUpperCase()).replace(/\b(Of|The|And|At|On|In|To|With|For)\b/g, w => w.toLowerCase()).replace(/^./, c => c.toUpperCase()).replace(/'S\b/g, "'s"); };
+function mergeHE(rows){
+  for(const {L, a, pt} of rows){
+    const lat = pt[1], lon = pt[0], title = heTitle(a.Name), fact = L === 0 ? `Grade ${a.Grade} listed building` : HE_LAYERS[L] + (a.Grade ? `, Grade ${a.Grade}` : '');
+    const dup = [...state.items.values()].find(it => it.lat != null && hav(it, {lat, lon}) < (L === 0 ? 150 : 500) && Object.values(it.versions || {}).some(v => nameOverlap(v.title, title).cont >= .5));
+    if(dup){ const listed = (dup.facts || []).some(f => /Grade (I|II\*?) listed/i.test(f));   // one grade per card (the first, highest-ranked entry)
+      if(!(L === 0 && listed)) dup.facts = [...new Set([...(dup.facts || []), fact])]; dup.heLink = dup.heLink || a.hyperlink; continue; }
+    const key = 'he:' + a.ListEntry; if(state.items.has(key)) continue;
+    state.items.set(key, {key, src: 'Historic England', lat, lon, versions: {en: {title, extract: '', url: a.hyperlink}}, facts: [fact], heLink: a.hyperlink,
+      isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+  }
+}
+/* ---------- Wikimedia Commons: photos taken around here, old photographs first ---------- */
+async function loadPhotos(lat, lon){
+  const R = Math.round(Math.min(Math.max(state.radius, 400), 2000));
+  const d = await fetchJSON('https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({action: 'query', generator: 'geosearch', ggsnamespace: '6', ggscoord: `${lat}|${lon}`, ggsradius: String(R), ggslimit: '50',
+    prop: 'imageinfo|coordinates', iiprop: 'url|extmetadata', iiurlwidth: '250', iiextmetadatafilter: 'DateTimeOriginal|ObjectName|Artist|LicenseShortName', format: 'json', formatversion: '2', origin: '*'}), 15000);
+  const list = ((d.query || {}).pages || []).map(p => { const ii = (p.imageinfo || [])[0] || {}, m = ii.extmetadata || {}, v = k => String((m[k] && m[k].value) || '').replace(/<[^>]+>/g, '').trim();
+    const year = (/\b(1[5-9]\d\d|20\d\d)\b/.exec(v('DateTimeOriginal')) || [])[1], c = (p.coordinates || [])[0] || {};
+    return ii.thumburl ? {title: v('ObjectName') || p.title.replace(/^File:/, '').replace(/\.[a-z]{3,4}$/i, '').replace(/_/g, ' '), thumb: ii.thumburl, url: ii.descriptionurl || 'https://commons.wikimedia.org/wiki/' + encodeURIComponent(p.title),
+      year: year ? +year : null, by: v('Artist'), lat: c.lat, lon: c.lon, d: p.index} : null; }).filter(Boolean);
+  const old = list.filter(x => x.year && x.year < 1950).sort((a, b) => a.year - b.year);
+  return [...old, ...list.filter(x => !old.includes(x))];
+}
+// A card without a picture borrows a Commons photo taken right there that names it
+function matchPhotos(){
+  const ph = state.photos && state.photos.list; if(!ph) return;
+  for(const it of state.items.values()){
+    if(it.thumb || it.lat == null) continue;
+    const name = (Object.values(it.versions || {})[0] || {}).title || '';
+    const hit = ph.find(x => x.lat != null && hav(x, it) < 60 && nameOverlap(x.title, name).cont >= .5);
+    if(hit) it.thumb = hit.thumb;
+  }
+}
+function photosHTML(){
+  const ph = state.photos && state.photos.list; if(!ph || !ph.length) return '';
+  const old = ph.filter(x => x.year && x.year < 1950).length;
+  return `<p class="ldesc">${ph.length} photos on Wikimedia Commons were taken within ${esc(fmtDist(Math.min(Math.max(state.radius, 400), 2000)))}${old ? `, ${old} of them before 1950 (shown first)` : ''}. Tap one for its author and licence.</p>`
+    + speciesRow(ph.map(x => `<a class="sp photo" target="_blank" rel="noopener" href="${esc(x.url)}"><img loading="lazy" alt="" src="${esc(x.thumb)}" onerror="this.outerHTML='<span class=ph></span>'"><b>${esc(x.title)}</b><small>${x.year ? x.year : ''}</small></a>`));
+}
+
 async function loadFacts(){
   const need = [...state.items.values()].filter(it=>it.qid && !it.factsLoaded).slice(0,40);
   if(!need.length) return;
@@ -1616,16 +1747,19 @@ async function refresh(force){
     if(M.map && store.get('mapLayer', 'street') === 'geo' && M.geoCC !== state.cc) setLayer('geo');
     const nat = state.mode === 'nature', md = MD();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${nat ? md.reading : `Reading ${state.langs.map(langName).join(' and ')} Wikipedia…`}</span>`);
-    const extra = nat ? Promise.all([[], state.useOsm ? fetchOSMNature(lat, lon) : []])
-                      : Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
+    const extra = nat ? Promise.all([[], state.useOsm ? fetchOSMNature(lat, lon) : [], fetchVoyage(lat, lon), []])
+                      : Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : [], fetchVoyage(lat, lon), state.useWd ? fetchHE(lat, lon) : []]);
+    if(!state.photos || hav(state.photos, {lat, lon}) > 300)
+      loadPhotos(lat, lon).then(list => { if(!live()) return; state.photos = {lat, lon, list}; matchPhotos(); renderSoon(); }).catch(() => {});
     const land = nat ? loadNature(lat, lon, live) : null;
     const added = nat ? await loadNatureNearby(lat, lon, live) : await loadNearby(lat, lon, live); if(!live()) return;
     state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
     render();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${md.checking}</span>`);
-    const [wdRows, osmEls] = await extra; if(!live()) return;
+    const [wdRows, osmEls, voy, he] = await extra; if(!live()) return;
     if(nat){ if(state.useOsm) mergeOSMNature(osmEls); }
-    else { if(state.useWd) mergeWD(wdRows); if(state.useOsm) mergeOSM(osmEls); }
+    else { if(state.useWd) mergeWD(wdRows); if(he.length) mergeHE(he); if(state.useOsm) mergeOSM(osmEls); }
+    mergeVoyage(voy); matchPhotos();
     if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
     if(nat){ loadFar(lat, lon, live); await land; } else loadFacts();
   }catch(e){
@@ -1684,7 +1818,7 @@ function bestVersion(it){
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
 const M = { map:null, me:null, acc:null, ring:null, sight:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
-const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : 'wd';
+const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : it.src==='Wikivoyage' ? 'voy' : 'wd';
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
   $('#mapWrap').classList.add('show');
@@ -1794,13 +1928,13 @@ document.addEventListener('click', e => { if(!$('#layerMenu').hidden && !e.targe
    Everything else (GPS, map, radius, Look, Places) is shared. */
 const MODES = {
   history: {hero: 'Explore the history around you.', areaHead: 'About this area', theme: ['#E6E9E4', '#0C2123'],
-    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage site', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
-    names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage and archaeological sites', ai: 'AI guide places'},
+    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage site', voy: 'Wikivoyage', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
+    names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage and archaeological sites', voy: 'Wikivoyage sights', ai: 'AI guide places'},
     srcs: ['Street plaques and landmarks', 'Heritage registers and archaeological sites'], checking: 'Checking plaques and heritage registers…',
     empty: 'Nothing with a Wikipedia article within {r}. Try a bigger radius in Settings.'},
   nature: {hero: 'Explore the land around you.', areaHead: 'About this land', theme: ['#E9F2EA', '#122019'],
-    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
-    names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', ai: 'AI guide places'},
+    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', voy: 'Wikivoyage', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
+    names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', voy: 'Wikivoyage outdoor listings', ai: 'AI guide places'},
     srcs: ['Springs, peaks, trees and other features', 'Wikidata entries without an article'], reading: 'Reading the landscape…',
     checking: 'Checking maps and nature records…', empty: 'No natural features found within {r}. Try a bigger radius in Settings.'}
 };
@@ -1936,6 +2070,7 @@ function natureAreaHTML(){
     + (liP && liP.loading ? gload : `<p class="ldesc">${li.total.toLocaleString()} ${esc(groupNoun(LIFE_GROUPS, liP ? natGroup.life : ''))} recorded within ${esc(fmtDist(n.speciesRadius))} on iNaturalist${(liP ? li.gbif : n.gbif) && (liP ? li.gbif : n.gbif).species ? `, and ${gbifCount(liP ? li.gbif : n.gbif)} in GBIF's records from museums, surveys, eBird and more` : ''}. Seen most often:</p>`
     + speciesRow(li.list.map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
       + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.group ? esc(sp.group) + ' · ' : ''}${sp.count.toLocaleString()} ${sp.src === 'gbif' ? 'records · GBIF' : 'sightings'}</small></a>`))) + `</section>`;
+  if(state.photos && state.photos.list.length) layers += `<section class="layer"><h4>Photos around here</h4>${photosHTML()}</section>`;
   if(n.loading) layers += `<p class="gather"><span class="spin"></span>Reading the ground…</p>`;
   else if(!layers) layers = `<p class="ldesc">No geology, elevation or species records came back for this spot. An AI guide (the sparkles button) can fill these in.</p>`;
   if(!n.loading && !ag && !svc) layers += `<p class="lsrc">No geologic map answered for this spot. Make an AI guide to fill in the bedrock from local surveys.</p>`;
@@ -2320,7 +2455,7 @@ function saveSession(){
     const items = [...state.items.values()].filter(it => it.src !== 'AI guide').map(({ai, ...it}) => (it.more && it.more.loading ? {...it, more: undefined} : it));
     const area = state.area.map(a => (a.details && a.details.loading ? {...a, details: undefined} : a));
     localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, mode: state.mode, nature: state.nature && !state.nature.loading ? state.nature : null,
-      far: [...state.far.values()].filter(x => x.src !== 'AI guide').map(({ai, ...x}) => x), farAt: state.farAt, farFish: state.farFish || null, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
+      far: [...state.far.values()].filter(x => x.src !== 'AI guide').map(({ai, ...x}) => x), farAt: state.farAt, farFish: state.farFish || null, photos: state.photos || null, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
       place: state.place, cc: state.cc, hood: state.hood, city: state.city, langs: state.langs, areaKey: state.areaKey, area, areaGeo: state.areaGeo,
       lastLoad: state.lastLoad, items, expanded: [...state.expanded]}));
   }catch(e){ /* storage full: skip */ }
@@ -2333,7 +2468,7 @@ function restoreSession(){
   Object.assign(state, {pos: s.pos, manual: !!s.manual, remote: s.remote == null ? !!s.manual : !!s.remote, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
     areaKey: s.areaKey || '', area: s.area || [], areaGeo: s.areaGeo || null, lastLoad: s.lastLoad || s.pos, lastLoadTime: s.loadedAt || s.savedAt,
     items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || []), nature: s.nature || null,
-    far: new Map((s.far || []).map(x => [x.key, x])), farAt: s.farAt && s.farAt.r === state.farRadius ? s.farAt : null, farFish: s.farFish || null});
+    far: new Map((s.far || []).map(x => [x.key, x])), photos: s.photos || null, farAt: s.farAt && s.farAt.r === state.farRadius ? s.farAt : null, farFish: s.farFish || null});
   return true;
 }
 addEventListener('pagehide', () => { try{ sessionStorage.setItem('wander.scroll', String(scrollY)); }catch(e){} saveSession(); });
@@ -2371,9 +2506,10 @@ function cardHTML(it, opts={}){
   const k = esc(it.key);
   let actions = `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
-  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
+  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">${it.src === 'Historic England' ? 'Listing' : it.src === 'Wikivoyage' ? 'Wikivoyage' : 'Article'}</a>`;
   if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(mapsURL(it.lat, it.lon))}">Google Maps</a>`;
+  if(it.heLink && it.src !== 'Historic England') actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.heLink)}">Listing</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
   return `<article class="card${opts.area?' area':''}${opts.band===2?' far':''}" data-key="${k}">
@@ -2387,6 +2523,7 @@ function cardHTML(it, opts={}){
     ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}"${expanded && wlTerms(it.ai.terms) ? ` data-wl="t:${wlTerms(it.ai.terms)}"` : ''}>${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
       : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}"${expanded && !it.src && /wikipedia\.org/.test(bodyV.url||'') ? ` data-wl="a:${esc(bodyLang)}:${esc(bodyV.title)}"` : ''}>${esc(text||'No summary available yet.')}${text?langNote:''}</p>` + (text ? xlateHTML(full, bodyLang, {about: head.title, googleURL: !it.src && lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''}) : '') : ''}
     ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>` + xlateHTML(it.inscription, it.inscrLang, {about: head.title}) :''}
+    ${expanded && it.voyText ? `<p class="text voy-note"><b>Wikivoyage:</b> ${esc(it.voyText)}</p>` : ''}
     ${expanded ? (it.ai ? guideHTML(it.ai) : '') + placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>
   </article>`;
@@ -2433,6 +2570,7 @@ function areaHTML(it, idx){
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
     ${more?`<div class="more">${more}</div>`:''}
+    ${idx === 0 && state.photos && state.photos.list.length ? `<div class="more"><h4>Photos around here</h4>${photosHTML()}</div>` : ''}
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -2523,6 +2661,7 @@ function render(){
   lookApply(true);
   updatePageLang(document.querySelector('main'), state.userLang);
   const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !present.has('ai');
+  const lv = document.querySelector('.legend .g-voy'); if(lv) lv.hidden = !present.has('voy');
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
   document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
