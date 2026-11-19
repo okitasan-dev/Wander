@@ -71,8 +71,31 @@ svg{flex:none}
 .mapbtns button{font-size:13px;font-weight:500;padding:8px 13px;border-radius:999px;background:color-mix(in srgb,var(--surface) 88%,transparent);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.14);border:1px solid var(--rule)}
 #recenterBtn{display:none;color:var(--brass)}
-.legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px 12px;font-size:12.5px;color:var(--muted)}
+.legend{position:relative;display:flex;gap:8px;align-items:center;padding:10px 0 12px 16px;font-size:12.5px;color:var(--muted)}
+/* one row of category chips that scrolls sideways, and a Sources button that opens a small menu */
+.lg-row{flex:1;min-width:0;display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:2px 14px 2px 0;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+.lg-row::-webkit-scrollbar{display:none}
+.lg-row>*,.lg-cats>*{flex:none}
+.lg-cats{display:contents}
 .legend .lg-you{display:inline-flex;align-items:center;gap:6px;margin-right:4px;padding:0 4px}
+.legend .lg-srcbtn{flex:none;margin-right:16px;gap:5px;padding:6px 11px;color:var(--ink)}
+.lg-srcbtn svg{width:15px;height:15px;color:var(--brass)}
+.lg-srcbtn[aria-expanded="true"]{background:var(--brass-soft);border-color:var(--brass)}
+.lg-dot{width:7px;height:7px;border-radius:50%;background:var(--brass);display:inline-block}
+.lg-dot[hidden]{display:none}
+.lg-menu{position:absolute;right:12px;top:calc(100% - 6px);z-index:900;width:250px;max-width:calc(100vw - 24px);padding:6px;border-radius:14px;
+  background:var(--raise);border:1px solid var(--rule);box-shadow:var(--shadow)}
+.lg-menu[hidden]{display:none}
+.lg-mh{margin:6px 10px 4px;font:600 11.5px/1.3 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.legend .lg-menu button{display:flex;width:100%;gap:10px;padding:10px;border:0;border-radius:10px;background:none;font-size:14px;text-decoration:none;text-align:left}
+.legend .lg-menu button:active{background:var(--brass-soft)}
+.legend .lg-menu [data-src]::before{content:"";flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--brass);background:var(--brass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.legend .lg-menu [data-src][aria-pressed="false"]{color:var(--muted)}
+.legend .lg-menu [data-src][aria-pressed="false"]::before{background:none}
+.legend .lg-menu .lg-t{flex:1}
+.legend .lg-menu [data-src] .lg{display:none}
+.legend .lg-menu .lg-reset{justify-content:center;color:var(--brass);font-weight:600;border-top:1px solid var(--rule);border-radius:0 0 10px 10px;margin-top:4px}
 /* each source is a chip: tap to hide it from the map and the list */
 .legend button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px 6px 9px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);font-size:12.5px}
 .legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed;text-decoration:line-through}
@@ -80,6 +103,15 @@ svg{flex:none}
 .legend button[hidden]{display:none}
 .legend .lg-n{font-weight:600;color:var(--muted);margin-left:1px}
 .legend .lg-n:empty{display:none}
+/* categories: what a place is. Pins, list numbers and chips share these colours */
+.c-bldg{background:#8A672B;color:#fff}.c-relig{background:#7A4E8C;color:#fff}.c-monu{background:#2B6C61;color:#fff}.c-indig{background:#B5562F;color:#fff}
+.c-event{background:#A23B3B;color:#fff}.c-art{background:#B8457E;color:#fff}.c-museum{background:#2F6FA3;color:#fff}.c-folk{background:#4B4F8C;color:#fff}
+.c-water{background:#3577B5;color:#fff}.c-peak{background:#8A5A3C;color:#fff}.c-rock{background:#77695C;color:#fff}.c-tree{background:#2E6F40;color:#fff}
+.c-wild{background:#B8862F;color:#fff}.c-park{background:#5E8F35;color:#fff}.c-view{background:#6E5BA6;color:#fff}.c-camp{background:#B0476B;color:#fff}
+.c-other{background:#6B7470;color:#fff}
+/* places only an AI guide knows: a white inner ring */
+.num.src-ai{box-shadow:inset 0 0 0 2px rgba(255,255,255,.9)}
+.pin.src-ai{box-shadow:inset 0 0 0 2px rgba(255,255,255,.9),0 2px 6px rgba(0,0,0,.35),0 0 0 2px var(--surface)}
 :root.nature #map:not(.lay-sat):not(.lay-topo) .leaflet-tile-pane{filter:grayscale(.55) sepia(.25) hue-rotate(50deg) saturate(1.15) contrast(.92) brightness(1.04)}
 @media (prefers-color-scheme:dark){:root.nature #map:not(.lay-sat):not(.lay-topo) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) grayscale(.6) sepia(.3) hue-rotate(60deg) brightness(.74) contrast(1.08)}}
 :root.nature .osm{color:#0F2A17}
@@ -452,7 +484,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Filter the map and list"><div class="lg-row"><span class="lg-you"><i class="lg you"></i>You</span><span class="lg-cats"></span><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div><button type="button" class="lg-srcbtn" aria-expanded="false" aria-controls="lgMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Sources<i class="lg-dot" hidden></i></button><div class="lg-menu" id="lgMenu" role="group" aria-label="Sources" hidden><p class="lg-mh">Show places from</p><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="lg-reset">Show everything</button></div></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -603,7 +635,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.12.0"></script>
+<script src="common.js?v=3.13.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -651,7 +683,7 @@ const state = {
   pos:null, lastLoad:null, lastLoadTime:0, loading:false, gen:0, watchId:null, manual:false,
   items:new Map(), area:[], areaKey:'', place:'', langs:[],
   userLang: store.get('userLang', UI_LANGS.includes(navLang)?navLang:'en'),
-  radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(), hiddenSrc: new Set(store.get('hiddenSrc', [])),
+  radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(), hiddenSrc: new Set(store.get('hiddenSrc', [])), hiddenCat: new Set(store.get('hiddenCat', [])),
   expanded:new Set(), showOrig:new Set(),
   loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true),
@@ -1971,6 +2003,62 @@ function bestVersion(it){
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
 const M = { map:null, me:null, acc:null, ring:null, sight:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
+/* ---------- Categories: what a place is (not which source found it), for pin colours and the filter chips ---------- */
+// W(...) matches whole words; the rules run in priority order, first on what the sources say a place is
+// (Wikidata types, register entries, OpenStreetMap tags, the AI guide's kind), then on its name and first lines.
+const W = alts => new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${alts})(?=$|[^\\p{L}\\p{N}])`, 'iu');
+const CATS = {
+  history: {
+    labels: {bldg: 'Buildings', relig: 'Religious sites', monu: 'Monuments & plaques', indig: 'Indigenous & ancient', event: 'Events & stories', art: 'Art & quirky', museum: 'Museums', folk: 'Folklore', other: 'Other'},
+    rules: [
+      ['indig', W('archaeolog\\p{L}*|prehistor\\p{L}*|neolithic|mesolithic|palaeolithic|paleolithic|bronze age|iron age|hill ?forts?|barrows?|tumul\\p{L}*|cairns?|dolmens?|cromlechs?|menhirs?|standing stones?|stone (?:circle|row)s?|henges?|petroglyph\\p{L}*|pictograph\\p{L}*|rock art|cup and ring|middens?|earthworks?|burial mounds?|mounds?|kofun|pueblos?|cliff dwellings?|village sites?|marae|pā|heiau|ahu|indigenous|aborigin\\p{L}*|first nations|native american\\p{L}*|tribal|crannogs?|brochs?|souterrains?|ring ?forts?|raths?|ogham|roman (?:forts?|villas?|roads?|camps?|walls?)|ancient|antiquity|crop ?marks?|enclosures?|findspots?|stone age|shell mounds?')],
+      ['event', W('battle\\p{L}*|massacres?|assassinat\\p{L}*|site of|scene of|film(?:ing)? locations?|shipwrecks?|wrecks?|disasters?|riots?|murders?|crimes?|uprisings?|sieges?|rebellions?|protests?|explosions?|crash\\p{L}*|historical events?|incidents?|landing sites?|treaty')],
+      ['museum', W('museums?|galler(?:y|ies)|heritage cent(?:re|er)s?|visitor cent(?:re|er)s?|exhibitions?|archives?|interpretive cent(?:re|er)s?')],
+      ['relig', W('church\\p{L}*|cathedrals?|chapels?|abbe(?:y|ys)|prior(?:y|ies)|monaster\\p{L}*|convents?|friar(?:y|ies)|nunner(?:y|ies)|temples?|shrines?|mosques?|synagogues?|basilicas?|minsters?|kirks?|jinja|pagodas?|stupas?|gurdwaras?|missions?|religious|place of worship|parish\\p{L}*|orator(?:y|ies)|meeting ?houses?|torii|wayside (?:cross|shrine)|calvar(?:y|ies)|holy wells?|hermitages?|cemeter(?:y|ies)|graveyards?|burial grounds?')],
+      ['art', W('murals?|public art|sculptures?|artworks?|graffiti|street art|mosaics?|installations?|neon|signs?|time capsules?|curiosit\\p{L}*|oddit\\p{L}*|quirky')],
+      ['monu', W('monuments?|memorial\\p{L}*|statues?|plaques?|markers?|obelisks?|cenotaphs?|fountains?|stolperstein\\p{L}*|bust|columns?|milestones?|boundary stones?|graves?|tombs?|mausole\\p{L}*|commemorat\\p{L}*')],
+      ['bldg', W('building\\p{L}*|houses?|halls?|castles?|palaces?|towers?|bridges?|stations?|hotels?|theat(?:re|er)s?|cinemas?|schools?|colleges?|universit\\p{L}*|mills?|factor(?:y|ies)|warehouses?|lighthouses?|forts?|fortress\\p{L}*|fortifications?|gates?|gatehouses?|walls?|pubs?|inns?|taverns?|bars?|restaurants?|caf[eé]s?|shops?|stores?|markets?|manors?|mansions?|villas?|cottages?|barns?|farm\\p{L}*|ruins?|structures?|architect\\p{L}*|residences?|offices?|banks?|librar(?:y|ies)|court ?houses?|hospitals?|almshouses?|terraces?|tenements?|dwellings?|stadium|arcades?|aqueducts?|viaducts?|tunnels?|canals?|docks?|piers?|quays?|harbou?rs?|mines?|kilns?|brewer(?:y|ies)|distiller(?:y|ies)|streets?|squares?|parks?|gardens?|homes?|estates?|houses? museum')]
+    ],
+    order: ['bldg', 'relig', 'monu', 'indig', 'event', 'art', 'museum', 'folk', 'other']
+  },
+  nature: {
+    labels: {water: 'Water', peak: 'Peaks & landforms', rock: 'Rocks & minerals', tree: 'Trees & plants', wild: 'Wildlife', park: 'Parks & reserves', view: 'Viewpoints', camp: 'Camping & trails', other: 'Other'},
+    rules: [
+      ['view', W('viewpoints?|vistas?|overlooks?|lookouts?|scenic|panoram\\p{L}*|observation|tourism viewpoint')],
+      ['camp', W('camp\\p{L}*|trails?|trailheads?|huts?|shelters?|picnic\\p{L}*|footpaths?|bothies|bothy|greenways?|towpaths?|hik\\p{L}*')],
+      ['wild', W('birds?|birding|wildlife|refuges?|sanctuar(?:y|ies)|rooker(?:y|ies)|colon(?:y|ies)|nesting|roosts?|fauna|seals?|whales?|butterfl\\p{L}*|bats?')],
+      ['water', W('springs?|hot springs?|geysers?|lakes?|ponds?|rivers?|streams?|creeks?|brooks?|burns?|becks?|waterfalls?|falls|cascades?|wetlands?|marsh\\p{L}*|swamps?|bogs?|fens?|bays?|beach\\p{L}*|reservoirs?|canals?|wells?|estuar(?:y|ies)|lagoons?|glaciers?|water|waterway \\p{L}+|tarns?|lochs?|loughs?|onsen|coves?|coast\\p{L}*|shores?|seas?|ocean|aquifers?|watersheds?|deltas?|rapids?|dams?')],
+      ['peak', W('mountains?|mount|mt|peaks?|hills?|volcan\\p{L}*|summits?|ridges?|saddles?|pass(?:es)?|valle(?:y|ys)|gorges?|canyons?|cliffs?|arch(?:es)?|caves?|caverns?|cave entrance|capes?|headlands?|points?|dunes?|sinkholes?|plateaus?|craters?|islands?|isles?|bluffs?|buttes?|mesas?|knolls?|tors?|fells?|crags?|landforms?|escarpments?|scarps?|cirques?|moraines?')],
+      ['rock', W('rocks?|stones?|boulders?|outcrops?|quarr\\p{L}*|mines?|mineshafts?|adits?|fossil\\p{L}*|geolog\\p{L}*|erratics?|minerals?|formations?|strata|lava|basalt|granite|sandstone|limestone|chalk|exposures?|road ?cuts?|survey points?')],
+      ['tree', W('trees?|groves?|forests?|woods?|woodlands?|botanic\\p{L}*|gardens?|arboret\\p{L}*|meadows?|flora|plants?|orchards?|heath\\p{L}*|grasslands?|prairies?|redwoods?|oaks?|yews?|pines?|cedars?|sakura|cherr(?:y|ies)|bamboo|vegetation|copses?|thickets?')],
+      ['park', W('parks?|reserves?|preserves?|protected|conservation|national (?:park|forest|monument)s?|nature reserves?|sssi|wilderness|open spaces?|recreation areas?|commons?|biosphere|ramsar|area of outstanding')]
+    ],
+    order: ['water', 'peak', 'rock', 'tree', 'wild', 'park', 'view', 'camp', 'other']
+  }
+};
+// Protection labels say how a place is listed, not what it is ("Scheduled monument" can be a castle), so they're set aside
+const DESIG_RE = /scheduled (?:ancient )?monument|ancient monument|listed building|(?:grade|category) [^|,;]{1,6}listed|\blisted\b|monument historique|historic monument|registered (?:park|garden)s?(?: and garden)?|national register of historic places|\bnrhp\b|world heritage site|propert(?:y|ies) in care|heritage (?:site|asset|register)|(?:important )?cultural propert(?:y|ies)|national treasure|historic site/gi;
+const CAT_TAGS = ['historic', 'memorial', 'tourism', 'amenity', 'building', 'man_made', 'natural', 'waterway', 'leisure', 'landuse', 'boundary', 'geological', 'religion', 'artwork_type', 'highway', 'garden:type'];
+function catOf(it){
+  const mode = state.mode === 'nature' ? 'nature' : 'history', C = CATS[mode];
+  const sig = [mode, (it.facts || []).length, it.ai ? it.ai.kind + (it.ai.folklore ? '!' : '') : '', it.src || '', Object.keys(it.versions || {}).length, it.tags ? 1 : 0].join('|');
+  if(it._catSig === sig) return it._cat;
+  let cat = null;
+  if(it.src === 'eBird') cat = 'wild';
+  else if(mode === 'history' && it.ai && it.ai.folklore) cat = 'folk';
+  else {
+    const t = it.tags || {};
+    const tags = CAT_TAGS.filter(k => t[k] && t[k] !== 'yes').map(k => k.replace(/[_:]/g, ' ') + ' ' + String(t[k]).replace(/[_;]/g, ' ')).join(' | ');
+    let strong = [...(it.facts || []).map(String), it.ai && it.ai.kind, tags].filter(Boolean).join(' | ');
+    const listed = mode === 'history' && strong.search(DESIG_RE) >= 0;
+    if(mode === 'history') strong = strong.replace(DESIG_RE, ' ');
+    const v = bestVersion(it).v, weak = v ? `${v.title || ''} | ${(v.extract || '').slice(0, 220)}` : '';
+    outer: for(const text of [strong, weak]) for(const [k, re] of C.rules) if(re.test(text)){ cat = k; break outer; }
+    if(!cat) cat = listed ? 'bldg' : 'other';
+  }
+  it._cat = cat; it._catSig = sig; return cat;
+}
+const pinClass = it => 'c-' + catOf(it) + (srcClass(it) === 'ai' ? ' src-ai' : '');
 const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : it.src==='Wikivoyage' ? 'voy' : it.src==='eBird' ? 'ebird' : 'wd';
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
@@ -2014,7 +2102,7 @@ function updateMap(ordered){
   const keep = new Set();
   ordered.forEach((it, i)=>{
     keep.add(it.key);
-    const n = i+1, cls = srcClass(it) + (hav(state.pos, it) > Math.max(WALK, state.sight) ? ' far' : '');
+    const n = i+1, cls = pinClass(it) + (hav(state.pos, it) > Math.max(WALK, state.sight) ? ' far' : '');
     const sig = n+'|'+cls;
     let p = M.pins.get(it.key);
     const icon = () => L.divIcon({className:'', html:`<div class="pin ${cls}">${n}</div>`, iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-12]});
@@ -2334,7 +2422,7 @@ function lookApply(force){
   if(!state.pos) body = `<p class="hint">Waiting for your location…</p>`;
   else if(h==null) body = `<p class="hint">${look.slow ? 'No compass reading yet. On iPhone, allow motion and orientation access when asked. On a computer, Look is not available.' : 'Hold your phone flat, or point it down the street.'}</p>`;
   else if(ahead.length){
-    body = '<ol>' + ahead.slice(0,3).map(({r,n})=>`<li><button data-card="${esc(r.it.key)}"><span class="num ${srcClass(r.it)}">${n}</span><span class="t">${name(r.it)}</span><span class="d">${fmtDist(r.d)}</span></button></li>`).join('') + '</ol>'
+    body = '<ol>' + ahead.slice(0,3).map(({r,n})=>`<li><button data-card="${esc(r.it.key)}"><span class="num ${pinClass(r.it)}">${n}</span><span class="t">${name(r.it)}</span><span class="d">${fmtDist(r.d)}</span></button></li>`).join('') + '</ol>'
       + (ahead.length>3 ? `<p class="hint">And ${ahead.length-3} more this way.</p>` : '');
   } else if(rows.length){
     const near = rows[0], rel = relAngle(near.b, h);
@@ -2675,7 +2763,7 @@ function cardHTML(it, opts={}){
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(mapsURL(it.lat, it.lon))}">Google Maps</a>`;
   if(it.heLink && !REG_SRC.test(it.src || '')) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.heLink)}">Listing</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
-  const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
+  const num = opts.num ? `<span class="num ${pinClass(it)}">${opts.num}</span>` : '';
   return `<article class="card${opts.area?' area':''}${opts.band===2?' far':''}" data-key="${k}">
     <div>
       <h3 lang="${esc(localLang||ul)}">${num}${titleLink(it, head.title, localLang)}</h3>
@@ -2812,10 +2900,11 @@ function render(){
   const rows = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d);
-  const present = new Set(rows.map(r=>srcClass(r.it))), perSrc = {};
-  rows.forEach(r=>{ const c = srcClass(r.it); perSrc[c] = (perSrc[c] || 0) + 1; });
-  const hiddenCount = rows.filter(r=>state.hiddenSrc.has(srcClass(r.it))).length;
-  if(hiddenCount) rows.splice(0, rows.length, ...rows.filter(r=>!state.hiddenSrc.has(srcClass(r.it))));
+  const present = new Set(rows.map(r=>srcClass(r.it))), perSrc = {}, perCat = {};
+  rows.forEach(r=>{ const c = srcClass(r.it); perSrc[c] = (perSrc[c] || 0) + 1; r.cat = catOf(r.it); perCat[r.cat] = (perCat[r.cat] || 0) + 1; });
+  const isHidden = r => state.hiddenSrc.has(srcClass(r.it)) || state.hiddenCat.has(r.cat);
+  const hiddenCount = rows.filter(isHidden).length;
+  if(hiddenCount) rows.splice(0, rows.length, ...rows.filter(r=>!isHidden(r)));
   rows.forEach(r=>{ r.band = bandOf(r.d); });
   state.nearby = rows;
   let html = '', band = -1;
@@ -2823,8 +2912,9 @@ function render(){
     if(r.band !== band){ band = r.band; html += bandHead(band, rows.filter(x=>x.band===band).length); }
     html += cardHTML(r.it, {num:i+1, band:r.band});
   });
-  const SRC_NAMES = MD().names;
-  const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x]).join(', ')}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
+  const SRC_NAMES = MD().names, CL = CATS[state.mode === 'nature' ? 'nature' : 'history'];
+  const offNames = [...[...state.hiddenCat].filter(c=>perCat[c]).map(c=>CL.labels[c]), ...[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x])];
+  const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${esc(offNames.join(', '))}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
   const far = farRows();
   $('#listWrap').innerHTML = note + (rows.length ? html
     : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far);
@@ -2838,6 +2928,10 @@ function render(){
   const le = document.querySelector('.legend .g-ebird'); if(le) le.hidden = !present.has('ebird');
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
+  // category chips: the ones with places in range, in a fixed order
+  const chips = CL.order.filter(c=>perCat[c]).map(c=>`<button type="button" data-cat="${c}" aria-pressed="${!state.hiddenCat.has(c)}"><i class="lg c-${c}"></i><span class="lg-t">${esc(CL.labels[c])}</span><span class="lg-n">${perCat[c]}</span></button>`).join('');
+  const cw = document.querySelector('.lg-cats'); if(cw && cw.dataset.sig !== chips){ cw.innerHTML = chips; cw.dataset.sig = chips; }
+  const dot = document.querySelector('.lg-srcbtn .lg-dot'); if(dot) dot.hidden = ![...state.hiddenSrc].some(x=>present.has(x));
   document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
   document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; });   // keep the picked group in view
   saveSessionSoon();
@@ -2900,11 +2994,23 @@ document.querySelectorAll('details.sheet').forEach(sh=>{
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape') document.querySelectorAll('details.sheet[open]').forEach(sh=>{ sh.open = false; }); });
 /* Source chips under the map: tap to hide or show that source on the map and in the list */
 function setHiddenSrc(set){ state.hiddenSrc = set; store.set('hiddenSrc', [...set]); render(); }
+function setHiddenCat(set){ state.hiddenCat = set; store.set('hiddenCat', [...set]); render(); }
+const showEverything = () => { state.hiddenCat = new Set(); store.set('hiddenCat', []); setHiddenSrc(new Set()); };
+/* Chips under the map hide or show a category; the Sources menu does the same for each source */
+const lgMenu = (open) => { const m = $('#lgMenu'), b = document.querySelector('.lg-srcbtn'); m.hidden = !open; b.setAttribute('aria-expanded', String(open)); };
 document.querySelector('.legend').addEventListener('click', e=>{
+  if(e.target.closest('.lg-srcbtn')){ lgMenu($('#lgMenu').hidden); return; }
+  if(e.target.closest('.lg-reset')){ showEverything(); lgMenu(false); return; }
+  const c = e.target.closest('[data-cat]');
+  if(c){ const set = new Set(state.hiddenCat); set.has(c.dataset.cat) ? set.delete(c.dataset.cat) : set.add(c.dataset.cat); setHiddenCat(set); return; }
   const b = e.target.closest('[data-src]'); if(!b) return;
   const set = new Set(state.hiddenSrc); set.has(b.dataset.src) ? set.delete(b.dataset.src) : set.add(b.dataset.src); setHiddenSrc(set);
 });
-document.addEventListener('click', e=>{ if(e.target.closest('#showAllSrc')) setHiddenSrc(new Set()); });
+document.addEventListener('click', e=>{
+  if(e.target.closest('#showAllSrc')) showEverything();
+  if(!$('#lgMenu').hidden && !e.target.closest('.lg-menu, .lg-srcbtn')) lgMenu(false);   // a tap anywhere else closes the menu
+});
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !$('#lgMenu').hidden) lgMenu(false); });
 let guideUndo = null, guideUndoTimer = null;
 $('#ver').textContent = 'Wander ' + WANDER_VERSION;
 $('#guideDone').onclick = ()=>{ $('#guide').open = false; };

@@ -39,6 +39,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 
 - **Everything a mode changes is in `MODES` in `index.html`:** hero text, area heading, legend labels, source names, Settings labels, status text and theme colours.
 - **What's shared:** GPS, map and layers, radius, Look, Places library and guide storage.
+- **Map filter (both modes):** pins, list numbers and the chips under the map are coloured by **category**, meaning what a place is, not which source found it (`CATS`, `catOf`, `pinClass` in `index.html`). History: Buildings, Religious sites, Monuments & plaques, Indigenous & ancient, Events & stories, Art & quirky, Museums, Folklore, Other. Nature: Water, Peaks & landforms, Rocks & minerals, Trees & plants, Wildlife, Parks & reserves, Viewpoints, Camping & trails, Other. Chips show only categories with places in range, in one sideways-scrolling row; tapping one hides it (`wander.hiddenCat`). The **Sources** button at the row's end opens a small menu of source checkboxes (`wander.hiddenSrc`, with a dot on the button while one is off). Pins stay numbered to match the cards; AI-guide-only places get a white inner ring.
 - **`refresh()` branches on `state.mode`:**
   - History: Wikipedia geosearch, Wikidata heritage and archaeology, the national registers, OpenStreetMap historic features, Wikivoyage sights, and Commons photos.
   - Nature: a Wikidata natural-features query, OpenStreetMap natural features, Wikivoyage outdoor listings, `loadNature()` for the "About this land" card, and `loadFar()` for Excursions.
@@ -123,6 +124,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 ## Design decisions
 
 - **Register caps:** in dense centres (Westminster, Edinburgh Old Town), only the **nearest 40 new cards per register layer** are added, and register-made cards hold at most 5 facts. Matches with existing cards are always merged, and a card keeps one grade (the first, highest-ranked).
+- **How categories are decided:** rules run in priority order (e.g. Indigenous & ancient before Religious before Buildings), first on what sources say a place is (Wikidata types, register entries, OSM tags, the AI guide's `kind`/`folklore`), then on its name and first lines. Protection labels ("Scheduled monument", "Grade II listed") are set aside first, because they say how a place is listed, not what it is; a listed place with nothing else to go on counts as a Building. eBird hotspots are Wildlife. Type labels are matched in English, so other reader languages lean on OSM tags and names more. The result is cached on the item until its facts change.
 - **Dedup everywhere:** name overlap (`nameOverlap(...).cont ≥ .5`) plus distance (150 m for points, 500 m for areas). The same place from two registers becomes one card.
 - **AI guides** are stored in `wander.guides` (max 20) and normalised and sanitised on import.
   - History guides carry `indigenousName` for the area and each place (the Indigenous or earliest known name, its people or language and meaning), shown as "Original name".
@@ -150,6 +152,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 - **Indigenous history (History mode):** the owner wants Indigenous history, prehistory, prominent Indigenous cultural sites and original place names, not territory maps (Native Land Digital isn't needed). Done in 3.12.0: area-card sections, Wikidata site types and names, guide `indigenousName`. Possible later: official dual names from New Zealand's Gazetteer (LINZ, needs a key) and Canada's CGNDB (`geogratis.gc.ca`, not on the sandbox allowlist, CORS unchecked); Australia has no single open source.
 - **Unverified live** (blocked from the sandbox): OSM Overpass features (street trees, OSM peaks and springs, fishing spots), the BRGM geology layer, and Wikivoyage/Commons (tested with simulated responses only).
 - **Only testable on a phone:** haptics, compass/Look, Add to Home Screen, and Google Maps links.
+- **New sources the owner chose (next):** Europeana, DPLA, Trove, NPS, Flickr, Mapillary, OpenTripMap, MapTiler, Mindat and Recreation.gov, each with a free key stored on the device like eBird. Check each one's CORS first and add its host to the sandbox allowlist for live tests. **Photo and archive sources (Flickr, Mapillary, Europeana, DPLA, Trove) enrich existing cards and pins with photos, not new pins.** NPS, OpenTripMap, Mindat and Recreation.gov add places, which slot into the categories.
 - **Possible later:** more registers (Netherlands Rijksmonumenten, Wales), and France via the new data.gouv API if it gains geo search.
 
 ## Testing
@@ -173,6 +176,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
+| `categories` | Category rules on 24 sample places (both modes), chips, pin colours, hiding a category, the Sources menu |
 | `indigenous-history` | "The name" and "Earliest peoples" (simulated Wikipedia, incl. Burbank/London/Kyoto samples), "Name in Māori" and site types (live Wikidata: Auckland marae, Stanley Park village site), guide `indigenousName` |
 | `geology-live`, `soil-climate-quakes`, `in-season`, `species-groups`, `species-rows`, `gbif`, `ebird` | Live Nature data (`ONLY="Kyoto,London"` limits the places in the first three) |
 | `excursions`, `skyline`, `place-timeline`, `deep-time-dates` | Hot springs and fishing, skyline peaks, place-page guide timeline, date parsing |
