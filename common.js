@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.2.0';
+const WANDER_VERSION = '3.3.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -131,6 +131,13 @@ function sentences(t){
 }
 function yearOf(s){
   let m;
+  // deep time: "c. 15 million years ago", "2.6 Ma", "12,000 years ago", "約1万年前" (y counts back from now, so it sorts before any calendar year)
+  if((m = /(\d+(?:[.,]\d+)?)\s*(billion|million|thousand)\s+years?\b/i.exec(s)) || (m = /(\d+(?:\.\d+)?)\s*(Ga|Ma|ka|mya)\b/.exec(s))){
+    const mult = {billion: 1e9, ga: 1e9, million: 1e6, ma: 1e6, mya: 1e6, thousand: 1e3, ka: 1e3}[m[2].toLowerCase()], n = parseFloat(m[1].replace(',', '.'));
+    if(isFinite(n)) return {y: Math.round(new Date().getFullYear() - n * mult), label: `${m[1]} ${mult >= 1e9 ? 'billion' : mult >= 1e6 ? 'million' : 'thousand'} years ago`};
+  }
+  if((m = /(\d{1,3}(?:,\d{3})+|\d{5,})\s+years?\s+ago/i.exec(s))){ const n = +m[1].replace(/,/g, ''); return {y: new Date().getFullYear() - n, label: `${m[1]} years ago`}; }
+  if((m = /(\d+(?:\.\d+)?)\s*(億|万)年前/.exec(s))){ const n = parseFloat(m[1]) * (m[2] === '億' ? 1e8 : 1e4); return {y: Math.round(new Date().getFullYear() - n), label: m[0]}; }
   if((m = /紀元前\s*(\d{1,4})\s*年/.exec(s)) || (m = /公元前\s*(\d{1,4})\s*年/.exec(s))) return {y:-m[1], label:m[1]+' BC'};
   if((m = /(?:^|[^\d])(\d{3,4})\s*年/.exec(s))) return {y:+m[1], label:m[1]};
   if((m = /\b(\d{1,4})\s*(?:BCE|BC|v\. ?Chr\.|av\. J\.-C\.|a\. ?C\.|a\.C\.|до н\. ?э\.|п\.н\.е\.|př\. n\. l\.)/.exec(s))) return {y:-m[1], label:m[1]+' BC'};

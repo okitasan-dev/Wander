@@ -111,6 +111,7 @@ svg{flex:none}
 .aibox .lname{font-size:16px}
 .aibox .ldesc:first-of-type{margin-top:4px}
 .layer .ltop{margin-top:14px;font-size:16px}
+.seas{color:var(--brass);font-weight:600}
 .trees{list-style:none;margin:6px 0 0;padding:0}
 .trees li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--rule);font-size:14.5px}
 .trees li i{color:var(--muted);font-size:13px}
@@ -523,7 +524,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.2.0"></script>
+<script src="common.js?v=3.3.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1135,13 +1136,36 @@ async function fetchStreetTrees(lat, lon){
   }
   return null;
 }
+// In season: what has been recorded here in this month of past years. Each species' count this month is set
+// against its count all year, so seasonal visitors (winter birds, spring wildflowers) stand out from year-round regulars.
+async function loadSeason(lat, lon, rad){
+  const month = new Date().getMonth() + 1, f = x => x.toFixed(4);
+  const win = [month === 1 ? 12 : month - 1, month, month === 12 ? 1 : month + 1].join(',');   // this month and its neighbours: steadier than one month alone
+  const q = extra => fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+    verifiable: 'true', locale: state.userLang, ...extra}), 15000);
+  // how busy this month is for all sightings here: people post more in some months (spring bioblitzes), which says nothing about a species
+  const obs = extra => fetchJSON('https://api.inaturalist.org/v1/observations?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2), verifiable: 'true', per_page: '0', ...extra}), 15000).then(d => d.total_results || 0).catch(() => 0);
+  const [mon, flower, obsMonth, obsYear] = await Promise.all([q({month: win, per_page: '30'}), q({month: win, iconic_taxa: 'Plantae', term_id: '12', term_value_id: '13', per_page: '9'}),
+    obs({month: win}), obs({})]);
+  const expected = obsMonth && obsYear ? obsMonth / obsYear : 1 / 4;
+  const rows = (mon.results || []).filter(r => r.taxon);
+  const ids = rows.map(r => r.taxon.id);
+  const year = ids.length ? await q({taxon_id: ids.join(','), per_page: '30'}).catch(() => null) : null;
+  const all = new Map(((year && year.results) || []).map(r => [r.taxon.id, r.count]));
+  const sp = r => { const t = r.taxon, a = all.get(t.id) || r.count;
+    return {id: t.id, common: cap(t.preferred_common_name || t.name), sci: t.name, group: INAT_GROUPS[t.iconic_taxon_name] || '', photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url),
+      count: r.count || 0, share: a ? r.count / a : 1, url: `https://www.inaturalist.org/taxa/${t.id}`}; };
+  // seasonal: these three months hold well over their usual share of the species' sightings
+  const list = rows.map(sp).map(x => ({...x, seasonal: x.share >= 2.5 * expected && x.count >= 5})).sort((a, b) => (b.seasonal - a.seasonal) || b.count - a.count);
+  return {month, total: mon.total_results || 0, list, flowering: (flower.results || []).filter(r => r.taxon).map(sp), floweringTotal: flower.total_results || 0};
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
-  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
+  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
   state.nature = n; renderSoon();
   const rad = Math.max(state.radius, 800), f = x => x.toFixed(5);
   const lookup = GEO_LOOKUP[state.cc];
-  const [geo, elev, life, local, plants, trees] = await Promise.allSettled([
+  const [geo, elev, life, local, plants, trees, season] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
       const u = pickUnit(d);   // and the published map it comes from, which the AI guide can read
       if(u && u.sourceId != null){ try{ const s = ((await fetchJSON(`https://macrostrat.org/api/v2/defs/sources?source_id=${u.sourceId}`, 10000)).success.data || [])[0];
@@ -1152,13 +1176,15 @@ async function loadNature(lat, lon, live = () => true){
       verifiable: 'true', per_page: '24', locale: state.userLang}), 15000),
     lookup ? lookup(lat, lon) : Promise.resolve(null),
     loadPlants(lat, lon, rad),
-    state.useOsm ? fetchStreetTrees(lat, lon) : Promise.resolve(null)
+    state.useOsm ? fetchStreetTrees(lat, lon) : Promise.resolve(null),
+    loadSeason(lat, lon, rad)
   ]);
   if(!live() || state.nature !== n) return;
   if(geo.status === 'fulfilled') n.geo = geo.value;
   n.local = local.status === 'fulfilled' ? local.value : null;   // the national survey's map, when there is one
   n.plants = plants.status === 'fulfilled' ? plants.value : null;
   n.trees = trees.status === 'fulfilled' && trees.value && trees.value.total ? trees.value : null;
+  n.season = season.status === 'fulfilled' && season.value && season.value.total ? season.value : null;
   if(elev.status === 'fulfilled'){ const e = (elev.value.elevation || [])[0]; if(isFinite(e)) n.elev = e; }
   if(life.status === 'fulfilled'){
     n.speciesTotal = life.value.total_results || 0; n.speciesRadius = rad;
@@ -1487,6 +1513,17 @@ function natureAreaHTML(){
   if(n.elev != null || gd.soil) layers += `<section class="layer"><h4>Ground</h4>${n.elev != null ? `<p class="lname">${esc(fmtElev(n.elev))} above sea level</p>` : ''}${gd.soil ? `<div class="aibox">${AI}<p class="ldesc"><b>Soil.</b> ${esc(gd.soil)}</p></div>` : ''}</section>`;
   if(gd.water) layers += `<section class="layer"><h4>Water</h4>${aiText(gd.water)}</section>`;
   if(gd.climate) layers += `<section class="layer"><h4>Climate</h4>${aiText(gd.climate)}</section>`;
+  const se = n.season, MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if(se && se.list.length){
+    const mname = MONTHS[se.month - 1], seasonal = se.list.filter(x => x.seasonal), short = m => MONTHS[(m + 11) % 12].slice(0, 3);
+    const span = `${short(se.month - 1)}–${short(se.month + 1)}`;
+    const stile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
+      + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.seasonal ? `<span class="seas">${Math.round(sp.share * 100)}% of its sightings are in ${esc(span)}</span>` : `${sp.group ? esc(sp.group) + ' · ' : ''}Here all year`}</small></a>`;
+    layers += `<section class="layer"><h4>In season · ${esc(mname)}</h4><p class="ldesc">${se.total.toLocaleString()} species have been recorded within ${esc(fmtDist(n.speciesRadius))} in ${esc(span)} in past years.`
+      + `${seasonal.length ? ` Seasonal ones, seen here mostly at this time of year, come first; the rest are here all year.` : ` Most are here all year.`}</p><div class="species">${se.list.slice(0, 9).map(stile).join('')}</div>`
+      + (se.flowering.length ? `<p class="lname ltop">Flowering now</p><p class="lsrc">Plants photographed in flower here in ${esc(span)}:</p><div class="species">${se.flowering.slice(0, 6).map(sp => stile({...sp, seasonal: false, group: 'Plant'})).join('')}</div>` : '')
+      + `</section>`;
+  }
   const pl = n.plants, tr = n.trees, tile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
     + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.count.toLocaleString()} sightings</small></a>`;
   if((pl && pl.native.length) || (tr && tr.top.length) || gd.plants || gd.trees){
@@ -1683,6 +1720,7 @@ function naturePrompt(deep, radius){
   known.push('Wander has nothing on soil, water or climate here: fill those in too.');
   if(n.species && n.species.length) known.push(`Most-recorded species nearby on iNaturalist: ${n.species.slice(0, 10).map(x => x.sci).join(', ')}.`);
   if(n.plants && n.plants.native.length) known.push(`Native plants recorded nearby (iNaturalist, native to ${n.plants.region}): ${n.plants.native.slice(0, 10).map(x => x.sci).join(', ')}.${n.plants.introduced.length ? ` Commonest introduced: ${n.plants.introduced.slice(0, 5).map(x => x.sci).join(', ')}.` : ''}`);
+  if(n.season && n.season.list.some(x => x.seasonal)) known.push(`Seasonal species recorded here in this month of past years: ${n.season.list.filter(x => x.seasonal).slice(0, 8).map(x => x.sci).join(', ')}.`);
   if(n.trees) known.push(`Street trees mapped in OpenStreetMap within ${n.trees.radius} m: ${n.trees.total} trees; commonest ${n.trees.top.slice(0, 6).map(t => `${t.sci || t.name} (${t.n})`).join(', ')}.`);
   else known.push('Wander found no mapped street trees here: look for the city\'s street-tree inventory or urban forest plan.');
   const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"ground":{"bedrock":{"name":"…","rock":"…","age":"…","notes":"…","mapSheet":"…"},"surface":"…","soil":"…","water":"…","climate":"…","plants":"…","trees":"…"},"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
