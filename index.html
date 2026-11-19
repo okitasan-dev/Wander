@@ -486,7 +486,7 @@ footer a{color:var(--muted)}
       </select>
     </div>
     <div class="row nat-row">
-      <label for="farRadius">Drive range</label>
+      <label for="farRadius">Excursion range</label>
       <select id="farRadius">
         <option value="16093">10 mi</option>
         <option value="40234">25 mi</option>
@@ -573,7 +573,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.6.3"></script>
+<script src="common.js?v=3.6.4"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1307,7 +1307,7 @@ function skylineAhead(h){
   const seen = cone.filter(p => !cone.some(q => q !== p && q.d < p.d && Math.abs(relAngle(q.b, p.b)) < 3 && q.ang >= p.ang));
   return seen.sort((a, b) => b.ang - a.ang).slice(0, 3);
 }
-/* ---------- Worth the drive (Nature mode): hot springs and fishing spots within a wider radius ----------
+/* ---------- Excursions (Nature mode): hot springs and fishing spots within a wider radius ----------
    Live sources: NOAA's US Thermal Springs List (bundled), OpenStreetMap and Wikidata for springs; OpenStreetMap for
    fishing spots, and the fish iNaturalist users have recorded. AI guides of their own add the lesser-known places. */
 const FAR_ICON = {
@@ -1936,7 +1936,7 @@ function applyGuides(){
   const byQid = new Map(); for(const it of state.items.values()){ if(it.qid) byQid.set(it.qid, it); delete it.ai; }
   applyFarGuides(guides);
   for(const g of guides){
-    if((g.mode || 'history') !== state.mode || g.topic) continue;   // nature guides show in Nature mode, the rest in History; hot springs and fishing go in Worth the drive
+    if((g.mode || 'history') !== state.mode || g.topic) continue;   // nature guides show in Nature mode, the rest in History; hot springs and fishing go in Excursions
     const a = g.area || {};
     if(a.lat != null && a.lon != null && (a.summary || (a.keyPoints||[]).length)){ const d = hav(state.pos, a); if(d < best){ best = d; state.areaGuide = a; } }
     (g.places || []).forEach((p, i)=>{
@@ -2332,7 +2332,7 @@ function farHTML(rows){
   const f = state.springFilter;
   const filt = `<div class="farfilter">${[['all', 'All'], ['wild', 'Wild'], ['dev', 'Developed']].map(([v, l]) => `<button type="button" data-springf="${v}" aria-pressed="${f === v}">${l}</button>`).join('')}</div>`;
   const fishIntro = ff && ff.list.length ? `<p class="fishlist">Fish recorded within ${esc(lbl)} on iNaturalist (${ff.total} species): ${ff.list.slice(0, 10).map(x => `<a target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.name)}</a>`).join(', ')}</p>` : '';
-  return `<h2 class="band"><b>Worth the drive</b><span>within ${esc(lbl)}</span></h2>` + sec('spring', 'Hot springs', '', filt) + sec('fish', 'Fishing', fishIntro, '');
+  return `<h2 class="band"><b>Excursions</b><span>within ${esc(lbl)}</span></h2>` + sec('spring', 'Hot springs', '', filt) + sec('fish', 'Fishing', fishIntro, '');
 }
 function updateFarPins(rows){
   if(!M.map) return;
