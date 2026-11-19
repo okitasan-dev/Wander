@@ -85,6 +85,32 @@ svg{flex:none}
 :root.nature .osm{color:#0F2A17}
 @media (prefers-color-scheme:dark){:root.nature .osm{color:#fff}}
 .nat-only{display:none}
+:root:not(.nature) .nat-row,.row[hidden]{display:none}
+/* hot springs and fishing: their own pins, chips and list */
+.lg.spring{background:#E0703A}
+.lg.fish{background:#2F7FB8}
+.fpin{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#fff;box-shadow:0 0 0 2px var(--surface),0 2px 6px rgba(0,0,0,.35)}
+.fpin.spring{background:#E0703A}
+.fpin.fish{background:#2F7FB8}
+.fpin.dev{background:var(--surface);color:#E0703A;box-shadow:inset 0 0 0 2.5px #E0703A,0 0 0 2px var(--surface),0 2px 6px rgba(0,0,0,.35)}
+.fpin.inferred{opacity:.8}
+.farhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:6px 20px 4px}
+.farhead b{font:600 17px/1.3 var(--serif)}
+.farfilter{display:flex;gap:6px}
+.farfilter button{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--rule);color:var(--ink)}
+.farfilter button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--on-brass)}
+.card.far h3 .fi{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;margin-right:9px;flex:none;color:#fff;vertical-align:2px}
+.card.far h3 .fi.spring{background:#E0703A}
+.card.far h3 .fi.fish{background:#2F7FB8}
+.card.far h3 .fi.dev{background:none;color:#E0703A;box-shadow:inset 0 0 0 2px #E0703A}
+.card.far h3{font-size:19px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;background:var(--brass-soft);color:var(--brass)}
+.tag.dev{background:rgba(224,112,58,.14);color:#C2551F}
+.fdl{grid-column:1 / -1;margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14.5px;line-height:1.45}
+.fdl dt{color:var(--muted)}
+.fdl dd{margin:0}
+.farmore{display:block;margin:6px 20px 0;font-size:14px;font-weight:500;color:var(--brass);padding:6px 0}
+.fishlist{margin:2px 20px 6px;font-size:14px;color:var(--muted);line-height:1.5}
 :root.nature .nat-only{display:inline}
 /* nature area card: the layers under your feet */
 .layers{grid-column:1 / -1;margin-top:12px}
@@ -402,7 +428,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -415,7 +441,7 @@ footer a{color:var(--muted)}
 
 <footer>
   Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>.
-  <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>.</span>
+  <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>. US hot springs from NOAA's Thermal Springs List (Berry, Grim &amp; Ikelman 1980, via <a href="https://doi.org/10.1594/PANGAEA.981233">PANGAEA</a>, CC BY 4.0).</span>
   <span class="ver" id="ver"></span>
 </footer>
 
@@ -460,6 +486,15 @@ footer a{color:var(--muted)}
         <option value="305">1,000 ft</option>
       </select>
     </div>
+    <div class="row nat-row">
+      <label for="farRadius">Further afield</label>
+      <select id="farRadius">
+        <option value="16093">10 mi</option>
+        <option value="40234">25 mi</option>
+        <option value="80467">50 mi</option>
+        <option value="160934">100 mi</option>
+      </select>
+    </div>
     <div class="row">
       <label for="ulang">Your language</label>
       <select id="ulang"></select>
@@ -489,7 +524,16 @@ footer a{color:var(--muted)}
     <div class="sheet-head"><div class="grab"></div><h3>AI guide</h3><button type="button" class="sheet-x" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <p class="note">Use an AI service to crawl the web and bring in a richer assortment of information to the map. Open the prompt in Claude or ChatGPT, then copy the generated JSON response and paste it into the import field below.</p>
     <div class="row"><span class="coords"><small>You are at</small><span id="gCoords">No location yet</span></span><button type="button" class="mini" id="gCopyCoords">Copy</button></div>
-    <div class="row"><span class="lbl">Area</span><div class="seg">
+    <div class="row nat-row"><span class="lbl">Guide</span><div class="seg">
+      <label><input type="radio" name="gTopic" value="land" checked> Land &amp; life</label>
+      <label><input type="radio" name="gTopic" value="springs"> Hot springs</label>
+      <label><input type="radio" name="gTopic" value="fishing"> Fishing</label></div></div>
+    <div class="row" id="gFarRow" hidden><span class="lbl">Area</span><div class="seg">
+      <label><input type="radio" name="gFar" value="16093"> 10 mi</label>
+      <label><input type="radio" name="gFar" value="40234"> 25 mi</label>
+      <label><input type="radio" name="gFar" value="80467"> 50 mi</label>
+      <label><input type="radio" name="gFar" value="160934"> 100 mi</label></div></div>
+    <div class="row" id="gAreaRow"><span class="lbl">Area</span><div class="seg">
       <label><input type="radio" name="gRadius" value="402"> ¼ mi</label>
       <label><input type="radio" name="gRadius" value="805"> ½ mi</label>
       <label><input type="radio" name="gRadius" value="1609"> 1 mi</label>
@@ -530,7 +574,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.5.0"></script>
+<script src="common.js?v=3.6.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -582,7 +626,8 @@ const state = {
   expanded:new Set(), showOrig:new Set(),
   loads:0,
   useOsm: store.get('useOsm', true), useWd: store.get('useWd', true),
-  mode: store.get('mode', 'history') === 'nature' ? 'nature' : 'history', nature: null
+  mode: store.get('mode', 'history') === 'nature' ? 'nature' : 'history', nature: null,
+  far: new Map(), farAt: null, farRadius: store.get('farRadius', 40234), springFilter: store.get('springFilter', 'all'), farMore: new Set()
 };
 
 /* ---------- utils ---------- */
@@ -1263,6 +1308,84 @@ function skylineAhead(h){
   const seen = cone.filter(p => !cone.some(q => q !== p && q.d < p.d && Math.abs(relAngle(q.b, p.b)) < 3 && q.ang >= p.ang));
   return seen.sort((a, b) => b.ang - a.ang).slice(0, 3);
 }
+/* ---------- Further afield (Nature mode): hot springs and fishing spots within a wider radius ----------
+   Live sources: NOAA's US Thermal Springs List (bundled), OpenStreetMap and Wikidata for springs; OpenStreetMap for
+   fishing spots, and the fish iNaturalist users have recorded. AI guides of their own add the lesser-known places. */
+const FAR_ICON = {
+  spring: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3.5c-1.2 1.3 1.2 2.3 0 3.7M12 3c-1.2 1.3 1.2 2.3 0 3.7M16 3.5c-1.2 1.3 1.2 2.3 0 3.7"/><path d="M4 11.5h16M5 11.5c0 4.3 3.1 8 7 8s7-3.7 7-8"/></svg>',
+  fish: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12c3.2-4.4 9.6-5.4 13.5-1.8L20.5 7v10L16 13.8C12.1 17.4 5.7 16.4 2.5 12Z"/><circle cx="7.5" cy="11.3" r=".6" fill="currentColor"/></svg>'};
+let noaaSprings = null;
+async function loadNoaaSprings(){
+  if(!noaaSprings) noaaSprings = fetchJSON('data/us-thermal-springs.json', 20000).catch(() => { noaaSprings = null; return null; });
+  return noaaSprings;
+}
+const DEV_WORDS = /\b(resort|spa|plunge|baths?|lodge|motel|hotel|inn|club|ranch|pools?|campground|onsen|ryokan)\b/i;
+async function loadFarSprings(lat, lon, R){
+  const here = {lat, lon}, out = [];
+  const [noaa, osm, wd] = await Promise.all([
+    state.cc === 'us' ? loadNoaaSprings() : Promise.resolve(null),
+    (async () => { const A = `(around:${R},${lat},${lon})`, q = `[out:json][timeout:30];(nwr${A}[natural=hot_spring];nwr${A}[amenity=public_bath]["bath:type"~"hot_spring|onsen"];);out center tags 400;`;
+      for(const base of OVERPASS){ try{ return (await fetchJSON(base + '?data=' + encodeURIComponent(q), 35000)).elements || []; }catch(e){} } return []; })(),
+    fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(`SELECT ?item ?itemLabel ?coord ?typeLabel ?article WHERE {
+      SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${(R / 1000).toFixed(1)}". }
+      ?item wdt:P31 ?type. ?type wdt:P279? wd:Q177380.
+      OPTIONAL { ?article schema:about ?item; schema:isPartOf <https://${state.userLang}.wikipedia.org/>. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "${[...new Set([state.userLang, ...state.langs, 'en'])].join(',')}". } } LIMIT 500`), 30000).then(d => d.results.bindings).catch(() => [])
+  ]);
+  if(noaa) for(const [la, lo, name, tF, cls, st, quad] of noaa.rows){
+    if(Math.abs(la - lat) > R / 100000 || hav(here, {lat: la, lon: lo}) > R) continue;
+    out.push({key: `far:noaa:${la},${lo}`, topic: 'spring', name, lat: la, lon: lo, src: 'NOAA thermal springs list', developed: DEV_WORDS.test(name) ? true : null,
+      tempF: tF, facts: [cls === 'B' ? 'Boiling' : '', quad ? `USGS map: ${quad}` : ''].filter(Boolean)}); }
+  for(const e of osm){
+    const t = e.tags || {}, la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon; if(la == null) continue;
+    const dev = t.amenity === 'public_bath' || !!(t.fee === 'yes' || t.operator || t.opening_hours || t.website || t.tourism);
+    const tF = parseFloat(t.temperature); out.push({key: `far:osm:${e.type}/${e.id}`, topic: 'spring', name: t['name:' + state.userLang] || t.name || 'Hot spring', lat: la, lon: lo, src: 'OpenStreetMap',
+      developed: dev, tempF: isFinite(tF) ? Math.round(tF * 9 / 5 + 32) : null, url: `https://www.openstreetmap.org/${e.type}/${e.id}`, qid: t.wikidata, facts: [t.access === 'private' ? 'Private' : '', t.fee === 'yes' ? 'Fee' : ''].filter(Boolean)}); }
+  for(const b of wd){
+    const m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord.value); if(!m) continue;
+    const name = b.itemLabel.value; if(/^Q\d+$/.test(name)) continue;
+    out.push({key: 'far:' + b.item.value.split('/').pop(), topic: 'spring', name, lat: +m[2], lon: +m[1], src: 'Wikidata', qid: b.item.value.split('/').pop(),
+      developed: /onsen|spa|resort|bath/i.test((b.typeLabel || {}).value || '') || DEV_WORDS.test(name) ? true : null, url: (b.article || {}).value || b.item.value}); }
+  return dedupeFar(out);
+}
+async function loadFarFishing(lat, lon, R){
+  const A = `(around:${R},${lat},${lon})`, q = `[out:json][timeout:30];(nwr${A}[leisure=fishing];nwr${A}[fishing~"^(yes|designated|permissive)$"][name];);out center tags 400;`;
+  let els = [];
+  for(const base of OVERPASS){ try{ els = (await fetchJSON(base + '?data=' + encodeURIComponent(q), 35000)).elements || []; break; }catch(e){} }
+  const out = els.map(e => { const t = e.tags || {}, la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon; if(la == null) return null;
+    const water = t.natural === 'water' || t.waterway ? (t.water ? cap(t.water) : t.waterway ? cap(t.waterway) : 'Lake or pond') : '';
+    return {key: `far:osm:${e.type}/${e.id}`, topic: 'fish', name: t['name:' + state.userLang] || t.name || (water ? `${water} (fishing)` : 'Fishing spot'), lat: la, lon: lo, src: 'OpenStreetMap',
+      developed: t.leisure === 'fishing' && (t.fee === 'yes' || t.operator) ? true : null, url: `https://www.openstreetmap.org/${e.type}/${e.id}`,
+      facts: [water, t.fishing && t.fishing !== 'yes' ? cap(t.fishing) : '', t.fee === 'yes' ? 'Fee' : ''].filter(Boolean)}; }).filter(Boolean);
+  return dedupeFar(out);
+}
+async function loadFarFish(lat, lon, R){   // fish species recorded in the area (iNaturalist, ray-finned fishes)
+  const d = await fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: lat.toFixed(3), lng: lon.toFixed(3), radius: (R / 1000).toFixed(0),
+    verifiable: 'true', taxon_id: '47178', per_page: '12', locale: state.userLang}), 15000);
+  return {total: d.total_results || 0, list: (d.results || []).filter(r => r.taxon).map(r => ({name: cap(r.taxon.preferred_common_name || r.taxon.name), sci: r.taxon.name, count: r.count, url: `https://www.inaturalist.org/taxa/${r.taxon.id}`}))};
+}
+// The same spring from two sources: the same Wikidata item, or close together with a shared name word (or very close)
+function dedupeFar(list){
+  const out = [];
+  for(const x of list){
+    const dup = out.find(y => (x.qid && x.qid === y.qid) || (hav(x, y) < 150) || (hav(x, y) < 1200 && nameOverlap(x.name, y.name).cont >= .5));
+    if(dup){ dup.developed = dup.developed ?? x.developed; dup.tempF = dup.tempF ?? x.tempF; dup.facts = [...new Set([...(dup.facts || []), ...(x.facts || [])])];
+      dup.also = [...new Set([...(dup.also || []), x.src])].filter(s => s !== dup.src); if(!dup.url && x.url) dup.url = x.url; }
+    else out.push({...x});
+  }
+  return out;
+}
+async function loadFar(lat, lon, live = () => true){
+  const R = state.farRadius, at = state.farAt;
+  if(at && at.r === R && hav(at, {lat, lon}) < R * .2) return;   // still near where they were looked up
+  state.farAt = {lat, lon, r: R};
+  const [sp, fi, fish] = await Promise.allSettled([loadFarSprings(lat, lon, R), loadFarFishing(lat, lon, R), loadFarFish(lat, lon, R)]);
+  if(!live() || state.mode !== 'nature'){ state.farAt = null; return; }
+  for(const k of [...state.far.keys()]) if(!state.far.get(k).ai || state.far.get(k).src !== 'AI guide') state.far.delete(k);
+  for(const r of [sp, fi]) if(r.status === 'fulfilled') r.value.forEach(x => state.far.set(x.key, x));
+  state.farFish = fish.status === 'fulfilled' ? fish.value : null;
+  render();
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
   if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
@@ -1372,7 +1495,7 @@ async function refresh(force){
     if(nat){ if(state.useOsm) mergeOSMNature(osmEls); }
     else { if(state.useWd) mergeWD(wdRows); if(state.useOsm) mergeOSM(osmEls); }
     if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
-    if(nat) await land; else loadFacts();
+    if(nat){ loadFar(lat, lon, live); await land; } else loadFacts();
   }catch(e){
     if(!live()) return;
     setStatus('Could not load: '+esc(e.message)+' — check your connection and tap ↻');
@@ -1490,8 +1613,9 @@ function showOnMap(it){
   if($('#mapWrap').classList.contains('collapsed')) toggleMap();
   M.follow=false; $('#recenterBtn').style.display='inline-flex';
   window.scrollTo({top:0, behavior:'smooth'});
-  M.programmatic = true; M.map.setView([it.lat, it.lon], Math.max(M.map.getZoom(), 17)); M.programmatic = false;
-  const p = M.pins.get(it.key); if(p) p.fire('click');
+  const far = String(it.key || '').startsWith('far:');
+  M.programmatic = true; M.map.setView([it.lat, it.lon], far ? 13 : Math.max(M.map.getZoom(), 17)); M.programmatic = false;
+  const p = M.pins.get(it.key) || (far && M.far && M.far.get(it.key)); if(p) p.fire('click');
 }
 /* Map style: street (OpenStreetMap), satellite (Esri imagery, with road and place labels on top) or terrain (OpenTopoMap) */
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
@@ -1538,12 +1662,12 @@ document.addEventListener('click', e => { if(!$('#layerMenu').hidden && !e.targe
    Everything else (GPS, map, radius, Look, Places) is shared. */
 const MODES = {
   history: {hero: 'Explore the history around you.', areaHead: 'About this area', theme: ['#E6E9E4', '#0C2123'],
-    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage site', ai: 'AI guide'},
+    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage site', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
     names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage and archaeological sites', ai: 'AI guide places'},
     srcs: ['Street plaques and landmarks', 'Heritage registers and archaeological sites'], checking: 'Checking plaques and heritage registers…',
     empty: 'Nothing with a Wikipedia article within {r}. Try a bigger radius in Settings.'},
   nature: {hero: 'Explore the land around you.', areaHead: 'About this land', theme: ['#E9F2EA', '#122019'],
-    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', ai: 'AI guide'},
+    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
     names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', ai: 'AI guide places'},
     srcs: ['Springs, peaks, trees and other features', 'Wikidata entries without an article'], reading: 'Reading the landscape…',
     checking: 'Checking maps and nature records…', empty: 'No natural features found within {r}. Try a bigger radius in Settings.'}
@@ -1570,6 +1694,7 @@ function setMode(m){
   state.gen++; state.loading = false; setBusy(false);   // a search still running for the other mode is dropped
   state.items.clear(); state.nature = null; state.loads = 0; state.lastLoad = null; state.lastLoadTime = 0; state.expanded.clear();
   for(const p of M.pins.values()) p.remove(); M.pins.clear();
+  state.far.clear(); state.farAt = null; state.farFish = null; if(M.far){ for(const p of M.far.values()) p.remove(); M.far.clear(); }
   applyModeUI(); render();
   if(state.pos) refresh(); else setStatus('');
   if($('#guide').open){ setDepthRadio(); updateGuideSheet(); }
@@ -1789,13 +1914,30 @@ function lookApply(force){
 
 /* ---------- AI guides ---------- */
 /* Guide entries attach to the places Wander already shows (by Wikidata ID) and add the ones it was missing. */
+// Hot-springs and fishing guides: each place joins a live one it matches (adding the guide's details), or stands on its own
+function applyFarGuides(guides){
+  for(const [k, it] of [...state.far]){ if(it.src === 'AI guide') state.far.delete(k); else delete it.ai; }
+  if(state.mode !== 'nature') return;
+  for(const g of guides){
+    if(!g.topic) continue;
+    const topic = g.topic === 'springs' ? 'spring' : 'fish';
+    (g.places || []).forEach((p, i) => {
+      if(p.lat == null || p.lon == null) return;
+      const live = [...state.far.values()].find(x => x.topic === topic && x.src !== 'AI guide' && ((p.id && x.qid === p.id) || hav(x, p) < 150 || (hav(x, p) < 1500 && nameOverlap(x.name, p.name).cont >= .5)));
+      if(live){ live.ai = p; if(live.developed == null && p.developed != null) live.developed = p.developed; return; }
+      const key = `far:guide:${g.id}:${i}`;
+      state.far.set(key, {key, topic, name: p.name, lat: p.lat, lon: p.lon, src: 'AI guide', developed: p.developed, ai: p, facts: p.kind ? [p.kind] : []});
+    });
+  }
+}
 function applyGuides(){
   const guides = loadGuides(), ul = state.userLang;
   state.areaGuide = null; let best = 3000;
   for(const k of [...state.items.keys()]) if(k.startsWith('guide:')) state.items.delete(k);   // rebuilt below, so merged guides leave no stale copies
   const byQid = new Map(); for(const it of state.items.values()){ if(it.qid) byQid.set(it.qid, it); delete it.ai; }
+  applyFarGuides(guides);
   for(const g of guides){
-    if((g.mode || 'history') !== state.mode) continue;   // nature guides show in Nature mode, the rest in History
+    if((g.mode || 'history') !== state.mode || g.topic) continue;   // nature guides show in Nature mode, the rest in History; hot springs and fishing go further afield
     const a = g.area || {};
     if(a.lat != null && a.lon != null && (a.summary || (a.keyPoints||[]).length)){ const d = hav(state.pos, a); if(d < best){ best = d; state.areaGuide = a; } }
     (g.places || []).forEach((p, i)=>{
@@ -1883,6 +2025,40 @@ Do not build a pamphlet, artifact, canvas or web page — I only need the data. 
 ${schema}
 Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) climate (zone, typical seasons, anything local such as fog or wind), plants (the native plant community, what grew here before development, where remnants survive, and any rare or protected plants) hazards (the natural forces that shaped and still shape the place: faults and earthquakes, landslides, floods, fires, liquefaction or subsidence, told as history and as what a walker can see, not as alarm) and trees (the commonest street and park trees, which are native, and any notable ones, from the city's tree inventory or urban forest plan where there is one); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially, including native plants a walker can find; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
+// Hot springs and fishing: a wider radius, and every kind of source, the obscure and the secret especially
+const FAR_HINTS = {
+  springs: {us: 'NOAA\'s Thermal Springs List and USGS Professional Paper 492, state geological survey geothermal reports, national forest and BLM pages', jp: 'onsen databases and prefectural onsen lists, 野湯 (wild hot spring) blogs and maps', is: 'Icelandic lists of natural pools (heitar laugar)', nz: 'GNS Science geothermal data, regional council lists', ca: 'provincial geothermal and park pages'},
+  fishing: {us: 'the state fish and wildlife agency (stocking reports and schedules, access-point and boat-launch maps, lake and stream surveys), USGS stream gauges for flows', ca: 'provincial fish and wildlife stocking reports', gb: 'Environment Agency fisheries and fish-stocking data, Angling Trust and club waters', jp: '漁協 (fishing cooperative) pages, 管理釣り場 lists, local 釣果 reports', nz: 'Fish & Game regional pages'}
+};
+function farPrompt(topic, deep, radius){
+  const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, sp = topic === 'springs', mi = Math.round(radius / 1609.344);
+  const locals = state.langs.filter(l => l !== ul).map(l => `${langName(l)} (${l})`), hint = (FAR_HINTS[topic] || {})[state.cc];
+  const known = farRows().filter(r => r.it.topic === (sp ? 'spring' : 'fish') && r.it.src !== 'AI guide').slice(0, 40)
+    .map(r => `${r.it.qid || '-'} | ${r.it.name} | ${f(r.it.lat)}, ${f(r.it.lon)}${r.it.developed === true ? ' | developed' : ''}${r.it.tempF != null ? ` | ${r.it.tempF}°F` : ''}`);
+  const fish = !sp && state.farFish && state.farFish.list.length ? `\nFish recorded in the area on iNaturalist: ${state.farFish.list.slice(0, 12).map(x => x.sci).join(', ')}.` : '';
+  const schema = `{"wander":1,"mode":"nature","topic":"${topic}","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"sources":[{"title":"…","url":"https://…"}]},"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","developed":false,"lat":0,"lon":0,"located":"…","address":"…",${sp ? '"temperature":"…",' : '"species":"…","rules":"…",'}"access":"…","land":"…","season":"…","safety":"…","summary":"…","keyPoints":["…"],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"confidence":"high|medium|low"}]}`;
+  const what = sp ? 'hot springs' : 'freshwater fishing spots';
+  return `I'm at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the ${what} within about ${mi} miles (${Math.round(radius / 1000)} km) of me, and give them to me as data for my app, Wander. I want the well-known ones and, above all, the little-known and secret ones: this is for my own use, and I will do my own research before going, so include places people have kept quiet about.
+
+RESEARCH
+- Search widely and dig deep. ${sp
+  ? 'Use geothermal and geological survey lists and reports, national forest, park and public-land pages, hot-spring guidebooks and other books, soaking blogs and trip reports, hiking, backpacking and climbing forums, Reddit and other community threads, old newspaper and magazine pieces, and maps people have published'
+  : 'Use fish and wildlife agency pages (stocking reports and schedules, access-point and boat-launch maps, lake and stream surveys, regulations), fly-shop and guide-service fishing reports, fishing clubs, forums and Reddit threads, blogs, books and old magazine articles, and maps people have published'}${hint ? ` (here: ${hint})` : ''}. Search in ${locals.length ? `${locals.join(' and ')} as well as English` : 'English and any local language'}, and favour native and local sources over national roundups.
+- ${deep ? 'Deep dive: use your deep research mode if you have one, up to about 40 searches, and cover 30–45 places.' : 'Keep it quick: about 15–20 searches, then stop. Cover the 15–25 best places, spread across the area.'}
+- ${sp
+  ? 'Include developed springs (resorts, spas, onsen, pay pools, campground pools) with developed: true, and wild, primitive and undeveloped ones with developed: false. For each: water temperature and whether it is soakable or too hot; what is there (rock-ringed pools, a tub, river-edge seeps, a single pipe); how to get there (road, 4WD, hike distance and trailhead); land status (public, private, permit, closed, tribal); the best season and conditions (high river water, snow, road closures); clothing-optional or not; and safety (scalding water, Naegleria fowleri in warm fresh water, unstable ground).'
+  : 'For each water: the fish (and which are native, wild or stocked, with stocking times where published); the best seasons and times; how to fish it (bank, wading, float tube, boat; fly, lure or bait); access and parking; land status and permits; special rules such as catch-and-release, artificial-only or seasonal closures, with a link to the official regulations rather than restating limits; and safety. Use developed: true for stocked urban ponds, piers and developed reservoir access, false for wild and backcountry water. In the area sources, link the official fishing licence and regulations page.'}
+- Say how precisely each spot's location is known and from what source (coordinates from a survey list, a trail description, a blog's map), and set confidence to match. Do not invent positions; where sources disagree, say so.
+- Every fact needs a source link.
+
+WHAT MY APP ALREADY KNOWS (id | name | lat, lon | notes) — enrich and correct these, and add the ones it is missing:
+${known.join('\n') || '(none yet)'}${fish}
+
+REPLY
+Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
+${schema}
+Notes: plain text only, no HTML or markdown. The area summary is 2–4 sentences on the region's ${sp ? 'geothermal setting and soaking culture' : 'waters and fishing'}, with 3–5 key points. For each place: summary at most 50 words, at most 4 key points and 3 trivia; kind is a short label such as ${sp ? '"Wild hot spring", "River-edge seep", "Hot pool", "Onsen" or "Developed hot springs resort"' : '"Trout stream", "Alpine lake", "Reservoir", "Urban pond", "River access" or "Spring creek"'}; ${sp ? 'temperature like "104°F (40°C)"' : 'species lists the main fish'}; located says how precisely the spot is known and from what source; address is the nearest road, trailhead or access point, from a source where you can — I use it to place the pin when you have no coordinates. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+}
 function guidePrompt(deep, radius){
   if(state.mode === 'nature') return naturePrompt(deep, radius);
   const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, size = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
@@ -1917,18 +2093,20 @@ Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
-  const radius = +document.querySelector('input[name="gRadius"]:checked').value;
+  const topic = state.mode === 'nature' ? (document.querySelector('input[name="gTopic"]:checked') || {}).value || 'land' : 'land', far = topic !== 'land';
+  $('#gAreaRow').hidden = far; $('#gFarRow').hidden = !far;
+  const radius = +document.querySelector(far ? 'input[name="gFar"]:checked' : 'input[name="gRadius"]:checked').value;
   $('#gCoords').textContent = has ? `${state.pos.lat.toFixed(5)}, ${state.pos.lon.toFixed(5)}` : 'No location yet — tap the location button first';
   $('#gCopyCoords').hidden = !has;
-  const prompt = has ? guidePrompt(deep, radius) : '';
+  const prompt = has ? (far ? farPrompt(topic, deep, radius) : guidePrompt(deep, radius)) : '';
   $('#gPrompt').value = prompt; $('#gCopy').disabled = !has;
-  const sz = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
+  const sz = far ? [0, 15, 25, 15, 20] : GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
   $('#depthHelp').innerHTML = `<p><b>Quick</b> — about ${sz[3]}–${sz[4]} web searches for the ${sz[1]}–${sz[2]} most interesting places. The reply usually arrives in a few minutes. Right for most walks.</p>`
     + `<p><b>Deep dive</b> — asks the assistant to use its deep research mode if your plan has one (Research in Claude, Deep research in ChatGPT): up to about 40 searches and ${sz[1]+7}–${sz[2]+8} places, digging further into local and obscure sources. It often takes 10 minutes or more, uses more of your plan's limits, and the longer reply is likelier to be cut off. Worth it for somewhere you'll spend a day.</p>`;
   $('#gOpen').href = has ? 'https://claude.ai/new?q=' + encodeURIComponent(prompt) : '#';
   $('#gOpenGpt').href = has ? 'https://chatgpt.com/?q=' + encodeURIComponent(prompt) : '#';
   const list = loadGuides().slice().reverse();
-  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.mode === 'nature' ? 'Nature · ' : ''}${g.places.length} places${(g.count||1) > 1 ? ` · from ${g.count} guides` : ''} · ${new Date(g.savedAt).toLocaleDateString()}</small></span>
+  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.topic === 'springs' ? 'Hot springs · ' : g.topic === 'fishing' ? 'Fishing · ' : g.mode === 'nature' ? 'Nature · ' : ''}${g.places.length} places${(g.count||1) > 1 ? ` · from ${g.count} guides` : ''} · ${new Date(g.savedAt).toLocaleDateString()}</small></span>
       <span class="gacts">${(g.count||1) > 1 && g.latest ? `<button type="button" data-fresh="${esc(g.id)}">Start fresh</button>` : ''}<button type="button" data-rm="${esc(g.id)}">Remove</button></span></div>`).join('')
     + `<button type="button" class="gall" id="gRemoveAll">Remove all guides</button>` : '';
 }
@@ -1945,6 +2123,7 @@ async function copyText(text, btn){
 function importGuide(text){
   const incoming = decodeGuidePayload(text), r = addGuide(incoming), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
   const switched = (incoming.mode || 'history') !== state.mode;
+  if(incoming.topic) state.hiddenSrc.delete(incoming.topic === 'springs' ? 'spring' : 'fish');
   if(switched) setMode(incoming.mode || 'history'); else render();
   geocodeGuide(g.id);
   return (switched ? `Switched to ${incoming.mode === 'nature' ? 'Nature' : 'History'} mode for this guide. ` : '') + (incoming.partial ? `The reply was cut off, so only the ${n(incoming.places.length)} that arrived complete were kept. ` : '')
@@ -1997,7 +2176,8 @@ function saveSession(){
   try{
     const items = [...state.items.values()].filter(it => it.src !== 'AI guide').map(({ai, ...it}) => (it.more && it.more.loading ? {...it, more: undefined} : it));
     const area = state.area.map(a => (a.details && a.details.loading ? {...a, details: undefined} : a));
-    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, mode: state.mode, nature: state.nature && !state.nature.loading ? state.nature : null, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
+    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, mode: state.mode, nature: state.nature && !state.nature.loading ? state.nature : null,
+      far: [...state.far.values()].filter(x => x.src !== 'AI guide').map(({ai, ...x}) => x), farAt: state.farAt, farFish: state.farFish || null, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
       place: state.place, cc: state.cc, hood: state.hood, city: state.city, langs: state.langs, areaKey: state.areaKey, area, areaGeo: state.areaGeo,
       lastLoad: state.lastLoad, items, expanded: [...state.expanded]}));
   }catch(e){ /* storage full: skip */ }
@@ -2009,7 +2189,8 @@ function restoreSession(){
   if(!s || s.v !== 1 || !s.pos || Date.now() - s.savedAt > SESSION_MAX_AGE || (s.mode || 'history') !== state.mode) return false;
   Object.assign(state, {pos: s.pos, manual: !!s.manual, remote: s.remote == null ? !!s.manual : !!s.remote, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
     areaKey: s.areaKey || '', area: s.area || [], areaGeo: s.areaGeo || null, lastLoad: s.lastLoad || s.pos, lastLoadTime: s.loadedAt || s.savedAt,
-    items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || []), nature: s.nature || null});
+    items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || []), nature: s.nature || null,
+    far: new Map((s.far || []).map(x => [x.key, x])), farAt: s.farAt && s.farAt.r === state.farRadius ? s.farAt : null, farFish: s.farFish || null});
   return true;
 }
 addEventListener('pagehide', () => { try{ sessionStorage.setItem('wander.scroll', String(scrollY)); }catch(e){} saveSession(); });
@@ -2112,6 +2293,62 @@ function areaHTML(it, idx){
     <div class="actions">${actions}</div>
   </article>`;
 }
+function farRows(){
+  if(state.mode !== 'nature' || !state.pos) return [];
+  const R = state.farRadius * 1.15;
+  return [...state.far.values()].map(it => ({it, d: hav(state.pos, it), b: bearing(state.pos, it)})).filter(r => r.d <= R).sort((a, b) => a.d - b.d);
+}
+function farShown(r){
+  const it = r.it; if(state.hiddenSrc.has(it.topic)) return false;
+  if(it.topic === 'spring'){ const f = state.springFilter; if(f === 'wild' && it.developed === true) return false; if(f === 'dev' && it.developed !== true) return false; }
+  return true;
+}
+function farCardHTML(r){
+  const it = r.it, ai = it.ai || {}, k = esc(it.key), open = state.expanded.has(it.key), dev = it.developed;
+  const tag = dev === true ? '<span class="tag dev">Developed</span>' : dev === false && it.topic === 'spring' ? '<span class="tag">Wild</span>' : '';
+  const temp = it.tempF != null ? `${it.tempF}°F` : ai.temperature && ai.temperature.length <= 24 ? ai.temperature : '';
+  const src = it.src === 'AI guide' ? 'AI guide' : it.src + (it.also && it.also.length ? ', ' + it.also.join(', ') : '') + (it.ai ? ' + AI guide' : '');
+  const details = [['Temperature', ai.temperature], ['Getting there', ai.access], ['Land', ai.land], ['Season', ai.season], ['Fish', ai.species], ['Rules', ai.rules], ['Safety', ai.safety]].filter(([, v]) => v);
+  const facts = (it.facts || []).filter(f => f !== temp).map(f => `<span>${esc(f)}</span>`).join('');
+  let actions = it.ai ? `<button data-act="more" data-key="${k}" aria-expanded="${open}">${open ? 'Less' : 'More'}</button>` : '';
+  if(M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
+  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(mapsURL(it.lat, it.lon))}">Google Maps</a>`;
+  if(it.url) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.url)}">Source</a>`;
+  return `<article class="card far" data-key="${k}"><div><h3><span class="fi ${it.topic}${dev === true && it.topic === 'spring' ? ' dev' : ''}">${FAR_ICON[it.topic]}</span><span>${esc(it.name)}</span></h3>`
+    + `<div class="meta">${fmtDist(r.d)} ${compassName(r.b)}${temp ? ` · ${esc(temp)}` : ''}${tag}<span class="src${it.ai ? ' gtag' : ''}">via ${esc(src)}</span>${ai.confidence ? `<span class="src">${esc(ai.confidence)} confidence</span>` : ''}</div></div>`
+    + `${facts ? `<div class="facts">${facts}</div>` : ''}${ai.summary ? `<p class="text">${esc(open ? ai.summary : trimText(ai.summary, 200))}</p>` : ''}`
+    + (open ? (details.length ? `<dl class="fdl">${details.map(([l, v]) => `<dt>${l}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '') + guideHTML({...ai, summary: '', species: undefined}) : '')
+    + `<div class="actions">${actions}</div></article>`;
+}
+function farHTML(rows){
+  if(state.mode !== 'nature' || !state.pos) return '';
+  const lbl = fmtDist(state.farRadius).replace('.0 ', ' '), ff = state.farFish;
+  const sec = (topic, title, intro, extra) => {
+    if(state.hiddenSrc.has(topic)) return '';
+    const list = rows.filter(r => r.it.topic === topic), shown = list.filter(farShown), cut = state.farMore.has(topic) ? shown : shown.slice(0, 12);
+    return `<div class="farhead"><b>${title}</b>${extra}</div>${intro}`
+      + (shown.length ? cut.map(farCardHTML).join('') : `<p class="fishlist">${list.length ? 'None match this filter.' : `None found within ${esc(lbl)} yet. An AI guide (the sparkles button, Guide: ${title}) can dig up more.`}</p>`)
+      + (shown.length > cut.length ? `<button type="button" class="farmore" data-farmore="${topic}">Show all ${shown.length}</button>` : '');
+  };
+  const f = state.springFilter;
+  const filt = `<div class="farfilter">${[['all', 'All'], ['wild', 'Wild'], ['dev', 'Developed']].map(([v, l]) => `<button type="button" data-springf="${v}" aria-pressed="${f === v}">${l}</button>`).join('')}</div>`;
+  const fishIntro = ff && ff.list.length ? `<p class="fishlist">Fish recorded within ${esc(lbl)} on iNaturalist (${ff.total} species): ${ff.list.slice(0, 10).map(x => `<a target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.name)}</a>`).join(', ')}</p>` : '';
+  return `<h2 class="band"><b>Further afield</b><span>within ${esc(lbl)}</span></h2>` + sec('spring', 'Hot springs', '', filt) + sec('fish', 'Fishing', fishIntro, '');
+}
+function updateFarPins(rows){
+  if(!M.map) return;
+  M.far = M.far || new Map();
+  const keep = new Set();
+  rows.forEach(({it}) => {
+    keep.add(it.key);
+    const dev = it.developed === true && it.topic === 'spring', sig = it.topic + (dev ? 'd' : '');
+    const icon = () => L.divIcon({className: '', html: `<div class="fpin ${it.topic}${dev ? ' dev' : ''}">${FAR_ICON[it.topic]}</div>`, iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -12]});
+    let p = M.far.get(it.key);
+    if(!p){ p = L.marker([it.lat, it.lon], {icon: icon(), zIndexOffset: -500}).addTo(M.map); p.bindPopup(() => `<b>${esc(it.name)}</b><br><button data-goto="${esc(it.key)}">Show details</button>`); p.sig = sig; M.far.set(it.key, p); }
+    else if(p.sig !== sig){ p.setIcon(icon()); p.sig = sig; }
+  });
+  for(const [k, p] of M.far) if(!keep.has(k)){ p.remove(); M.far.delete(k); }
+}
 function render(){
   if(!state.pos) return;
   applyGuides(); updateExplore();
@@ -2134,16 +2371,18 @@ function render(){
   });
   const SRC_NAMES = MD().names;
   const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x]).join(', ')}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
+  const far = farRows();
   $('#listWrap').innerHTML = note + (rows.length ? html
-    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`));
+    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far);
   state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
   const items = rows.map(r=>r.it);
-  try{ updateMap(items); }catch(e){ console.warn('map', e); }
+  try{ updateMap(items); updateFarPins(far.filter(farShown)); }catch(e){ console.warn('map', e); }
   lookApply(true);
   updatePageLang(document.querySelector('main'), state.userLang);
   const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !present.has('ai');
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
+  document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
   saveSessionSoon();
   applyWikiLinks();
 }
@@ -2157,7 +2396,7 @@ function bandHead(band, n){
 function sightLabel(){ const o = $('#sight') && $('#sight').selectedOptions[0]; return o ? o.textContent : fmtDist(state.sight); }
 function radiusLabel(){ const o = $('#radius') && $('#radius').selectedOptions[0]; return o ? o.textContent : fmtDist(state.radius); }
 let rt=null; function renderSoon(){ if(rt) return; rt=setTimeout(()=>{rt=null; render();}, 400); }
-function findItem(key){ return key === 'nature' ? state.nature : state.items.get(key) || state.area.find(a=>a.key===key); }
+function findItem(key){ return key === 'nature' ? state.nature : key.startsWith('far:') ? state.far.get(key) : state.items.get(key) || state.area.find(a=>a.key===key); }
 
 /* ---------- events ---------- */
 document.addEventListener('click', e=>{
@@ -2170,7 +2409,7 @@ document.addEventListener('click', e=>{
     const opening = !state.expanded.has(key);
     opening ? state.expanded.add(key) : state.expanded.delete(key);
     render();
-    if(opening && !it.more && !key.startsWith('area:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[], factoids:[]}; render(); });
+    if(opening && !it.more && !key.startsWith('area:') && !key.startsWith('far:')) loadPlaceDetails(it).then(render).catch(()=>{ it.more = {facts:[], hist:[], events:[], factoids:[]}; render(); });
   }
   if(b.dataset.act==='map'){ showOnMap(it); }
   if(b.dataset.act==='guide'){ openGuide(); }
@@ -2228,6 +2467,9 @@ $('#guide').addEventListener('click', e=>{
   if(all){ const before = loadGuides(), n = before.length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after(before, 'All guides removed.'); } }
 });
 document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = ()=>{ store.set('guideDepth.' + state.mode, r.value); updateGuideSheet(); });
+{ const t = store.get('guideTopic', 'land'), f = String(store.get('guideFar', state.farRadius));   // Nature guides: land & life, hot springs or fishing, and the radius for the last two
+  document.querySelectorAll('input[name="gTopic"]').forEach(r => { r.checked = r.value === t; r.onchange = () => { store.set('guideTopic', r.value); updateGuideSheet(); }; });
+  document.querySelectorAll('input[name="gFar"]').forEach(r => { r.checked = r.value === f; r.onchange = () => { store.set('guideFar', +r.value); updateGuideSheet(); }; }); }
 $('#depthHelpBtn').onclick = ()=>{ const b = $('#depthHelpBtn'), open = b.getAttribute('aria-expanded') !== 'true';
   b.setAttribute('aria-expanded', String(open)); $('#depthHelp').hidden = !open; };
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];
@@ -2262,6 +2504,13 @@ $('#radius').value = String(state.radius);
 $('#sight').value = String(state.sight);
 if($('#sight').value !== String(state.sight)){ state.sight = 152; $('#sight').value = '152'; }
 $('#sight').onchange = e=>{ state.sight=+e.target.value; store.set('sight',state.sight); look.html=''; render(); };
+$('#farRadius').value = String(state.farRadius);
+$('#farRadius').onchange = e=>{ state.farRadius = +e.target.value; store.set('farRadius', state.farRadius); state.farAt = null; state.farMore.clear();
+  if(state.mode === 'nature' && state.pos){ const g = state.gen; loadFar(state.pos.lat, state.pos.lon, () => g === state.gen); } render(); };
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-springf]'); if(f){ state.springFilter = f.dataset.springf; store.set('springFilter', state.springFilter); render(); }
+  const m = e.target.closest('[data-farmore]'); if(m){ state.farMore.add(m.dataset.farmore); render(); }
+});
 $('#radius').onchange = e=>{ state.radius=+e.target.value; store.set('radius',state.radius); state.lastLoadTime=0; refresh(); };
 $('#srcOsm').checked = state.useOsm; $('#srcWd').checked = state.useWd;
 $('#srcOsm').onchange = e=>{ state.useOsm=e.target.checked; store.set('useOsm',state.useOsm); if(!state.useOsm) for(const [k,it] of state.items) if(it.src==='OpenStreetMap') state.items.delete(k); state.lastLoadTime=0; refresh(); };
