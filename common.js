@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.3.0';
+const WANDER_VERSION = '3.4.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -338,8 +338,8 @@ function normalizeGuide(g){
   const ground = v => { if(!v || typeof v !== 'object') return null; const b = v.bedrock && typeof v.bedrock === 'object' ? v.bedrock : {};
     const bed = {name: str(b.name, 120), rock: str(b.rock, 160), age: str(b.age, 80), notes: str(b.notes, 500), mapSheet: str(b.mapSheet, 160)};
     const out = {bedrock: Object.values(bed).some(Boolean) ? bed : null, surface: str(v.surface, 400), soil: str(v.soil, 400), water: str(v.water, 500), climate: str(v.climate, 400),
-      plants: str(v.plants || v.vegetation, 600), trees: str(v.trees, 400)};
-    return out.bedrock || out.surface || out.soil || out.water || out.climate || out.plants || out.trees ? out : null; };
+      plants: str(v.plants || v.vegetation, 600), trees: str(v.trees, 400), hazards: str(v.hazards, 500)};
+    return out.bedrock || out.surface || out.soil || out.water || out.climate || out.plants || out.trees || out.hazards ? out : null; };
   const places = arr(g.places, 40, p => {
     if(!p || typeof p !== 'object') return null;
     const name = str(p.name, 120); if(!name) return null;
@@ -393,7 +393,7 @@ function mergeGround(a, b){
   const pick = (x, y) => y || x || '';
   const bed = a.bedrock || b.bedrock ? Object.fromEntries(['name', 'rock', 'age', 'notes', 'mapSheet'].map(k => [k, pick((a.bedrock || {})[k], (b.bedrock || {})[k])])) : null;
   return {bedrock: bed, surface: pick(a.surface, b.surface), soil: pick(a.soil, b.soil), water: pick(a.water, b.water), climate: pick(a.climate, b.climate),
-    plants: pick(a.plants, b.plants), trees: pick(a.trees, b.trees)};
+    plants: pick(a.plants, b.plants), trees: pick(a.trees, b.trees), hazards: pick(a.hazards, b.hazards)};
 }
 function mergeEntry(a, b){
   const better = (CONF[b.confidence]||0) >= (CONF[a.confidence]||0) && hasPos(b) ? b : hasPos(a) ? a : b;   // the more precisely located

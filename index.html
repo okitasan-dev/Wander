@@ -116,6 +116,7 @@ svg{flex:none}
 .trees li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--rule);font-size:14.5px}
 .trees li i{color:var(--muted);font-size:13px}
 .trees li b{font-weight:600;color:var(--muted)}
+.trees li a{color:var(--ink);text-decoration:none}
 .aitag{display:inline-block;font:600 11px/1.3 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--brass)}
 .timeline li.ld{grid-template-columns:1fr;gap:2px}
 .spl li small{display:block;color:var(--muted);font-size:13px}
@@ -524,7 +525,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.3.0"></script>
+<script src="common.js?v=3.4.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1159,13 +1160,78 @@ async function loadSeason(lat, lon, rad){
   const list = rows.map(sp).map(x => ({...x, seasonal: x.share >= 2.5 * expected && x.count >= 5})).sort((a, b) => (b.seasonal - a.seasonal) || b.count - a.count);
   return {month, total: mon.total_results || 0, list, flowering: (flower.results || []).filter(r => r.taxon).map(sp), floweringTotal: flower.total_results || 0};
 }
+// Soil (SoilGrids, a 250 m estimate), in plain words
+const SOIL_WORDS = {Acrisols: 'weathered, acidic, clay-rich soils of warm, wet regions', Albeluvisols: 'leached soils with tongues of bleached sand reaching into a clay subsoil',
+  Retisols: 'leached soils with tongues of bleached sand reaching into a clay subsoil', Alisols: 'acidic soils with sticky, active clays', Andosols: 'dark, light, fertile soils formed in volcanic ash',
+  Anthrosols: 'soils remade by centuries of farming', Arenosols: 'loose sandy soils', Calcisols: 'dry-country soils with a layer of lime', Cambisols: 'young soils just beginning to form layers',
+  Chernozems: 'deep black, very fertile grassland soils', Cryosols: 'permafrost soils', Durisols: 'dry-country soils cemented by silica', Ferralsols: 'deeply weathered red or yellow tropical soils',
+  Fluvisols: 'floodplain soils, built of river sediment', Gleysols: 'waterlogged soils, grey from lack of air', Gypsisols: 'dry-country soils rich in gypsum', Histosols: 'peat soils',
+  Kastanozems: 'chestnut-brown, fairly fertile soils of dry grassland and scrub', Leptosols: 'thin, stony soils over rock', Lixisols: 'weathered soils of seasonally dry warm regions, with clay washed into the subsoil',
+  Luvisols: 'fertile soils with clay washed down into the subsoil', Nitisols: 'deep, red, well-drained tropical clay soils', Phaeozems: 'dark, fertile soils of moister grasslands',
+  Planosols: 'soils with a bleached layer over dense, waterlogging clay', Plinthosols: 'tropical soils with iron-rich layers that harden in the air', Podzols: 'acidic, leached soils of conifer forest and heath',
+  Regosols: 'weakly developed soils in loose material', Solonchaks: 'salty soils', Solonetz: 'sodium-rich soils, hard and dense when dry', Stagnosols: 'soils where water sits above a dense layer',
+  Technosols: 'soils made by people: rubble, fill and other materials', Umbrisols: 'acidic soils with a thick dark topsoil, in cool, wet uplands', Vertisols: 'heavy clays that crack deeply when dry'};
+async function loadSoil(lat, lon){
+  const d = await fetchJSON(`https://rest.isric.org/soilgrids/v2.0/classification/query?lon=${lon.toFixed(4)}&lat=${lat.toFixed(4)}&number_classes=3`, 30000);
+  return d && d.wrb_class_name ? {name: d.wrb_class_name, words: SOIL_WORDS[d.wrb_class_name] || '', alt: (d.wrb_class_probability || []).slice(1, 3).map(x => x[0])} : null;
+}
+// Climate: ten years of daily weather (Open-Meteo's ERA5 archive) turned into monthly averages and a Köppen climate type
+const KOPPEN = {Af: 'Tropical rainforest', Am: 'Tropical monsoon', Aw: 'Tropical savanna', As: 'Tropical savanna', BWh: 'Hot desert', BWk: 'Cold desert', BSh: 'Hot semi-arid', BSk: 'Cold semi-arid',
+  Csa: 'Hot-summer Mediterranean', Csb: 'Warm-summer Mediterranean', Csc: 'Cool-summer Mediterranean', Cwa: 'Monsoon-influenced humid subtropical', Cwb: 'Subtropical highland', Cwc: 'Cold subtropical highland',
+  Cfa: 'Humid subtropical', Cfb: 'Oceanic', Cfc: 'Subpolar oceanic', Dsa: 'Hot-summer continental, dry summers', Dsb: 'Warm-summer continental, dry summers', Dsc: 'Subarctic, dry summers', Dsd: 'Extremely cold subarctic',
+  Dwa: 'Monsoon-influenced hot-summer continental', Dwb: 'Monsoon-influenced warm-summer continental', Dwc: 'Monsoon-influenced subarctic', Dwd: 'Extremely cold subarctic',
+  Dfa: 'Hot-summer humid continental', Dfb: 'Warm-summer humid continental', Dfc: 'Subarctic', Dfd: 'Extremely cold subarctic', ET: 'Tundra', EF: 'Ice cap'};
+function koppen(T, P, south){
+  const sum = a => a.reduce((x, y) => x + y, 0), Tann = sum(T) / 12, Pann = sum(P), Thot = Math.max(...T), Tcold = Math.min(...T);
+  const summer = south ? [9, 10, 11, 0, 1, 2] : [3, 4, 5, 6, 7, 8], winter = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].filter(i => !summer.includes(i));
+  const Ps = summer.map(i => P[i]), Pw = winter.map(i => P[i]), Psum = sum(Ps);
+  if(Thot <= 10) return Thot > 0 ? 'ET' : 'EF';
+  const Pth = 20 * Tann + (Psum >= .7 * Pann ? 280 : Psum >= .3 * Pann ? 140 : 0);
+  if(Pann < Pth) return (Pann < Pth / 2 ? 'BW' : 'BS') + (Tann >= 18 ? 'h' : 'k');
+  if(Tcold >= 18){ const Pdry = Math.min(...P); return Pdry >= 60 ? 'Af' : Pdry >= 100 - Pann / 25 ? 'Am' : 'Aw'; }
+  const g = Tcold > 0 ? 'C' : 'D';
+  const s2 = Math.min(...Ps) < 40 && Math.min(...Ps) < Math.max(...Pw) / 3 ? 's' : Math.min(...Pw) < Math.max(...Ps) / 10 ? 'w' : 'f';
+  const warm = T.filter(t => t >= 10).length, s3 = Thot >= 22 ? 'a' : warm >= 4 ? 'b' : g === 'D' && Tcold < -38 ? 'd' : 'c';
+  return g + s2 + s3;
+}
+async function loadClimate(lat, lon){
+  const y = new Date().getFullYear() - 1;
+  const d = await fetchJSON('https://archive-api.open-meteo.com/v1/archive?' + new URLSearchParams({latitude: lat.toFixed(3), longitude: lon.toFixed(3), start_date: `${y - 9}-01-01`, end_date: `${y}-12-31`,
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum', timezone: 'auto'}), 20000);
+  const t = d.daily && d.daily.time; if(!t || !t.length) return null;
+  const hi = Array(12).fill(0), lo = Array(12).fill(0), n = Array(12).fill(0), rain = Array(12).fill(0), years = new Set();
+  t.forEach((day, i) => { const m = +day.slice(5, 7) - 1, a = d.daily.temperature_2m_max[i], b = d.daily.temperature_2m_min[i], r = d.daily.precipitation_sum[i];
+    if(a == null || b == null) return; hi[m] += a; lo[m] += b; n[m]++; rain[m] += r || 0; years.add(day.slice(0, 4)); });
+  if(n.some(x => !x)) return null;
+  const H = hi.map((x, i) => x / n[i]), L = lo.map((x, i) => x / n[i]), P = rain.map(x => x / years.size), T = H.map((h, i) => (h + L[i]) / 2);
+  const code = koppen(T, P, lat < 0), hot = H.indexOf(Math.max(...H)), cold = L.indexOf(Math.min(...L)), wet = P.indexOf(Math.max(...P)), dry = P.indexOf(Math.min(...P));
+  return {code, name: KOPPEN[code] || '', hot, hotHigh: H[hot], cold, coldLow: L[cold], wet, wetP: P[wet], dry, dryP: P[dry], rainYear: P.reduce((a, b) => a + b, 0), from: y - 9, to: y};
+}
+// Water: the watershed you are in (US: the national Watershed Boundary Dataset)
+async function loadWatershed(lat, lon){
+  if(state.cc !== 'us') return null;
+  const q = layer => fetchJSON(`https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/${layer}/query?` + new URLSearchParams({geometry: `${lon},${lat}`, geometryType: 'esriGeometryPoint', inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects', outFields: 'name', returnGeometry: 'false', f: 'json'}), 15000).then(d => ((d.features || [])[0] || {}).attributes || {}).catch(() => ({}));
+  const [w10, w12] = await Promise.all([q(5), q(6)]);
+  return w10.name || w12.name ? {watershed: w10.name || '', sub: w12.name || ''} : null;
+}
+// Earthquakes: the strongest recorded within about 50 miles (USGS catalogue, worldwide, since 1900)
+async function loadQuakes(lat, lon){
+  const d = await fetchJSON('https://earthquake.usgs.gov/fdsnws/event/1/query?' + new URLSearchParams({format: 'geojson', latitude: lat.toFixed(4), longitude: lon.toFixed(4), maxradiuskm: '80',
+    minmagnitude: '5', starttime: '1900-01-01', orderby: 'magnitude', limit: '5'}), 20000);
+  return (d.features || []).map(f => { const p = f.properties || {}, c = (f.geometry || {}).coordinates || [];
+    return {mag: p.mag, place: p.place || '', year: new Date(p.time).getFullYear(), url: p.url, d: c.length ? hav({lat, lon}, {lat: c[1], lon: c[0]}) : null}; });
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
-  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
+  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
   state.nature = n; renderSoon();
   const rad = Math.max(state.radius, 800), f = x => x.toFixed(5);
   const lookup = GEO_LOOKUP[state.cc];
-  const [geo, elev, life, local, plants, trees, season] = await Promise.allSettled([
+  // soil and climate are slower: they fill in when they answer
+  const later = (p, k) => p.then(v => { if(state.nature === n){ n[k] = v; renderSoon(); } }).catch(() => {});
+  later(loadSoil(lat, lon), 'soil'); later(loadClimate(lat, lon), 'climate');
+  const [geo, elev, life, local, plants, trees, season, quakes, water] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
       const u = pickUnit(d);   // and the published map it comes from, which the AI guide can read
       if(u && u.sourceId != null){ try{ const s = ((await fetchJSON(`https://macrostrat.org/api/v2/defs/sources?source_id=${u.sourceId}`, 10000)).success.data || [])[0];
@@ -1177,10 +1243,14 @@ async function loadNature(lat, lon, live = () => true){
     lookup ? lookup(lat, lon) : Promise.resolve(null),
     loadPlants(lat, lon, rad),
     state.useOsm ? fetchStreetTrees(lat, lon) : Promise.resolve(null),
-    loadSeason(lat, lon, rad)
+    loadSeason(lat, lon, rad),
+    loadQuakes(lat, lon),
+    loadWatershed(lat, lon)
   ]);
   if(!live() || state.nature !== n) return;
   if(geo.status === 'fulfilled') n.geo = geo.value;
+  n.quakes = quakes.status === 'fulfilled' ? quakes.value : null;
+  n.water = water.status === 'fulfilled' ? water.value : null;
   n.local = local.status === 'fulfilled' ? local.value : null;   // the national survey's map, when there is one
   n.plants = plants.status === 'fulfilled' ? plants.value : null;
   n.trees = trees.status === 'fulfilled' && trees.value && trees.value.total ? trees.value : null;
@@ -1510,9 +1580,25 @@ function natureAreaHTML(){
   }
   const surf = n.local && n.local.surface;
   if(surf || gd.surface) layers += `<section class="layer"><h4>Surface deposits</h4>${surf ? unitHTML(surf) + srcLine({src: n.local.src, link: surf.link}) : ''}${aiText(gd.surface)}</section>`;
-  if(n.elev != null || gd.soil) layers += `<section class="layer"><h4>Ground</h4>${n.elev != null ? `<p class="lname">${esc(fmtElev(n.elev))} above sea level</p>` : ''}${gd.soil ? `<div class="aibox">${AI}<p class="ldesc"><b>Soil.</b> ${esc(gd.soil)}</p></div>` : ''}</section>`;
-  if(gd.water) layers += `<section class="layer"><h4>Water</h4>${aiText(gd.water)}</section>`;
-  if(gd.climate) layers += `<section class="layer"><h4>Climate</h4>${aiText(gd.climate)}</section>`;
+  if(n.elev != null || n.soil || gd.soil) layers += `<section class="layer"><h4>Ground</h4>${n.elev != null ? `<p class="lname">${esc(fmtElev(n.elev))} above sea level</p>` : ''}`
+    + (n.soil ? `<p class="lrock">Soil: ${esc(n.soil.name)}${n.soil.words ? `, ${esc(n.soil.words)}` : ''}</p><p class="lsrc">SoilGrids estimate (250 m); in towns the ground is often fill</p>` : '')
+    + `${gd.soil ? `<div class="aibox">${AI}<p class="ldesc"><b>Soil.</b> ${esc(gd.soil)}</p></div>` : ''}</section>`;
+  const WATER_KIND = /^(Spring|Hot spring|Stream|River|Creek|Waterfall|Lake|Pond|Lake or pond|Reservoir|Wetland|Watercourse|Canal|Bay|Beach)$/i;
+  const wet = (state.nearby || []).filter(r => (r.it.facts || []).some(f => WATER_KIND.test(f))).slice(0, 3);
+  if(n.water || wet.length || gd.water) layers += `<section class="layer"><h4>Water</h4>`
+    + (n.water ? `<p class="lname">${esc(n.water.watershed || n.water.sub)} watershed</p>${n.water.sub && n.water.watershed ? `<p class="lrock">Local drainage: ${esc(n.water.sub)}</p>` : ''}<p class="lsrc">USGS Watershed Boundary Dataset</p>` : '')
+    + (wet.length ? `<p class="lrock">Nearest water: ${wet.map(r => `${esc((bestVersion(r.it).v || {}).title || '')} (${esc(fmtDist(r.d))})`).join(' · ')}</p>` : '')
+    + `${aiText(gd.water)}</section>`;
+  const cl = n.climate, MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], F = c => Math.round(c * 9 / 5 + 32), IN = mm => (mm / 25.4).toFixed(mm < 25 ? 1 : 0);
+  if(cl || gd.climate) layers += `<section class="layer"><h4>Climate</h4>`
+    + (cl ? `<p class="lname">${esc(cl.name || 'Köppen ' + cl.code)}</p><p class="lrock">Warmest: ${MON[cl.hot]}, highs around ${F(cl.hotHigh)}°F · coldest: ${MON[cl.cold]}, lows around ${F(cl.coldLow)}°F</p>`
+      + `<p class="lrock">${IN(cl.rainYear)} in of rain and snow a year · wettest: ${MON[cl.wet]} (${IN(cl.wetP)} in) · driest: ${MON[cl.dry]} (${IN(cl.dryP)} in)</p><p class="lsrc">Köppen ${esc(cl.code)} · averages of ${cl.from}–${cl.to}, Open-Meteo (ERA5)</p>` : '')
+    + `${aiText(gd.climate)}</section>`;
+  const faults = (state.nearby || []).filter(r => (r.it.facts || []).some(f => /fault/i.test(f))).slice(0, 2);
+  if((n.quakes && n.quakes.length) || faults.length || gd.hazards) layers += `<section class="layer"><h4>Shaping forces</h4>`
+    + (n.quakes && n.quakes.length ? `<p class="ldesc">The strongest earthquakes recorded within about 50 miles since 1900:</p><ul class="trees">${n.quakes.map(q => `<li><span><a target="_blank" rel="noopener" href="${esc(q.url || '#')}">${esc(q.place.replace(/^\d+\s*km\s+\w+\s+of\s+/i, 'near '))}</a>, ${q.year}${q.d != null ? ` · ${esc(fmtDist(q.d))} away` : ''}</span><b>M${q.mag.toFixed(1)}</b></li>`).join('')}</ul><p class="lsrc">USGS earthquake catalogue</p>` : '')
+    + (faults.length ? `<p class="lrock">Faults nearby: ${faults.map(r => esc((bestVersion(r.it).v || {}).title || '')).join(', ')}</p>` : '')
+    + `${aiText(gd.hazards)}</section>`;
   const se = n.season, MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   if(se && se.list.length){
     const mname = MONTHS[se.month - 1], seasonal = se.list.filter(x => x.seasonal), short = m => MONTHS[(m + 11) % 12].slice(0, 3);
@@ -1717,13 +1803,17 @@ function naturePrompt(deep, radius){
   if(n.local || n.geo) known.push('Confirm or correct this from the most detailed local survey map you can find, and add what a walker would notice.');
   else known.push('Wander found no geologic map record for this spot. Fill in the bedrock first, from the local geological survey map.');
   if(n.elev != null) known.push(`Elevation: about ${Math.round(n.elev)} m.`);
-  known.push('Wander has nothing on soil, water or climate here: fill those in too.');
+  const cl = n.climate;
+  known.push([n.soil ? `Soil (SoilGrids estimate): ${n.soil.name}.` : '', cl ? `Climate: Köppen ${cl.code}${cl.name ? ` (${cl.name})` : ''}, about ${Math.round(cl.rainYear)} mm of precipitation a year.` : '',
+    n.water ? `Watershed: ${[n.water.watershed, n.water.sub].filter(Boolean).join(' / ')}.` : '',
+    n.quakes && n.quakes.length ? `Strongest earthquakes within 80 km: ${n.quakes.slice(0, 3).map(q => `M${q.mag} ${q.place} ${q.year}`).join('; ')}.` : ''].filter(Boolean).join(' ') || 'Wander has nothing on soil, water or climate here.');
+  known.push('Fill in or deepen soil, water and climate from local sources (soil survey, watershed and groundwater reports).');
   if(n.species && n.species.length) known.push(`Most-recorded species nearby on iNaturalist: ${n.species.slice(0, 10).map(x => x.sci).join(', ')}.`);
   if(n.plants && n.plants.native.length) known.push(`Native plants recorded nearby (iNaturalist, native to ${n.plants.region}): ${n.plants.native.slice(0, 10).map(x => x.sci).join(', ')}.${n.plants.introduced.length ? ` Commonest introduced: ${n.plants.introduced.slice(0, 5).map(x => x.sci).join(', ')}.` : ''}`);
   if(n.season && n.season.list.some(x => x.seasonal)) known.push(`Seasonal species recorded here in this month of past years: ${n.season.list.filter(x => x.seasonal).slice(0, 8).map(x => x.sci).join(', ')}.`);
   if(n.trees) known.push(`Street trees mapped in OpenStreetMap within ${n.trees.radius} m: ${n.trees.total} trees; commonest ${n.trees.top.slice(0, 6).map(t => `${t.sci || t.name} (${t.n})`).join(', ')}.`);
   else known.push('Wander found no mapped street trees here: look for the city\'s street-tree inventory or urban forest plan.');
-  const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"ground":{"bedrock":{"name":"…","rock":"…","age":"…","notes":"…","mapSheet":"…"},"surface":"…","soil":"…","water":"…","climate":"…","plants":"…","trees":"…"},"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
+  const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"ground":{"bedrock":{"name":"…","rock":"…","age":"…","notes":"…","mapSheet":"…"},"surface":"…","soil":"…","water":"…","climate":"…","plants":"…","trees":"…","hazards":"…"},"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
     + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the natural history of the land around me, within about ${size[0]} (${radius} m): what it is made of, how it took shape, its water, soil, plants and animals, and how all of that has changed. Give it to me as data for my walking app, Wander.
 
@@ -1743,7 +1833,7 @@ ${near.join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) climate (zone, typical seasons, anything local such as fog or wind), plants (the native plant community, what grew here before development, where remnants survive, and any rare or protected plants) and trees (the commonest street and park trees, which are native, and any notable ones, from the city's tree inventory or urban forest plan where there is one); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially, including native plants a walker can find; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) climate (zone, typical seasons, anything local such as fog or wind), plants (the native plant community, what grew here before development, where remnants survive, and any rare or protected plants) hazards (the natural forces that shaped and still shape the place: faults and earthquakes, landslides, floods, fires, liquefaction or subsidence, told as history and as what a walker can see, not as alarm) and trees (the commonest street and park trees, which are native, and any notable ones, from the city's tree inventory or urban forest plan where there is one); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially, including native plants a walker can find; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function guidePrompt(deep, radius){
   if(state.mode === 'nature') return naturePrompt(deep, radius);
