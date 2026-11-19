@@ -72,30 +72,33 @@ svg{flex:none}
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.14);border:1px solid var(--rule)}
 #recenterBtn{display:none;color:var(--brass)}
 .legend{position:relative;display:flex;gap:8px;align-items:center;padding:10px 0 12px 16px;font-size:12.5px;color:var(--muted)}
-/* one row of category chips that scrolls sideways, and a Sources button that opens a small menu */
+/* a row (You, plus the Excursion chips, which scrolls sideways), then Types and Sources buttons that each open a small menu */
 .lg-row{flex:1;min-width:0;display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:2px 14px 2px 0;
   -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
 .lg-row::-webkit-scrollbar{display:none}
-.lg-row>*,.lg-cats>*{flex:none}
-.lg-cats{display:contents}
+.lg-row>*{flex:none}
 .legend .lg-you{display:inline-flex;align-items:center;gap:6px;margin-right:4px;padding:0 4px}
-.legend .lg-srcbtn{flex:none;margin-right:16px;gap:5px;padding:6px 11px;color:var(--ink)}
-.lg-srcbtn svg{width:15px;height:15px;color:var(--brass)}
-.lg-srcbtn[aria-expanded="true"]{background:var(--brass-soft);border-color:var(--brass)}
+.legend .lg-btn{flex:none;gap:5px;padding:6px 11px;color:var(--ink)}
+.legend .lg-srcbtn{margin-right:16px}
+.lg-btn svg{width:15px;height:15px;color:var(--brass)}
+.lg-btn[aria-expanded="true"]{background:var(--brass-soft);border-color:var(--brass)}
 .lg-dot{width:7px;height:7px;border-radius:50%;background:var(--brass);display:inline-block}
 .lg-dot[hidden]{display:none}
-.lg-menu{position:absolute;right:12px;top:calc(100% - 6px);z-index:900;width:250px;max-width:calc(100vw - 24px);padding:6px;border-radius:14px;
+.lg-menu{position:absolute;right:12px;top:calc(100% - 6px);z-index:900;width:250px;max-width:calc(100vw - 24px);max-height:70vh;overflow-y:auto;padding:6px;border-radius:14px;
   background:var(--raise);border:1px solid var(--rule);box-shadow:var(--shadow)}
 .lg-menu[hidden]{display:none}
 .lg-mh{margin:6px 10px 4px;font:600 11.5px/1.3 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .legend .lg-menu button{display:flex;width:100%;gap:10px;padding:10px;border:0;border-radius:10px;background:none;font-size:14px;text-decoration:none;text-align:left}
 .legend .lg-menu button:active{background:var(--brass-soft)}
-.legend .lg-menu [data-src]::before{content:"";flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--brass);background:var(--brass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
-.legend .lg-menu [data-src][aria-pressed="false"]{color:var(--muted)}
-.legend .lg-menu [data-src][aria-pressed="false"]::before{background:none}
+.legend .lg-menu :is([data-src],[data-cat])::before{content:"";flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--brass);background:var(--brass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.legend .lg-menu :is([data-src],[data-cat])[aria-pressed="false"]{color:var(--muted)}
+.legend .lg-menu :is([data-src],[data-cat])[aria-pressed="false"]::before{background:none}
 .legend .lg-menu .lg-t{flex:1}
 .legend .lg-menu [data-src] .lg{display:none}
-.legend .lg-menu .lg-reset{justify-content:center;color:var(--brass);font-weight:600;border-top:1px solid var(--rule);border-radius:0 0 10px 10px;margin-top:4px}
+.legend .lg-menu [data-cat] .lg{order:2}
+.legend .lg-menu [data-cat] .lg-n{order:3}
+.lg-all{display:flex;gap:4px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.legend .lg-all button{flex:1;justify-content:center;color:var(--brass);font-weight:600}
 /* each source is a chip: tap to hide it from the map and the list */
 .legend button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px 6px 9px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);font-size:12.5px}
 .legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed;text-decoration:line-through}
@@ -484,7 +487,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Filter the map and list"><div class="lg-row"><span class="lg-you"><i class="lg you"></i>You</span><span class="lg-cats"></span><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div><button type="button" class="lg-srcbtn" aria-expanded="false" aria-controls="lgMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Sources<i class="lg-dot" hidden></i></button><div class="lg-menu" id="lgMenu" role="group" aria-label="Sources" hidden><p class="lg-mh">Show places from</p><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="lg-reset">Show everything</button></div></div>
+    <div class="legend" aria-label="Filter the map and list"><div class="lg-row"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div><button type="button" class="lg-btn lg-catbtn" aria-expanded="false" aria-controls="catMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Types<i class="lg-dot" hidden></i></button><button type="button" class="lg-btn lg-srcbtn" aria-expanded="false" aria-controls="lgMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Sources<i class="lg-dot" hidden></i></button><div class="lg-menu" id="catMenu" role="group" aria-label="Types of place" hidden><p class="lg-mh">Show these types</p><div class="lg-all"><button type="button" data-all="cat" data-show="1">Show all</button><button type="button" data-all="cat">Hide all</button></div><div class="lg-cats"></div></div><div class="lg-menu" id="lgMenu" role="group" aria-label="Sources" hidden><p class="lg-mh">Show places from</p><div class="lg-all"><button type="button" data-all="src" data-show="1">Show all</button><button type="button" data-all="src">Hide all</button></div><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -635,7 +638,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.13.1"></script>
+<script src="common.js?v=3.14.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2931,10 +2934,11 @@ function render(){
   const le = document.querySelector('.legend .g-ebird'); if(le) le.hidden = !present.has('ebird');
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
-  // category chips: the ones with places in range, in a fixed order
+  // the Types menu: the categories with places in range, in a fixed order
   const chips = CL.order.filter(c=>perCat[c]).map(c=>`<button type="button" data-cat="${c}" aria-pressed="${!state.hiddenCat.has(c)}"><i class="lg c-${c}"></i><span class="lg-t">${esc(CL.labels[c])}</span><span class="lg-n">${perCat[c]}</span></button>`).join('');
-  const cw = document.querySelector('.lg-cats'); if(cw && cw.dataset.sig !== chips){ cw.innerHTML = chips; cw.dataset.sig = chips; }
+  const cw = document.querySelector('.lg-cats'); if(cw && cw.dataset.sig !== chips){ cw.innerHTML = chips || '<p class="lg-mh">No places in range yet</p>'; cw.dataset.sig = chips; }
   const dot = document.querySelector('.lg-srcbtn .lg-dot'); if(dot) dot.hidden = ![...state.hiddenSrc].some(x=>present.has(x));
+  const cdot = document.querySelector('.lg-catbtn .lg-dot'); if(cdot) cdot.hidden = ![...state.hiddenCat].some(c=>perCat[c]);   // a dot while a type with places in range is hidden
   document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
   document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; });   // keep the picked group in view
   saveSessionSoon();
@@ -2999,11 +3003,19 @@ document.addEventListener('keydown', e=>{ if(e.key === 'Escape') document.queryS
 function setHiddenSrc(set){ state.hiddenSrc = set; store.set('hiddenSrc', [...set]); render(); }
 function setHiddenCat(set){ state.hiddenCat = set; store.set('hiddenCat', [...set]); render(); }
 const showEverything = () => { state.hiddenCat = new Set(); store.set('hiddenCat', []); setHiddenSrc(new Set()); };
-/* Chips under the map hide or show a category; the Sources menu does the same for each source */
-const lgMenu = (open) => { const m = $('#lgMenu'), b = document.querySelector('.lg-srcbtn'); m.hidden = !open; b.setAttribute('aria-expanded', String(open)); };
+/* The Types menu hides or shows a category; the Sources menu does the same for each source. One menu is open at a time. */
+const lgMenu = (id) => document.querySelectorAll('.legend .lg-btn').forEach(b => { const on = b.getAttribute('aria-controls') === id, m = $('#' + b.getAttribute('aria-controls'));
+  m.hidden = !on; b.setAttribute('aria-expanded', String(on));
+  if(on){ const dock = document.querySelector('.dock'), bottom = dock ? dock.getBoundingClientRect().top : innerHeight;   // fit above the dock; a long list scrolls inside the menu
+    m.style.maxHeight = Math.max(200, bottom - m.getBoundingClientRect().top - 12) + 'px'; } });
 document.querySelector('.legend').addEventListener('click', e=>{
-  if(e.target.closest('.lg-srcbtn')){ lgMenu($('#lgMenu').hidden); return; }
-  if(e.target.closest('.lg-reset')){ showEverything(); lgMenu(false); return; }
+  const mb = e.target.closest('.lg-btn');
+  if(mb){ lgMenu(mb.getAttribute('aria-expanded') === 'true' ? null : mb.getAttribute('aria-controls')); return; }
+  const all = e.target.closest('[data-all]');
+  if(all){ const show = !!all.dataset.show;
+    if(all.dataset.all === 'cat') setHiddenCat(new Set(show ? [] : CATS[state.mode === 'nature' ? 'nature' : 'history'].order));
+    else setHiddenSrc(new Set(show ? [] : [...document.querySelectorAll('#lgMenu [data-src]')].map(b => b.dataset.src)));
+    return; }
   const c = e.target.closest('[data-cat]');
   if(c){ const set = new Set(state.hiddenCat); set.has(c.dataset.cat) ? set.delete(c.dataset.cat) : set.add(c.dataset.cat); setHiddenCat(set); return; }
   const b = e.target.closest('[data-src]'); if(!b) return;
@@ -3011,7 +3023,7 @@ document.querySelector('.legend').addEventListener('click', e=>{
 });
 document.addEventListener('click', e=>{
   if(e.target.closest('#showAllSrc')) showEverything();
-  if(!$('#lgMenu').hidden && !e.target.closest('.lg-menu, .lg-srcbtn')) lgMenu(false);   // a tap anywhere else closes the menu
+  if(e.target.isConnected && !e.target.closest('.lg-menu, .lg-btn')) lgMenu(null);   // a row the Types menu just redrew is not a tap outside   // a tap anywhere else closes the menu
 });
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && !$('#lgMenu').hidden) lgMenu(false); });
 let guideUndo = null, guideUndoTimer = null;
