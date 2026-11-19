@@ -170,6 +170,7 @@ svg{flex:none}
 .lg.osm{background:var(--patina);box-shadow:inset 0 0 0 2px var(--brass)}
 .lg.wd{background:var(--ink);box-shadow:inset 0 0 0 2px var(--brass)}
 .lg.voy{background:#3B7EA1}
+.lg.ebird{background:#B8862F}
 .lg.ai{background:var(--raise);box-shadow:inset 0 0 0 2px var(--brass)}
 .leaflet-container{font-family:var(--sans)}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--rule)!important}
@@ -190,6 +191,12 @@ svg{flex:none}
 .osm{background:var(--patina);color:#fff;box-shadow:inset 0 0 0 2px var(--brass)}
 .wd{background:var(--ink);color:var(--brass);box-shadow:inset 0 0 0 2px var(--brass)}
 .voy{background:#3B7EA1;color:#fff}
+.ebird{background:#B8862F;color:#fff}
+.rare{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#fff;background:#C2551F;border-radius:4px;padding:1px 5px;margin-bottom:2px;align-self:flex-start}
+.rarelist{list-style:none;margin:6px 0 0;padding:0}
+.rarelist li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--rule);font-size:14px}
+.rarelist li a{color:var(--ink);font-weight:600;text-decoration:none}
+.rarelist li small{color:var(--muted);white-space:nowrap}
 .voy-note{font-size:14.5px}
 .voy-note b{font-weight:600;color:var(--muted)}
 .sp.photo b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:500;font-size:12px}
@@ -332,7 +339,7 @@ body.looking{padding-bottom:calc(env(safe-area-inset-bottom) + 300px)}
 .sheet-head h3{margin:0}
 .row{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
 .row label,.row .lbl{font-size:14px;color:var(--muted);flex:0 0 110px}
-select,input[type=text]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
+select,input[type=text],input[type=password]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
 .chk{font-size:14px;display:inline-flex;align-items:center;gap:8px;margin-right:14px}
 .chk input{width:18px;height:18px;accent-color:var(--brass)}
 .row .srcs{display:flex;flex-direction:column;gap:8px;flex:1}
@@ -443,7 +450,7 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -456,7 +463,7 @@ footer a{color:var(--muted)}
 
 <footer>
   Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>. Listings from <a href="https://www.wikivoyage.org/">Wikivoyage</a> (CC BY-SA). Photos from <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>. Heritage registers: <a href="https://historicengland.org.uk/listing/the-list/">National Heritage List for England</a>, <a href="https://www.historicenvironment.scot/">Historic Environment Scotland</a> and Canmore, <a href="https://www.communities-ni.gov.uk/topics/historic-environment">Northern Ireland's Historic Environment Division</a> (Open Government Licence); Ireland's <a href="https://www.buildingsofireland.ie/">NIAH</a> and <a href="https://www.archaeology.ie/">Sites and Monuments Record</a> (CC BY 4.0).
-  <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a> and <a href="https://www.gbif.org/">GBIF.org</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>. US hot springs from NOAA's Thermal Springs List (Berry, Grim &amp; Ikelman 1980, via <a href="https://doi.org/10.1594/PANGAEA.981233">PANGAEA</a>, CC BY 4.0).</span>
+  <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a>, <a href="https://www.gbif.org/">GBIF.org</a> and, with your key, <a href="https://ebird.org/">eBird</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>. US hot springs from NOAA's Thermal Springs List (Berry, Grim &amp; Ikelman 1980, via <a href="https://doi.org/10.1594/PANGAEA.981233">PANGAEA</a>, CC BY 4.0).</span>
   <span class="ver" id="ver"></span>
 </footer>
 
@@ -509,6 +516,11 @@ footer a{color:var(--muted)}
         <option value="80467">50 mi</option>
         <option value="160934">100 mi</option>
       </select>
+    </div>
+    <div class="row nat-row">
+      <label for="ebirdKey">eBird key</label>
+      <input type="password" id="ebirdKey" placeholder="Paste your eBird API key" autocomplete="off" spellcheck="false">
+      <a class="mini" id="ebirdGet" target="_blank" rel="noopener" href="https://ebird.org/api/keygen">Get one</a>
     </div>
     <div class="row">
       <label for="ulang">Your language</label>
@@ -589,7 +601,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.10.0"></script>
+<script src="common.js?v=3.11.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1449,7 +1461,7 @@ function applyTaxon(x){
   return x;
 }
 async function enrichTaxa(list){
-  const c = taxaGet(), need = list.filter(x => x.src === 'gbif' && !((state.userLang + '|' + x.sci) in c)).slice(0, 24);
+  const c = taxaGet(), need = list.filter(x => (x.src === 'gbif' || x.src === 'ebird') && !((state.userLang + '|' + x.sci) in c)).slice(0, 36);
   await Promise.all(need.map(x => inatJSON('https://api.inaturalist.org/v1/taxa?' + new URLSearchParams({q: x.sci, rank: 'species', per_page: '3', locale: state.userLang}), 12000)
     .then(d => { const t = (d.results || []).find(r => r.name === x.sci);
       c[state.userLang + '|' + x.sci] = t ? {id: t.id, common: t.preferred_common_name ? cap(t.preferred_common_name) : '', photo: t.default_photo && t.default_photo.square_url, group: INAT_GROUPS[t.iconic_taxon_name] || ''} : {}; })
@@ -1514,15 +1526,53 @@ function groupChips(sec, groups, counts, more){   // more: GBIF has records here
     const n = g && counts ? groupN(counts, g) : null;
     return `<button type="button" data-grp="${sec}" data-g="${g}" aria-pressed="${g === cur}">${esc(label)}${n ? ` <span>${n.toLocaleString()}${more ? '+' : ''}</span>` : ''}</button>`; }).join('')}</div>`;
 }
+/* ---------- eBird (with your own key, kept on this device): birds reported lately, rare ones nearby, birding hotspots ---------- */
+const ebirdKey = () => String(store.get('ebirdKey', '') || '').trim();
+async function ebirdGet(path, params){
+  const r = await fetch('https://api.ebird.org/v2/' + path + '?' + new URLSearchParams(params), {headers: {'X-eBirdApiToken': ebirdKey()}});
+  if(!r.ok) throw new Error('eBird ' + r.status);
+  return r.json();
+}
+async function loadEbird(lat, lon, rad){
+  if(!ebirdKey()) return null;
+  const f = x => x.toFixed(3), km = Math.min(50, Math.max(2, rad * 1.5 / 1000));
+  const [recent, notable, spots] = await Promise.all([
+    ebirdGet('data/obs/geo/recent', {lat: f(lat), lng: f(lon), dist: km.toFixed(1), back: '30', sppLocale: state.userLang}),
+    ebirdGet('data/obs/geo/recent/notable', {lat: f(lat), lng: f(lon), dist: '15', back: '14', detail: 'simple', sppLocale: state.userLang}).catch(() => []),
+    ebirdGet('ref/hotspot/geo', {lat: f(lat), lng: f(lon), dist: Math.min(50, state.radius * 1.3 / 1000).toFixed(1), fmt: 'json'}).catch(() => [])
+  ]);
+  const rare = new Map();
+  for(const o of notable || []){ const k = o.sciName; if(!rare.has(k) || rare.get(k).obsDt < o.obsDt) rare.set(k, o); }
+  const day = d => new Date(String(d).replace(' ', 'T')).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+  const list = (recent || []).map(o => applyTaxon({sci: o.sciName, common: o.comName, count: o.howMany || 1, src: 'ebird', group: 'Bird', rare: rare.has(o.sciName),
+    when: day(o.obsDt), where: o.locName, url: `https://ebird.org/species/${o.speciesCode}`}))
+    .sort((a, b) => (b.rare - a.rare) || b.count - a.count);
+  return {km, total: (recent || []).length, list, rare: [...rare.values()].sort((a, b) => b.obsDt.localeCompare(a.obsDt)).slice(0, 8)
+      .map(o => ({name: o.comName, sci: o.sciName, where: String(o.locName || '').replace(/\s*\(?-?\d+\.\d+,\s*-?\d+\.\d+\)?\s*$/, '').replace(/,?\s*(US-[A-Z]{2}|US|United States)$/, '').replace(/,\s*[A-Z][a-z]+,?\s*US$/, '').trim(), when: day(o.obsDt), d: hav({lat, lon}, {lat: o.lat, lon: o.lng}), url: `https://ebird.org/species/${o.speciesCode}`})),
+    spots: (spots || []).map(h => ({id: h.locId, name: h.locName, lat: h.lat, lon: h.lng, species: h.numSpeciesAllTime, last: h.latestObsDt}))};
+}
+function mergeHotspots(spots){
+  for(const h of spots || []){
+    const key = 'ebird:' + h.id; if(state.items.has(key) || !isFinite(h.lat)) continue;
+    state.items.set(key, {key, src: 'eBird', lat: h.lat, lon: h.lon, versions: {[state.userLang]: {title: h.name, extract: '', url: `https://ebird.org/hotspot/${h.id}`}},
+      facts: ['Birding hotspot', h.species ? `${h.species} species recorded` : '', h.last ? 'Last report ' + new Date(String(h.last).replace(' ', 'T')).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'}) : ''].filter(Boolean),
+      isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+  }
+}
+$('#ebirdKey').value = ebirdKey();
+$('#ebirdKey').onchange = e => { store.set('ebirdKey', e.target.value.trim()); if(state.mode === 'nature' && state.pos){ state.nature = null; refresh(); } };
+
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
-  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, plantsAny: keep.plantsAny, gbif: keep.gbif, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
+  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, plantsAny: keep.plantsAny, gbif: keep.gbif, ebird: keep.ebird, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
   state.nature = n; renderSoon();
   const rad = Math.max(state.radius, 800), f = x => x.toFixed(5);
   const lookup = GEO_LOOKUP[state.cc];
   // soil and climate are slower: they fill in when they answer
   const later = (p, k) => p.then(v => { if(state.nature === n){ n[k] = v; renderSoon(); } }).catch(() => {});
   later(loadSoil(lat, lon), 'soil'); later(loadClimate(lat, lon), 'climate');
+  if(ebirdKey()) loadEbird(lat, lon, Math.max(state.radius, 800)).then(eb => { if(state.nature !== n || !eb) return; n.ebird = eb; mergeHotspots(eb.spots); renderSoon();
+    enrichTaxa(eb.list).then(() => { if(state.nature === n) renderSoon(); }); }).catch(e => { if(state.nature === n){ n.ebirdError = e.message; renderSoon(); } });
   if(!state.skyline || hav(state.skyline, {lat, lon}) > 3000) loadSkyline(lat, lon).then(sk => { state.skyline = sk; if(look.on) lookApply(true); }).catch(() => {});
   const [geo, elev, life, local, plants, trees, season, quakes, water, counts, gbif] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
@@ -1903,7 +1953,7 @@ function bestVersion(it){
 
 /* ---------- map (Leaflet + OpenStreetMap tiles) ---------- */
 const M = { map:null, me:null, acc:null, ring:null, sight:null, area:null, areaGeo:null, pins:new Map(), follow:true, programmatic:false };
-const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : it.src==='Wikivoyage' ? 'voy' : 'wd';
+const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : it.src==='Wikivoyage' ? 'voy' : it.src==='eBird' ? 'ebird' : 'wd';
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
   $('#mapWrap').classList.add('show');
@@ -2018,8 +2068,8 @@ const MODES = {
     srcs: ['Street plaques and landmarks', 'Heritage registers and archaeological sites'], checking: 'Checking plaques and heritage registers…',
     empty: 'Nothing with a Wikipedia article within {r}. Try a bigger radius in Settings.'},
   nature: {hero: 'Explore the land around you.', areaHead: 'About this land', theme: ['#E9F2EA', '#122019'],
-    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', voy: 'Wikivoyage', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
-    names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', voy: 'Wikivoyage outdoor listings', ai: 'AI guide places'},
+    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', voy: 'Wikivoyage', ebird: 'Birding hotspot', ai: 'AI guide', spring: 'Hot springs', fish: 'Fishing'},
+    names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', voy: 'Wikivoyage outdoor listings', ebird: 'birding hotspots', ai: 'AI guide places'},
     srcs: ['Springs, peaks, trees and other features', 'Wikidata entries without an article'], reading: 'Reading the landscape…',
     checking: 'Checking maps and nature records…', empty: 'No natural features found within {r}. Try a bigger radius in Settings.'}
 };
@@ -2131,6 +2181,15 @@ function natureAreaHTML(){
       + (!(seP && seP.loading) && se.flowering && se.flowering.length ? `<p class="lname ltop">Flowering now</p><p class="lsrc">Plants photographed in flower here in ${esc(span)}:</p>${speciesRow(se.flowering.map(sp => stile({...sp, seasonal: false, group: 'Plant'})))}` : '')
       + `</section>`;
   }
+  const eb = n.ebird;
+  if(eb && eb.list.length){
+    const etile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
+      + `${sp.rare ? '<span class="rare">Rare here</span>' : ''}<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${esc(sp.when)} · ${sp.count.toLocaleString()} seen</small></a>`;
+    const nRare = eb.list.filter(x => x.rare).length;
+    layers += `<section class="layer"><h4>Birds lately</h4><p class="ldesc">${eb.total.toLocaleString()} bird species reported within ${esc(fmtDist(eb.km * 1000))} in the last 30 days on eBird${nRare ? `, ${nRare} of them rare for the area (shown first)` : ''}.</p>${speciesRow(eb.list.map(etile))}`
+      + (eb.rare.length ? `<p class="lname ltop">Rare birds reported nearby</p><ul class="rarelist">${eb.rare.map(r => `<li><span><a target="_blank" rel="noopener" href="${esc(r.url)}">${esc(r.name)}</a> · ${esc(r.where)}</span><small>${esc(r.when)} · ${esc(fmtDist(r.d))}</small></li>`).join('')}</ul>` : '')
+      + `<p class="lsrc">From eBird (Cornell Lab of Ornithology)</p></section>`;
+  } else if(n.ebirdError) layers += `<p class="lsrc">eBird didn't answer (${esc(n.ebirdError)}). Check the key in Settings.</p>`;
   const plP = pickedG('plants'), pl = plP && !plP.loading ? plP : n.plants, tr = n.trees, tile = sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}" onerror="this.outerHTML='<span class=ph></span>'">` : '<span class="ph"></span>'}`
     + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.count.toLocaleString()} ${sp.src === 'gbif' ? 'records · GBIF' : 'sightings'}</small></a>`;
   if((pl && pl.native.length) || n.plantsAny || (tr && tr.top.length) || gd.plants || gd.trees){
@@ -2363,6 +2422,7 @@ function naturePrompt(deep, radius){
   known.push('Fill in or deepen soil, water and climate from local sources (soil survey, watershed and groundwater reports).');
   if(n.species && n.species.length) known.push(`Most-recorded species nearby on iNaturalist: ${n.species.slice(0, 10).map(x => x.sci).join(', ')}.`);
   if(n.plants && n.plants.native.length) known.push(`Native plants recorded nearby (iNaturalist, native to ${n.plants.region}): ${n.plants.native.slice(0, 10).map(x => x.sci).join(', ')}.${n.plants.introduced.length ? ` Commonest introduced: ${n.plants.introduced.slice(0, 5).map(x => x.sci).join(', ')}.` : ''}`);
+  if(n.ebird && n.ebird.rare.length) known.push(`Rare birds reported nearby on eBird in the last two weeks: ${n.ebird.rare.slice(0, 6).map(r => r.sci).join(', ')}.`);
   if(n.season && n.season.list.some(x => x.seasonal)) known.push(`Seasonal species recorded here in this month of past years: ${n.season.list.filter(x => x.seasonal).slice(0, 8).map(x => x.sci).join(', ')}.`);
   if(n.trees) known.push(`Street trees mapped in OpenStreetMap within ${n.trees.radius} m: ${n.trees.total} trees; commonest ${n.trees.top.slice(0, 6).map(t => `${t.sci || t.name} (${t.n})`).join(', ')}.`);
   else known.push('Wander found no mapped street trees here: look for the city\'s street-tree inventory or urban forest plan.');
@@ -2748,6 +2808,7 @@ function render(){
   updatePageLang(document.querySelector('main'), state.userLang);
   const lg = document.querySelector('.legend .g-ai'); if(lg) lg.hidden = !present.has('ai');
   const lv = document.querySelector('.legend .g-voy'); if(lv) lv.hidden = !present.has('voy');
+  const le = document.querySelector('.legend .g-ebird'); if(le) le.hidden = !present.has('ebird');
   document.querySelectorAll('.legend [data-src]').forEach(b=>{ b.setAttribute('aria-pressed', String(!state.hiddenSrc.has(b.dataset.src)));
     b.querySelector('.lg-n').textContent = perSrc[b.dataset.src] || 0; });   // how many places each source has in range, shown or hidden
   document.querySelectorAll('.legend .g-far').forEach(b => { const n = far.filter(r => r.it.topic === b.dataset.src).length; b.hidden = !n; b.querySelector('.lg-n').textContent = n; });
