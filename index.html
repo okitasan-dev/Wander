@@ -122,8 +122,8 @@ svg{flex:none}
 .layer .lage{margin-top:2px;font-size:14px;color:var(--muted)}
 .layer .ldesc{margin-top:6px;font-size:15px;line-height:1.5}
 .layer .lsrc{margin-top:6px;font-size:12px;color:var(--muted)}
-.species{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,auto);grid-auto-columns:calc((100% - 22px) / 3.25);gap:12px 10px;margin-top:10px;
-  overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}   /* three rows; swipe sideways for more */
+.species{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);grid-auto-columns:calc((100% - 22px) / 3.25);gap:12px 10px;margin-top:10px;
+  overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}   /* two rows; swipe sideways for more */
 .species::-webkit-scrollbar{display:none}
 .species .sp{scroll-snap-align:start}
 .species.short{grid-template-rows:none;grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
@@ -583,7 +583,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.7.1"></script>
+<script src="common.js?v=3.7.2"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1417,8 +1417,8 @@ const LIFE_GROUPS = [['', 'All', 'species'], ['Aves', 'Birds', 'bird species'], 
   ['Plantae', 'Plants', 'plant species'], ['Fungi', 'Fungi & lichens', 'fungus and lichen species']];
 const PLANT_GROUPS = [['', 'All', 'plant species'], ['47124', 'Broadleaf plants', 'broadleaf plant species'], ['47163', 'Grasses, lilies & orchids', 'grass, lily, orchid and other monocot species'],
   ['136329', 'Conifers', 'conifer species'], ['121943', 'Ferns', 'fern species'], ['311249', 'Mosses', 'moss species']];
-// Photo tiles: up to nine sit in a plain grid; more go in three rows that scroll sideways
-const speciesRow = tiles => `<div class="species${tiles.length <= 9 ? ' short' : ''}">${tiles.join('')}</div>`;
+// Photo tiles: up to six sit in a plain grid; more go in two rows that scroll sideways
+const speciesRow = tiles => `<div class="species${tiles.length <= 6 ? ' short' : ''}">${tiles.join('')}</div>`;
 const groupNoun = (groups, g) => (groups.find(x => x[0] === g) || groups[0])[2];
 async function groupCounts(lat, lon, rad, extra = {}){   // species per group: {Aves: 171, Insecta: 643, …}
   const d = await inatJSON('https://api.inaturalist.org/v1/observations/iconic_taxa_species_counts?' + new URLSearchParams({lat: lat.toFixed(4), lng: lon.toFixed(4),
