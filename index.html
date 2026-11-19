@@ -270,6 +270,11 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 .look li .d{font-size:13px;color:var(--brass);font-weight:500}
 .look .hint{margin:8px 0 0;padding-top:9px;border-top:1px solid var(--rule);font-size:14px;line-height:1.45;color:var(--muted)}
 .look .hint b{color:var(--ink);font-weight:600}
+.look .sky-h{font:600 11.5px/1.3 var(--sans);letter-spacing:.05em;text-transform:uppercase;color:var(--brass)}
+.look .sky{list-style:none;margin:4px 0 0;padding:0}
+.look .sky li button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--rule)}
+.look .sky .t{font:600 15px/1.25 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.look .sky .d{font-size:12.5px;color:var(--muted);white-space:nowrap}
 body.looking{padding-bottom:calc(env(safe-area-inset-bottom) + 300px)}
 
 /* settings sheet */
@@ -525,7 +530,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.4.0"></script>
+<script src="common.js?v=3.5.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1222,6 +1227,42 @@ async function loadQuakes(lat, lon){
   return (d.features || []).map(f => { const p = f.properties || {}, c = (f.geometry || {}).coordinates || [];
     return {mag: p.mag, place: p.place || '', year: new Date(p.time).getFullYear(), url: p.url, d: c.length ? hav({lat, lon}, {lat: c[1], lon: c[0]}) : null}; });
 }
+// Skyline: named peaks within ~15 miles with their heights (Wikidata, and OpenStreetMap, whose heights win when both have a peak)
+const SKY_KM = 25;
+async function loadSkyline(lat, lon){
+  const langs = [...new Set([state.userLang, ...state.langs, 'en'])].join(',');
+  const q = `SELECT ?item ?itemLabel ?coord ?amt ?unit WHERE {
+    SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${SKY_KM}". }
+    ?item wdt:P31/wdt:P279? ?c. VALUES ?c { wd:Q8502 wd:Q54050 wd:Q207326 wd:Q8072 }
+    ?item p:P2044/psv:P2044 [ wikibase:quantityAmount ?amt; wikibase:quantityUnit ?unit ].
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${langs}". } } LIMIT 400`;
+  const osmQ = `[out:json][timeout:25];node(around:${SKY_KM * 1000},${lat},${lon})[natural~"^(peak|volcano|hill)$"][name][ele];out 400;`;
+  const [wd, osm] = await Promise.all([
+    fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), 25000).then(d => d.results.bindings).catch(() => []),
+    (async () => { for(const base of OVERPASS){ try{ return (await fetchJSON(base + '?data=' + encodeURIComponent(osmQ), 30000)).elements || []; }catch(e){} } return []; })()
+  ]);
+  const peaks = [];
+  for(const e of osm){ const t = e.tags || {}, ele = parseFloat(t.ele); if(isFinite(ele) && e.lat != null) peaks.push({name: t['name:' + state.userLang] || t.name, lat: e.lat, lon: e.lon, ele, qid: t.wikidata}); }
+  for(const b of wd){
+    const m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord.value), unit = b.unit.value.split('/').pop(); if(!m) continue;
+    const p = {name: b.itemLabel.value, lat: +m[2], lon: +m[1], ele: parseFloat(b.amt.value) * (unit === 'Q3710' ? .3048 : 1), qid: b.item.value.split('/').pop()};
+    if(!isFinite(p.ele) || /^Q\d+$/.test(p.name)) continue;
+    if(peaks.some(x => (x.qid && x.qid === p.qid) || (hav(x, p) < 600 && nameOverlap(x.name, p.name).shared))) continue;   // already have it from OpenStreetMap
+    peaks.push(p);
+  }
+  return {lat, lon, peaks};
+}
+// Which peaks stand on the skyline in a direction: angle above the horizon from where you stand (allowing for the Earth's curve
+// and the usual bending of light), leaving out any peak hidden behind a nearer one that stands as high in nearly the same direction
+function skylineAhead(h){
+  const sk = state.skyline; if(!sk || !state.pos || h == null) return [];
+  const me = (state.nature && state.nature.elev) || 0, R = 6371000;
+  const pts = sk.peaks.map(p => { const d = hav(state.pos, p); if(d < 250) return null;
+    return {...p, d, b: bearing(state.pos, p), ang: Math.atan2(p.ele - me - d * d / (2 * R) * .87, d) * 180 / Math.PI}; }).filter(Boolean);
+  const cone = pts.filter(p => Math.abs(relAngle(p.b, h)) <= LOOK_HALF);
+  const seen = cone.filter(p => !cone.some(q => q !== p && q.d < p.d && Math.abs(relAngle(q.b, p.b)) < 3 && q.ang >= p.ang));
+  return seen.sort((a, b) => b.ang - a.ang).slice(0, 3);
+}
 async function loadNature(lat, lon, live = () => true){
   const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
   if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, local: keep.local, plants: keep.plants, trees: keep.trees, season: keep.season, soil: keep.soil, climate: keep.climate, quakes: keep.quakes, water: keep.water, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
@@ -1231,6 +1272,7 @@ async function loadNature(lat, lon, live = () => true){
   // soil and climate are slower: they fill in when they answer
   const later = (p, k) => p.then(v => { if(state.nature === n){ n[k] = v; renderSoon(); } }).catch(() => {});
   later(loadSoil(lat, lon), 'soil'); later(loadClimate(lat, lon), 'climate');
+  if(!state.skyline || hav(state.skyline, {lat, lon}) > 3000) loadSkyline(lat, lon).then(sk => { state.skyline = sk; if(look.on) lookApply(true); }).catch(() => {});
   const [geo, elev, life, local, plants, trees, season, quakes, water] = await Promise.allSettled([
     fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000).then(async d => {
       const u = pickUnit(d);   // and the published map it comes from, which the AI guide can read
@@ -1735,6 +1777,12 @@ function lookApply(force){
       ? `<p class="hint">Nothing in sight this way. <b>${name(near.it)}</b> is ${fmtDist(near.d)} ${relName(rel)}.</p>`
       : `<p class="hint">Nothing within ${sightLabel()}. The closest is <b>${name(near.it)}</b>, ${fmtDist(near.d)} ${relName(rel)}.</p>`;
   } else body = `<p class="hint">${state.loading ? 'Looking for places…' : 'No places found nearby yet.'}</p>`;
+  if(state.mode === 'nature' && h != null && state.pos){
+    const sky = skylineAhead(h);
+    if(sky.length) body += `<p class="hint sky-h">On the skyline this way</p><ul class="sky">${sky.map(p => { const rel = relAngle(p.b, h);
+      const dir = Math.abs(rel) < 4 ? 'straight ahead' : `${Math.round(Math.abs(rel))}° ${rel < 0 ? 'left' : 'right'}`;
+      return `<li><button type="button" data-peak="${p.lat.toFixed(5)},${p.lon.toFixed(5)}" data-name="${esc(p.name)}"><span class="t">${esc(p.name)}</span><span class="d">${esc(fmtElev(p.ele))} · ${esc(fmtDist(p.d))} · ${dir}</span></button></li>`; }).join('')}</ul>`;
+  }
   const html = facing + '|' + body;
   if(html !== look.html){ look.html = html; $('#lookFacing').textContent = facing; $('#lookBody').innerHTML = body; $('#lookRange').textContent = `within ${sightLabel()}`; }
 }
@@ -2139,7 +2187,11 @@ $('#gpsBtn').onclick = ()=>{
 };
 $('#status').onclick = ()=>setStatus('');
 $('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
-$('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card); });
+$('#look').addEventListener('click', e=>{ const b = e.target.closest('[data-card]'); if(b) scrollToCard(b.dataset.card);
+  const pk = e.target.closest('[data-peak]');   // a skyline peak: show it on the map
+  if(pk && M.map){ const [la, lo] = pk.dataset.peak.split(',').map(Number); if($('#mapWrap').classList.contains('collapsed')) toggleMap();
+    M.follow = false; $('#recenterBtn').style.display = 'inline-flex'; window.scrollTo({top: 0, behavior: 'smooth'});
+    M.programmatic = true; M.map.setView([la, lo], 13); M.programmatic = false; L.popup().setLatLng([la, lo]).setContent(`<b>${esc(pk.dataset.name)}</b>`).openOn(M.map); } });
 /* Every sheet: the ✕ closes it, a downward swipe on its header closes it, and so does Escape */
 document.querySelectorAll('details.sheet').forEach(sh=>{
   sh.querySelector('.sheet-x').onclick = ()=>{ sh.open = false; };
