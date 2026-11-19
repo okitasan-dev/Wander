@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.0.0';
+const WANDER_VERSION = '3.1.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -327,6 +327,11 @@ function normalizeGuide(g){
     trivia: arr(p.trivia, 6, k => str(k, 300)), sources: sources(p.sources),
     terms: arr(p.terms, 8, t => { const text = str(t && t.text, 80), title = str(t && (t.wiki || t.title), 150), lang = String((t && t.lang) || 'en').toLowerCase();
       return text && title && /^[a-z]{2,3}(-[a-z]+)?$/.test(lang) ? {text, title, lang} : null; }) });
+  // Nature guides: what the ground is made of, for the card's sections (each a sentence or two)
+  const ground = v => { if(!v || typeof v !== 'object') return null; const b = v.bedrock && typeof v.bedrock === 'object' ? v.bedrock : {};
+    const bed = {name: str(b.name, 120), rock: str(b.rock, 160), age: str(b.age, 80), notes: str(b.notes, 500), mapSheet: str(b.mapSheet, 160)};
+    const out = {bedrock: Object.values(bed).some(Boolean) ? bed : null, surface: str(v.surface, 400), soil: str(v.soil, 400), water: str(v.water, 500), climate: str(v.climate, 400)};
+    return out.bedrock || out.surface || out.soil || out.water || out.climate ? out : null; };
   const places = arr(g.places, 40, p => {
     if(!p || typeof p !== 'object') return null;
     const name = str(p.name, 120); if(!name) return null;
@@ -338,6 +343,7 @@ function normalizeGuide(g){
   });
   const ar = g.area && typeof g.area === 'object' ? g.area : {};
   const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar),
+    ground: ground(ar.ground),
     species: arr(ar.species, 16, x => { const name = str(x && x.name, 80), sci = str(x && (x.scientific || x.sci), 100);
       return name || sci ? {name: name || sci, sci, note: str(x.note, 220), months: str(x.months, 60)} : null; })};
   if(!places.length && !area.summary) throw new Error('The guide has no places');
@@ -373,6 +379,13 @@ const normText = t => String(t||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' '
 const unionBy = (list, key, max) => { const seen = new Set(), out = []; for(const x of list){ const k = key(x); if(k && !seen.has(k)){ seen.add(k); out.push(x); } } return out.slice(0, max); };
 const byDate = list => list.map((t, i) => ({t, i, y: (yearOf(t.date) || yearOf(t.text) || {}).y})).sort((a, b) => (a.y ?? 1e9) - (b.y ?? 1e9) || a.i - b.i).map(x => x.t);
 /* Combine two versions of a place or area; b is the newer one */
+// The newer guide's ground fields win where it has them
+function mergeGround(a, b){
+  if(!a || !b) return a || b;
+  const pick = (x, y) => y || x || '';
+  const bed = a.bedrock || b.bedrock ? Object.fromEntries(['name', 'rock', 'age', 'notes', 'mapSheet'].map(k => [k, pick((a.bedrock || {})[k], (b.bedrock || {})[k])])) : null;
+  return {bedrock: bed, surface: pick(a.surface, b.surface), soil: pick(a.soil, b.soil), water: pick(a.water, b.water), climate: pick(a.climate, b.climate)};
+}
 function mergeEntry(a, b){
   const better = (CONF[b.confidence]||0) >= (CONF[a.confidence]||0) && hasPos(b) ? b : hasPos(a) ? a : b;   // the more precisely located
   return {...a, ...b,
@@ -384,6 +397,7 @@ function mergeEntry(a, b){
     trivia: unionBy([...(b.trivia||[]), ...(a.trivia||[])], normText, 8),
     sources: unionBy([...(b.sources||[]), ...(a.sources||[])], s => s.url, 12),
     terms: unionBy([...(b.terms||[]), ...(a.terms||[])], t => t.text.toLowerCase(), 10),
+    ...(a.ground || b.ground ? {ground: mergeGround(a.ground, b.ground)} : {}),
     ...(a.species || b.species ? {species: unionBy([...(b.species||[]), ...(a.species||[])], x => (x.sci || x.name).toLowerCase(), 16)} : {})};
 }
 const guideCentre = g => { if(g.area && hasPos(g.area)) return g.area;

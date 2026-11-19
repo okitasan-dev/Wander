@@ -4,7 +4,7 @@
    - Place data (Wikipedia, Wikidata, OpenStreetMap, Commons): fresh when the network answers within a few
      seconds, otherwise the copy kept from last time.
    - Libraries, fonts, map tiles (street, satellite, terrain) and photos: kept copy first, since they rarely change. */
-const APP = 'wander-app-v3.0.0', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
+const APP = 'wander-app-v3.1.0', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
 const KEEP = [APP, DATA, STATIC, TILES, IMAGES];
 const SHELL = ['./', 'index.html', 'place.html', 'common.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 const LIMITS = {[DATA]: 400, [TILES]: 600, [IMAGES]: 150};
@@ -44,9 +44,12 @@ async function cacheFirst(name, req){
 self.addEventListener('fetch', e => {
   const req = e.request; if(req.method !== 'GET') return;
   const url = new URL(req.url), host = url.hostname;
+  const geoTile = host === 'tiles.macrostrat.org' || (host === 'gbank.gsj.jp' && url.pathname.includes('/tiles/')) || /^GetMap$/i.test(url.searchParams.get('REQUEST') || '');
   if(url.origin === location.origin){
     e.respondWith(networkFirst(APP, req, {ignoreSearch: url.pathname.endsWith('place.html'), init: {cache: 'no-cache'}}));
-  } else if(/(^|\.)(wikipedia|wikidata)\.org$|^commons\.wikimedia\.org$|^nominatim\.openstreetmap\.org$|overpass/.test(host)){
+  } else if(geoTile){
+    e.respondWith(cacheFirst(TILES, req));   // geologic map tiles, like any map tile
+  } else if(/(^|\.)(wikipedia|wikidata)\.org$|^commons\.wikimedia\.org$|^nominatim\.openstreetmap\.org$|overpass|^(macrostrat\.org|api\.inaturalist\.org|api\.open-meteo\.com|gbank\.gsj\.jp|map\.bgs\.ac\.uk|services\.ga\.gov\.au)$/.test(host)){
     e.respondWith(networkFirst(DATA, req, {timeout: 6000}));
   } else if(/^(upload|thumb)\.wikimedia\.org$/.test(host)){
     e.respondWith(cacheFirst(IMAGES, req));
