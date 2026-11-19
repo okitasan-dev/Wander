@@ -25,9 +25,6 @@
 }}
 *{box-sizing:border-box}
 html,body{margin:0}
-/* Home-screen app: iOS frosts whatever scrolls under the status bar. A solid strip in the page colour sits there instead,
-   so nothing blurry shows. In the browser the inset is 0 and the strip has no height. */
-body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--ground);z-index:960;pointer-events:none}
 body{font:400 16px/1.55 var(--sans);background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 96px) env(safe-area-inset-left)}
 button,.btn{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;text-decoration:none}
@@ -473,7 +470,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.7.7"></script>
+<script src="common.js?v=2.7.8"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
