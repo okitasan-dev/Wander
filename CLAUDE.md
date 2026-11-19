@@ -174,6 +174,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 |---|---|
 | `nature` | Mode switch, Nature sources (simulated), land card, prompt, guide import, reload |
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
+| `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
 | `categories` | Category rules on 24 sample places (both modes), chips, pin colours, hiding a category, the Sources menu |

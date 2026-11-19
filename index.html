@@ -635,7 +635,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.13.0"></script>
+<script src="common.js?v=3.13.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -742,7 +742,8 @@ async function loadArea(lat, lon, live = () => true){
   const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
   const city = a.city || a.town || a.village || a.municipality || a.county;
   state.place = [hood, city, a.country].filter(Boolean).join(', ');
-  state.cc = (a.country_code||'').toLowerCase(); state.sub = a['ISO3166-2-lvl4'] || '';   // e.g. GB-SCT: which UK nation's register applies state.hood = hood || ''; state.city = city || '';
+  state.cc = (a.country_code||'').toLowerCase(); state.hood = hood || ''; state.city = city || '';
+  state.sub = a['ISO3166-2-lvl4'] || '';   // e.g. GB-SCT: which UK nation's register applies
   const key = (hood||'')+'|'+(city||'');
   if(key === state.areaKey) return;
   state.areaKey = key;
@@ -1956,6 +1957,8 @@ async function refresh(force){
   state.loading = false; setBusy(false);
   updateStatus(); render();
 }
+/* A place the user picked (Go box, Places, Back to me) cancels the search in progress, so the new spot is searched at once. */
+function cancelSearch(){ state.gen++; state.loading = false; setBusy(false); }
 function setBusy(on){ $('#refreshBtn').classList.toggle('busy', on); }
 function updateStatus(){ if(!state.loading) setStatus(''); }   // all loaded: clear the notice
 function onFix(lat, lon, acc){
@@ -1986,7 +1989,7 @@ function stopGPS(){
   label('#gpsBtn','Start'); $('#gpsBtn').classList.remove('on'); $('#gpsBtn').classList.add('primary');
 }
 function setManual(lat, lon){
-  stopGPS(); state.manual=true; state.remote=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
+  stopGPS(); cancelSearch(); state.manual=true; state.remote=true; state.lastLoad=null; state.lastLoadTime=0; state.items.clear(); state.areaKey=''; state.loads=0;
   M.follow = true; if($('#recenterBtn')) $('#recenterBtn').style.display='none';
   for(const p of M.pins.values()) p.remove(); M.pins.clear();
   onFix(lat, lon, null);
@@ -2973,7 +2976,7 @@ $('#gpsBtn').onclick = ()=>{
     if(!state.pos || /Getting your location/.test($('#status').textContent)) setStatus('');
     saveSessionSoon(); return;
   }
-  state.lastLoad=null; state.lastLoadTime=0; startGPS();
+  cancelSearch(); state.lastLoad=null; state.lastLoadTime=0; startGPS();
 };
 $('#status').onclick = ()=>setStatus('');
 $('#lookBtn').onclick = ()=>{ look.on ? stopLook() : startLook(); };
@@ -3179,7 +3182,7 @@ function updateExplore(){
   $('#explore').hidden = !on;
   if(on) $('#exploreName').textContent = libName() || 'another place';
 }
-$('#backToMe').onclick = () => { haptic(); state.lastLoad = null; state.lastLoadTime = 0; startGPS(); };
+$('#backToMe').onclick = () => { haptic(); cancelSearch(); state.lastLoad = null; state.lastLoadTime = 0; startGPS(); };
 
 /* ---------- Typed place: coordinates, a map link, a place name or a street address ---------- */
 const okLL = (a, b) => isFinite(a) && isFinite(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180 && !(a === 0 && b === 0);
