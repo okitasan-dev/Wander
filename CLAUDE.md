@@ -111,7 +111,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 | iNaturalist | Species, groups, native/introduced plants (via the most local standard place), In season, and names/photos for other sources' species. **Queued at 3 requests at a time, 250 ms apart** (`inatJSON`). |
 | GBIF | Merged into Life, groups, In season and thin Plants. One request per list using `facet=scientificName`; last 25 years; group filtering via `GBIF_TAXA` keys. |
 | eBird | Only with the owner's key: recent sightings, rare birds and hotspots (`X-eBirdApiToken` header; CORS works) |
-| NOAA (bundled), OSM, Wikidata | Hot springs. Wikidata is strong for Japanese onsen and thin for US wild springs. |
+| NOAA (bundled), OSM, Wikidata, Wikipedia | Hot springs. Wikidata is strong for Japanese onsen and thin for US wild springs. **Temperature:** NOAA, OSM `temperature`, Wikidata `P2076` (only ~11 of 846 springs have it), else the first °F/°C in the spring's Wikipedia intro. **Closed / Historic site tags:** Wikidata `P576`/`P3999`/`P5817` (almost never filled in) and OSM `disused`/`abandoned`/`access=no`/`historic`; mostly from the Wikipedia intro (`springFromText`): a sentence saying it closed, was demolished etc. marks it Closed (not if it says it reopened) and the card shows that sentence unless the summary already does; "historic" or "was a…" in the first sentence marks a Historic site. The intro also becomes the card's summary. |
 | OSM and iNaturalist | Fishing spots, and fish recorded in the area |
 
 ### Checked and rejected
@@ -177,7 +177,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
-| `excursion-chips` | Hot springs chip count matches the Excursions list under each Wild/Developed filter; a switched-off section is named in the hidden note (live NOAA + Wikidata, Burbank) |
+| `excursion-chips` | Hot springs chip count matches the Excursions list under each Wild/Developed filter; a switched-off section is named in the hidden note; Hot springs inside the Types menu; temperature and Closed/Historic flags (live NOAA + Wikidata, stand-in Wikipedia intros, Burbank) |
 | `categories` | Category rules on 24 sample places (both modes), pin colours, the Types and Sources menus, Show all / Hide all |
 | `indigenous-history` | "The name" and "Earliest peoples" (simulated Wikipedia, incl. Burbank/London/Kyoto samples), "Name in Māori" and site types (live Wikidata: Auckland marae, Stanley Park village site), guide `indigenousName` |
 | `geology-live`, `soil-climate-quakes`, `in-season`, `species-groups`, `species-rows`, `gbif`, `ebird` | Live Nature data (`ONLY="Kyoto,London"` limits the places in the first three) |

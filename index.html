@@ -145,6 +145,8 @@ svg{flex:none}
 .card.far h3{font-size:19px}
 .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;background:var(--brass-soft);color:var(--brass)}
 .tag.dev{background:rgba(224,112,58,.14);color:#C2551F}
+.tag.closed{background:rgba(162,59,59,.13);color:#A23B3B}
+.fnote{margin:6px 0 0;font-size:13px;line-height:1.45;color:var(--muted)}
 .fdl{grid-column:1 / -1;margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14.5px;line-height:1.45}
 .fdl dt{color:var(--muted)}
 .fdl dd{margin:0}
@@ -642,7 +644,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.14.1"></script>
+<script src="common.js?v=3.15.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1427,10 +1429,14 @@ async function loadFarSprings(lat, lon, R){
     state.cc === 'us' ? loadNoaaSprings() : Promise.resolve(null),
     (async () => { const A = `(around:${R},${lat},${lon})`, q = `[out:json][timeout:30];(nwr${A}[natural=hot_spring];nwr${A}[amenity=public_bath]["bath:type"~"hot_spring|onsen"];);out center tags 400;`;
       for(const base of OVERPASS){ try{ return (await fetchJSON(base + '?data=' + encodeURIComponent(q), 35000)).elements || []; }catch(e){} } return []; })(),
-    fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(`SELECT ?item ?itemLabel ?coord ?typeLabel ?article WHERE {
+    fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(`SELECT ?item ?itemLabel ?coord ?typeLabel ?article ?temp ?tunit ?ended ?useLabel ?herLabel WHERE {
       SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${(R / 1000).toFixed(1)}". }
       ?item wdt:P31 ?type. ?type wdt:P279? wd:Q177380.
       OPTIONAL { ?article schema:about ?item; schema:isPartOf <https://${state.userLang}.wikipedia.org/>. }
+      OPTIONAL { ?item p:P2076/psv:P2076 [ wikibase:quantityAmount ?temp; wikibase:quantityUnit ?tunit ] }
+      OPTIONAL { ?item wdt:P576|wdt:P3999 ?ended }
+      OPTIONAL { ?item wdt:P5817 ?use }
+      OPTIONAL { ?item wdt:P1435 ?her }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "${[...new Set([state.userLang, ...state.langs, 'en'])].join(',')}". } } LIMIT 500`), 30000).then(d => d.results.bindings).catch(() => [])
   ]);
   if(noaa) for(const [la, lo, name, tF, cls, st, quad] of noaa.rows){
@@ -1441,13 +1447,41 @@ async function loadFarSprings(lat, lon, R){
     const t = e.tags || {}, la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon; if(la == null) continue;
     const dev = t.amenity === 'public_bath' || !!(t.fee === 'yes' || t.operator || t.opening_hours || t.website || t.tourism);
     const tF = parseFloat(t.temperature); out.push({key: `far:osm:${e.type}/${e.id}`, topic: 'spring', name: t['name:' + state.userLang] || t.name || 'Hot spring', lat: la, lon: lo, src: 'OpenStreetMap',
-      developed: dev, tempF: isFinite(tF) ? Math.round(tF * 9 / 5 + 32) : null, url: `https://www.openstreetmap.org/${e.type}/${e.id}`, qid: t.wikidata, facts: [t.access === 'private' ? 'Private' : '', t.fee === 'yes' ? 'Fee' : ''].filter(Boolean)}); }
+      developed: dev, tempF: isFinite(tF) ? Math.round(tF * 9 / 5 + 32) : null, url: `https://www.openstreetmap.org/${e.type}/${e.id}`, qid: t.wikidata, facts: [t.access === 'private' ? 'Private' : '', t.fee === 'yes' ? 'Fee' : ''].filter(Boolean),
+      status: t.disused === 'yes' || t.abandoned === 'yes' || t.access === 'no' || /^closed$/i.test(t.opening_hours || '') ? 'closed' : t.historic ? 'historic' : null}); }
+  const byQ = new Map();   // several rows per item (one per type, temperature…): fold them together
   for(const b of wd){
     const m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord.value); if(!m) continue;
     const name = b.itemLabel.value; if(/^Q\d+$/.test(name)) continue;
-    out.push({key: 'far:' + b.item.value.split('/').pop(), topic: 'spring', name, lat: +m[2], lon: +m[1], src: 'Wikidata', qid: b.item.value.split('/').pop(),
-      developed: /onsen|spa|resort|bath/i.test((b.typeLabel || {}).value || '') || DEV_WORDS.test(name) ? true : null, url: (b.article || {}).value || b.item.value}); }
+    const qid = b.item.value.split('/').pop(), v = k => (b[k] || {}).value || '';
+    let x = byQ.get(qid);
+    if(!x){ x = {key: 'far:' + qid, topic: 'spring', name, lat: +m[2], lon: +m[1], src: 'Wikidata', qid, developed: null, url: v('article') || b.item.value, article: v('article'), facts: []}; byQ.set(qid, x); out.push(x); }
+    if(/onsen|spa|resort|bath/i.test(v('typeLabel')) || DEV_WORDS.test(name)) x.developed = true;
+    if(b.temp && x.tempF == null){ const t = +b.temp.value, u = v('tunit').split('/').pop(); x.tempF = Math.round(u === 'Q42289' ? t : u === 'Q11579' ? (t - 273.15) * 9 / 5 + 32 : t * 9 / 5 + 32); }
+    if(b.ended || /closed|abandon|demolish|destroy|disused|ruin|out of use|defunct/i.test(v('useLabel'))){ x.status = 'closed'; if(b.ended && !x.statusNote) x.statusNote = `Closed ${b.ended.value.slice(0, 4).replace(/^\+/, '')} (Wikidata)`; }
+    else if(b.her && !x.status){ x.status = 'historic'; if(!/^Q\d+$/.test(v('herLabel'))) x.facts = [...new Set([...x.facts, cap(v('herLabel'))])]; }
+  }
+  await springArticles([...byQ.values()].filter(x => x.article));
   return dedupeFar(out);
+}
+/* What a spring's Wikipedia introduction says: a short summary, its temperature, and whether it has closed or is only a
+   historic site now. A "closed" flag keeps the sentence that says so, since articles can lag behind a reopening. */
+const SPRING_CLOSED = /\b(?:closed|shut down|shuttered|demolished|razed|destroyed|defunct|abandoned|no longer (?:open|operat\w*|in use|accessible|exists?)|out of business|ceased operations?)\b/i;
+function springFromText(x, text){
+  if(!text) return;
+  x.summary = x.summary || trimText(text.replace(/\s+/g, ' '), 260);
+  if(x.tempF == null){ let m;
+    if((m = /(\d{2,3}(?:\.\d)?)\s*°\s*F\b/.exec(text))) x.tempF = Math.round(+m[1]);
+    else if((m = /(\d{2,3}(?:\.\d)?)\s*°\s*C\b/.exec(text))) x.tempF = Math.round(+m[1] * 9 / 5 + 32); }
+  if(x.status === 'closed') return;
+  const S = sentences(text), closed = S.find(t => SPRING_CLOSED.test(t) && !/\breopen|\bre-open/i.test(t));
+  if(closed){ x.status = 'closed'; x.statusNote = `Wikipedia: ${trimText(closed, 220)}`; return; }
+  if(!x.status && (/\bhistoric\b/i.test(S[0] || '') || /^[^.]{0,120}\b(?:was|were) (?:a|an|once)\b/i.test(S[0] || ''))) x.status = 'historic';
+}
+async function springArticles(list){
+  const ul = state.userLang, title = x => decodeURIComponent(x.article.split('/wiki/')[1] || '').replace(/_/g, ' ');
+  const ex = await extractsFor(ul, list.map(title).filter(Boolean)).catch(() => ({}));
+  for(const x of list){ const e = ex[title(x)]; if(e) springFromText(x, e.extract); delete x.article; }
 }
 async function loadFarFishing(lat, lon, R){
   const A = `(around:${R},${lat},${lon})`, q = `[out:json][timeout:30];(nwr${A}[leisure=fishing];nwr${A}[fishing~"^(yes|designated|permissive)$"][name];);out center tags 400;`;
@@ -1470,7 +1504,9 @@ function dedupeFar(list){
   const out = [];
   for(const x of list){
     const dup = out.find(y => (x.qid && x.qid === y.qid) || (hav(x, y) < 150) || (hav(x, y) < 1200 && nameOverlap(x.name, y.name).cont >= .5));
-    if(dup){ dup.developed = dup.developed ?? x.developed; dup.tempF = dup.tempF ?? x.tempF; dup.facts = [...new Set([...(dup.facts || []), ...(x.facts || [])])];
+    if(dup){ dup.developed = dup.developed ?? x.developed; dup.tempF = dup.tempF ?? x.tempF;
+      if(x.status === 'closed' || (x.status && !dup.status)){ dup.status = x.status; dup.statusNote = x.statusNote || dup.statusNote; }
+      dup.summary = dup.summary || x.summary; dup.facts = [...new Set([...(dup.facts || []), ...(x.facts || [])])];
       dup.also = [...new Set([...(dup.also || []), x.src])].filter(s => s !== dup.src); if(!dup.url && x.url) dup.url = x.url; }
     else out.push({...x});
   }
@@ -2859,7 +2895,8 @@ function farFilterOK(r){
 const farShown = r => !state.hiddenSrc.has(r.it.topic) && farFilterOK(r);
 function farCardHTML(r){
   const it = r.it, ai = it.ai || {}, k = esc(it.key), open = state.expanded.has(it.key), dev = it.developed;
-  const tag = dev === true ? '<span class="tag dev">Developed</span>' : dev === false && it.topic === 'spring' ? '<span class="tag">Wild</span>' : '';
+  const tag = (dev === true ? '<span class="tag dev">Developed</span>' : dev === false && it.topic === 'spring' ? '<span class="tag">Wild</span>' : '')
+    + (it.status === 'closed' ? '<span class="tag closed">Closed</span>' : it.status === 'historic' ? '<span class="tag">Historic site</span>' : '');
   const temp = it.tempF != null ? `${it.tempF}°F` : ai.temperature && ai.temperature.length <= 24 ? ai.temperature : '';
   const src = it.src === 'AI guide' ? 'AI guide' : it.src + (it.also && it.also.length ? ', ' + it.also.join(', ') : '') + (it.ai ? ' + AI guide' : '');
   const details = [['Temperature', ai.temperature], ['Getting there', ai.access], ['Land', ai.land], ['Season', ai.season], ['Fish', ai.species], ['Rules', ai.rules], ['Safety', ai.safety]].filter(([, v]) => v);
@@ -2870,7 +2907,8 @@ function farCardHTML(r){
   if(it.url) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.url)}">Source</a>`;
   return `<article class="card far" data-key="${k}"><div><h3><span class="fi ${it.topic}${dev === true && it.topic === 'spring' ? ' dev' : ''}">${FAR_ICON[it.topic]}</span><span>${esc(it.name)}</span></h3>`
     + `<div class="meta">${fmtDist(r.d)} ${compassName(r.b)}${temp ? ` · ${esc(temp)}` : ''}${tag}<span class="src${it.ai ? ' gtag' : ''}">via ${esc(src)}</span>${ai.confidence ? `<span class="src">${esc(ai.confidence)} confidence</span>` : ''}</div></div>`
-    + `${facts ? `<div class="facts">${facts}</div>` : ''}${ai.summary ? `<p class="text">${esc(open ? ai.summary : trimText(ai.summary, 200))}</p>` : ''}`
+    + `${facts ? `<div class="facts">${facts}</div>` : ''}${ai.summary ? `<p class="text">${esc(open ? ai.summary : trimText(ai.summary, 200))}</p>` : it.summary ? `<p class="text">${esc(it.summary)}</p>` : ''}`
+    + (it.statusNote && !(it.summary || '').includes(it.statusNote.replace(/^Wikipedia: /, '').replace(/…$/, '')) ? `<p class="fnote">${esc(it.statusNote)}</p>` : '')   // the reason, unless the summary already says it
     + (open ? (details.length ? `<dl class="fdl">${details.map(([l, v]) => `<dt>${l}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '') + guideHTML({...ai, summary: '', species: undefined}) : '')
     + `<div class="actions">${actions}</div></article>`;
 }
