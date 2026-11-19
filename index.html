@@ -455,7 +455,7 @@ footer a{color:var(--muted)}
 </main>
 
 <footer>
-  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>. Listings from <a href="https://www.wikivoyage.org/">Wikivoyage</a> (CC BY-SA). Photos from <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>. English heritage from the <a href="https://historicengland.org.uk/listing/the-list/">National Heritage List for England</a> (Open Government Licence).
+  Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>. Listings from <a href="https://www.wikivoyage.org/">Wikivoyage</a> (CC BY-SA). Photos from <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>. Heritage registers: <a href="https://historicengland.org.uk/listing/the-list/">National Heritage List for England</a>, <a href="https://www.historicenvironment.scot/">Historic Environment Scotland</a> and Canmore, <a href="https://www.communities-ni.gov.uk/topics/historic-environment">Northern Ireland's Historic Environment Division</a> (Open Government Licence); Ireland's <a href="https://www.buildingsofireland.ie/">NIAH</a> and <a href="https://www.archaeology.ie/">Sites and Monuments Record</a> (CC BY 4.0).
   <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a> and <a href="https://www.gbif.org/">GBIF.org</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>. US hot springs from NOAA's Thermal Springs List (Berry, Grim &amp; Ikelman 1980, via <a href="https://doi.org/10.1594/PANGAEA.981233">PANGAEA</a>, CC BY 4.0).</span>
   <span class="ver" id="ver"></span>
 </footer>
@@ -589,7 +589,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.9.0"></script>
+<script src="common.js?v=3.10.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -696,7 +696,7 @@ async function loadArea(lat, lon, live = () => true){
   const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
   const city = a.city || a.town || a.village || a.municipality || a.county;
   state.place = [hood, city, a.country].filter(Boolean).join(', ');
-  state.cc = (a.country_code||'').toLowerCase(); state.hood = hood || ''; state.city = city || '';
+  state.cc = (a.country_code||'').toLowerCase(); state.sub = a['ISO3166-2-lvl4'] || '';   // e.g. GB-SCT: which UK nation's register applies state.hood = hood || ''; state.city = city || '';
   const key = (hood||'')+'|'+(city||'');
   if(key === state.areaKey) return;
   state.areaKey = key;
@@ -1651,18 +1651,103 @@ async function fetchHE(lat, lon){
       return {L, a: f.attributes || {}, pt}; })).catch(() => [])));
   return res.flat().filter(x => x.pt && x.a.Name);
 }
-const heTitle = n => { n = n.trim(); if(n.length > 60) n = n.split(',')[0]; if(n.length > 60) n = n.split(' (')[0]; if(n.length > 60) n = n.split(/ with | including /i)[0];
+const heTitle = n => { n = String(n || '').trim(); if(n.length > 60) n = n.split(',')[0]; if(n.length > 60) n = n.split(' (')[0]; if(n.length > 60) n = n.split(/ with | including /i)[0];
   return /[a-z]/.test(n) ? n : n.toLowerCase().replace(/(^|[\s(-])([a-z])/g, (m, a, c) => a + c.toUpperCase()).replace(/\b(Of|The|And|At|On|In|To|With|For)\b/g, w => w.toLowerCase()).replace(/^./, c => c.toUpperCase()).replace(/'S\b/g, "'s"); };
-function mergeHE(rows){
-  for(const {L, a, pt} of rows){
-    const lat = pt[1], lon = pt[0], title = heTitle(a.Name), fact = L === 0 ? `Grade ${a.Grade} listed building` : HE_LAYERS[L] + (a.Grade ? `, Grade ${a.Grade}` : '');
-    const dup = [...state.items.values()].find(it => it.lat != null && hav(it, {lat, lon}) < (L === 0 ? 150 : 500) && Object.values(it.versions || {}).some(v => nameOverlap(v.title, title).cont >= .5));
-    if(dup){ const listed = (dup.facts || []).some(f => /Grade (I|II\*?) listed/i.test(f));   // one grade per card (the first, highest-ranked entry)
-      if(!(L === 0 && listed)) dup.facts = [...new Set([...(dup.facts || []), fact])]; dup.heLink = dup.heLink || a.hyperlink; continue; }
-    const key = 'he:' + a.ListEntry; if(state.items.has(key)) continue;
-    state.items.set(key, {key, src: 'Historic England', lat, lon, versions: {en: {title, extract: '', url: a.hyperlink}}, facts: [fact], heLink: a.hyperlink,
-      isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+const regVal = v => v == null || v === 'None' || v === ' ' ? '' : String(v).trim();
+// "Home Farm,enclosure 300m ENE of" → "Enclosure 300m ENE of Home Farm" (the register's way of naming things)
+const regTitle = t => { const p = regVal(t).split(','); if(p.length !== 2) return heTitle(regVal(t)); const a = p[0].trim(), b = p[1].trim();
+  return / of$/i.test(b) ? cap(b) + ' ' + a : `${cap(b)}, ${a}`; };
+function arcPoint(g){
+  if(!g) return null; if(g.x != null) return [g.x, g.y]; if(g.points && g.points[0]) return g.points[0];
+  if(g.rings && g.rings[0]){ const r = g.rings[0]; let x = 0, y = 0; r.forEach(p => { x += p[0]; y += p[1]; }); return [x / r.length, y / r.length]; }
+  return null;
+}
+async function arcQuery(url, lat, lon, R, where = '1=1'){
+  const d = await fetchJSON(url + '/query?' + new URLSearchParams({geometry: `${lon},${lat}`, geometryType: 'esriGeometryPoint', inSR: '4326', distance: String(Math.round(R)),
+    units: 'esriSRUnit_Meter', where, outFields: '*', returnGeometry: 'true', outSR: '4326', f: 'json'}), 20000);
+  return (d.features || []).map(f => ({a: f.attributes || {}, pt: arcPoint(f.geometry)})).filter(x => x.pt);
+}
+/* National heritage registers, by country (and UK nation). Each gives rows: {reg, key, src, title, fact, link, text, lat, lon} */
+const REGISTERS = {
+  'GB-ENG': async (lat, lon) => (await fetchHE(lat, lon)).map(({L, a, pt}) => ({reg: 'he' + L, key: 'he:' + a.ListEntry, src: 'Historic England', title: heTitle(a.Name),
+    fact: L === 0 ? `Grade ${a.Grade} listed building` : HE_LAYERS[L] + (a.Grade ? `, Grade ${a.Grade}` : ''), link: a.hyperlink, lat: pt[1], lon: pt[0], listed: L === 0, wide: L !== 0})),
+  'GB-SCT': async (lat, lon, R) => {
+    const B = 'https://inspire.hes.scot/arcgis/rest/services/', q = (sv, where) => arcQuery(B + sv + '/MapServer/0', lat, lon, R, where).catch(() => []);
+    const [lb, sm, pic, gdl, btl, whs, can] = await Promise.all([q('HES/Listed_Buildings', "CATEGORY='A'"), q('HES/Scheduled_Monuments'), q('HES/Properties_in_care_points'),
+      q('HES/Gardens_and_Designed_Landscapes'), q('HES/Battlefields_Inventory_Boundary'), q('HES/World_Heritage_Sites'), q('CANMORE/Canmore_Points', "ARCHAEOLOG='Y'")]);
+    const row = (reg, key, title, fact, link, pt, extra) => ({reg, key, src: 'Historic Environment Scotland', title, fact, link, lat: pt[1], lon: pt[0], ...extra});
+    return [
+      ...pic.map(x => row('pic', 'hes:' + x.a.PIC_ID, regVal(x.a.PIC_NAME), 'In the care of Historic Environment Scotland', x.a.LINK, x.pt, {wide: true})),
+      ...lb.map(x => { const p = regVal(x.a.ENT_TITLE).split(',').map(t => t.trim()).filter(t => t && t !== regVal(x.a.PARBUR) && t !== regVal(x.a.LOCAL_AUTH));
+        const title = p.length > 1 && p[0].split(' ').length <= 2 ? p[0] + ', ' + p[1] : p[0];   // "Statue, Parliament Square" rather than "Statue"
+        return row('lb', 'hes:' + x.a.DES_REF, title || heTitle(x.a.DES_TITLE), 'Category A listed building', x.a.LINK, x.pt, {listed: true}); }),
+      ...sm.map(x => row('sm', 'hes:' + x.a.DES_REF, regTitle(x.a.DES_TITLE), 'Scheduled monument' + (regVal(x.a.CATEGORY) ? ` (${regVal(x.a.CATEGORY).split(':').pop().trim().toLowerCase()})` : ''), x.a.LINK, x.pt, {wide: true})),
+      ...gdl.map(x => row('gdl', 'hes:' + x.a.DES_REF, regVal(x.a.DES_TITLE), 'Garden and designed landscape', x.a.LINK, x.pt, {wide: true})),
+      ...btl.map(x => row('btl', 'hes:' + x.a.DES_REF, regVal(x.a.DES_TITLE), 'Inventory battlefield', x.a.LINK, x.pt, {wide: true})),
+      ...whs.map(x => row('whs', 'hes:' + x.a.DES_REF, regVal(x.a.DES_TITLE).replace(/ Boundary$/i, ''), 'World Heritage Site', x.a.LINK, x.pt, {wide: true})),
+      ...can.filter(x => !/no class|event|findspot/i.test(regVal(x.a.SITETYPE))).map(x => { const segs = regVal(x.a.NMRSNAME).split(','), last = heTitle(segs[segs.length - 1] || ''),
+        type = cap(regVal(x.a.SITETYPE).toLowerCase().replace(/\s*\(period unassigned\)/g, ''));
+        return row('canmore', 'canmore:' + x.a.CANMOREID, /^\d/.test(last) || !last ? type.split(',')[0] : last, type, x.a.URL, x.pt, {src: 'Canmore'}); })
+    ];
+  },
+  'GB-NIR': async (lat, lon, R) => {
+    const B = 'https://services2.arcgis.com/BdBkthNLO9mzGAMO/arcgis/rest/services/Historic_Environment_Division_GIS_Data/FeatureServer/', q = (L, where) => arcQuery(B + L, lat, lon, R, where).catch(() => []);
+    const [smr, hb, bat, park] = await Promise.all([q(0), q(1, "CurrentGra IN ('A','B+')"), q(8), q(9)]);
+    const row = (reg, key, title, fact, pt, extra) => ({reg, key, src: 'Historic Environment Division', title, fact, link: '', lat: pt[1], lon: pt[0], ...extra});
+    return [
+      ...smr.map(x => { const t = regVal(x.a.Edited_Type), name = t.includes(':') ? heTitle(t.split(':').pop().trim()) : heTitle(t);
+        return row('smr', 'hed:' + x.a.SMRNo, name, [cap(regVal(x.a.General_Type).toLowerCase()), regVal(x.a.General_Period).toLowerCase()].filter(Boolean).join(', '), x.pt,
+          {more: regVal(x.a.Protection) ? [regVal(x.a.Protection)] : []}); }),
+      ...hb.map(x => row('hb', 'hed:' + x.a.HB_ref, regVal(x.a.Address).split('\n')[0], `Grade ${x.a.CurrentGra} listed building`, x.pt, {listed: true, more: regVal(x.a.Date_Const) ? ['Built ' + regVal(x.a.Date_Const)] : []})),
+      ...bat.map(x => row('bat', 'hed:bat' + x.a.OBJECTID, `${regVal(x.a.BATTLE)}${regVal(x.a.DDMMYY) ? ', ' + regVal(x.a.DDMMYY).split('/').pop() : ''}`, 'Battle site', x.pt,
+        {wide: true, text: [regVal(x.a.TYPE), regVal(x.a.SIDEA) && regVal(x.a.SIDEB) ? `${regVal(x.a.SIDEA)} against ${regVal(x.a.SIDEB)}` : '', regVal(x.a.OUTCOME) ? 'Outcome: ' + regVal(x.a.OUTCOME) : ''].filter(Boolean).join('. ')})),
+      ...park.map(x => row('park', 'hed:' + x.a.REF_NO, heTitle(regVal(x.a.SITE)), 'Historic park, garden or demesne' + (regVal(x.a.Grade) ? `, Grade ${regVal(x.a.Grade)}` : ''), x.pt, {wide: true}))
+    ];
+  },
+  ie: async (lat, lon, R) => {
+    const B = 'https://services-eu1.arcgis.com/HyjXgkV6KGMSF3jt/arcgis/rest/services/';
+    const [niah, smr] = await Promise.all([arcQuery(B + 'NIAHBuildingsOpenData/FeatureServer/0', lat, lon, R, "RATING IN ('National','International')").catch(() => []),
+      arcQuery(B + 'SMROpenData/FeatureServer/0', lat, lon, R, "MONUMENT_CLASS NOT LIKE 'Redundant%' AND MONUMENT_CLASS NOT LIKE 'Non-antiquity%'").catch(() => [])]);
+    return [
+      ...niah.map(x => { const a = x.a, from = regVal(a.DATEFROM), to = regVal(a.DATETO);
+        return {reg: 'niah', key: 'niah:' + a.REG_NO, src: 'Buildings of Ireland (NIAH)', title: regVal(a.NAME) || `${cap(regVal(a.ORIGINAL_TYPE))}, ${[regVal(a.NUMBER), regVal(a.STREET1)].filter(Boolean).join(' ')}`,
+          fact: `Of ${regVal(a.RATING).toLowerCase()} importance`, more: from ? [`Built c. ${from}${to && to !== from ? '–' + to : ''}`] : [], link: regVal(a.WEBSITE_LINK),
+          text: regVal(a.APPRAISAL) || regVal(a.DESCRIPTION), lat: x.pt[1], lon: x.pt[0], listed: true}; }),
+      ...smr.map(x => ({reg: 'smr', key: 'smr:' + x.a.SMRS, src: 'Sites and Monuments Record', title: `${cap(regVal(x.a.MONUMENT_CLASS))}${regVal(x.a.TOWNLAND) ? ', ' + heTitle(regVal(x.a.TOWNLAND)) : ''}`,
+        fact: 'Recorded monument', link: regVal(x.a.WEBSITE_LINK), text: regVal(x.a.WEB_NOTES), lat: x.pt[1], lon: x.pt[0]}))
+    ];
   }
+};
+async function fetchRegisters(lat, lon){
+  const fn = REGISTERS[state.cc === 'gb' ? (state.sub || 'GB-ENG') : state.cc];
+  return fn ? fn(lat, lon, Math.min(state.radius * 1.3, 3000)).catch(() => []) : [];
+}
+// A register entry joins the place it describes (adding its designation, link and words), or becomes its own card.
+// In dense places (old city centres) only the nearest few of each kind become new cards.
+const REG_SRC = /Historic England|Historic Environment|Canmore|Buildings of Ireland|Monuments Record/;
+function mergeRegisters(rows){
+  const fresh = [];
+  for(const r of rows){
+    if(!r.title || !isFinite(r.lat)) continue;
+    const dup = [...state.items.values()].find(it => it.lat != null && hav(it, r) < (r.wide ? 500 : 150) && Object.values(it.versions || {}).some(v => nameOverlap(v.title, r.title).cont >= .5));
+    if(dup){
+      const listed = (dup.facts || []).some(f => /listed building|importance$/i.test(f));
+      if(!(r.listed && listed)) dup.facts = [...new Set([...(dup.facts || []), r.fact, ...(r.more || [])])];
+      if(r.link && !dup.heLink) dup.heLink = r.link;
+      if(r.text && !dup.regText){ dup.regText = r.text; dup.regSrc = r.src; }
+      continue;
+    }
+    fresh.push(r);
+  }
+  const per = {}, added = [];
+  fresh.sort((a, b) => hav(state.pos, a) - hav(state.pos, b)).forEach(r => {
+    const twin = added.find(it => hav(it, r) < 150 && nameOverlap(it.versions.en.title, r.title).cont >= .5);   // two registers, one place
+    if(twin){ twin.facts = [...new Set([...twin.facts, r.fact, ...(r.more || [])])].slice(0, 5); if(r.text && !twin.versions.en.extract) twin.versions.en.extract = r.text; return; }
+    per[r.reg] = (per[r.reg] || 0) + 1; if(per[r.reg] > 40 || state.items.has(r.key)) return;
+    state.items.set(r.key, {key: r.key, src: r.src, lat: r.lat, lon: r.lon, versions: {en: {title: r.title, extract: r.text || '', url: r.link || ''}}, facts: [r.fact, ...(r.more || [])].filter(Boolean),
+      heLink: r.link, isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+    added.push(state.items.get(r.key));
+  });
 }
 /* ---------- Wikimedia Commons: photos taken around here, old photographs first ---------- */
 async function loadPhotos(lat, lon){
@@ -1748,7 +1833,7 @@ async function refresh(force){
     const nat = state.mode === 'nature', md = MD();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${nat ? md.reading : `Reading ${state.langs.map(langName).join(' and ')} Wikipedia…`}</span>`);
     const extra = nat ? Promise.all([[], state.useOsm ? fetchOSMNature(lat, lon) : [], fetchVoyage(lat, lon), []])
-                      : Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : [], fetchVoyage(lat, lon), state.useWd ? fetchHE(lat, lon) : []]);
+                      : Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : [], fetchVoyage(lat, lon), state.useWd ? fetchRegisters(lat, lon) : []]);
     if(!state.photos || hav(state.photos, {lat, lon}) > 300)
       loadPhotos(lat, lon).then(list => { if(!live()) return; state.photos = {lat, lon, list}; matchPhotos(); renderSoon(); }).catch(() => {});
     const land = nat ? loadNature(lat, lon, live) : null;
@@ -1756,9 +1841,9 @@ async function refresh(force){
     state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
     render();
     setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${md.checking}</span>`);
-    const [wdRows, osmEls, voy, he] = await extra; if(!live()) return;
+    const [wdRows, osmEls, voy, reg] = await extra; if(!live()) return;
     if(nat){ if(state.useOsm) mergeOSMNature(osmEls); }
-    else { if(state.useWd) mergeWD(wdRows); if(he.length) mergeHE(he); if(state.useOsm) mergeOSM(osmEls); }
+    else { if(state.useWd) mergeWD(wdRows); if(reg.length) mergeRegisters(reg); if(state.useOsm) mergeOSM(osmEls); }
     mergeVoyage(voy); matchPhotos();
     if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
     if(nat){ loadFar(lat, lon, live); await land; } else loadFacts();
@@ -2506,10 +2591,10 @@ function cardHTML(it, opts={}){
   const k = esc(it.key);
   let actions = `<button data-act="more" data-key="${k}" aria-expanded="${expanded}">${expanded?'Less':'More'}</button>`;
   if(lv && uv && uv.extract && lv.extract) actions += `<button data-act="orig" data-key="${k}">${orig?'Show '+esc(langName(ul)):'Original ('+esc(langName(localLang))+')'}</button>`;
-  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">${it.src === 'Historic England' ? 'Listing' : it.src === 'Wikivoyage' ? 'Wikivoyage' : 'Article'}</a>`;
+  actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">${REG_SRC.test(it.src || '') ? 'Listing' : it.src === 'Wikivoyage' ? 'Wikivoyage' : 'Article'}</a>`;
   if(it.lat!=null && !opts.area && M.map) actions += `<button data-act="map" data-key="${k}">Map</button>`;
   if(it.lat!=null && !opts.area) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(mapsURL(it.lat, it.lon))}">Google Maps</a>`;
-  if(it.heLink && it.src !== 'Historic England') actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.heLink)}">Listing</a>`;
+  if(it.heLink && !REG_SRC.test(it.src || '')) actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(it.heLink)}">Listing</a>`;
   const langNote = bodyLang!==ul ? ` <span class="lang">(${esc(langName(bodyLang))})</span>` : '';
   const num = opts.num ? `<span class="num ${srcClass(it)}">${opts.num}</span>` : '';
   return `<article class="card${opts.area?' area':''}${opts.band===2?' far':''}" data-key="${k}">
@@ -2523,6 +2608,7 @@ function cardHTML(it, opts={}){
     ${it.ai && it.ai.summary ? `<p class="text" lang="${esc(ul)}"${expanded && wlTerms(it.ai.terms) ? ` data-wl="t:${wlTerms(it.ai.terms)}"` : ''}>${esc(expanded ? it.ai.summary : trimText(it.ai.summary, limit))}</p>`
       : text || !it.src ? `<p class="text" lang="${esc(bodyLang)}"${expanded && !it.src && /wikipedia\.org/.test(bodyV.url||'') ? ` data-wl="a:${esc(bodyLang)}:${esc(bodyV.title)}"` : ''}>${esc(text||'No summary available yet.')}${text?langNote:''}</p>` + (text ? xlateHTML(full, bodyLang, {about: head.title, googleURL: !it.src && lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''}) : '') : ''}
     ${it.inscription?`<blockquote class="inscr" lang="${esc(it.inscrLang)}"><span class="cap">Inscription</span>${esc(it.inscription)}</blockquote>` + xlateHTML(it.inscription, it.inscrLang, {about: head.title}) :''}
+    ${expanded && it.regText ? `<p class="text voy-note"><b>${esc(it.regSrc)}:</b> ${esc(trimText(it.regText, 600))}</p>` : ''}
     ${expanded && it.voyText ? `<p class="text voy-note"><b>Wikivoyage:</b> ${esc(it.voyText)}</p>` : ''}
     ${expanded ? (it.ai ? guideHTML(it.ai) : '') + placeDetailsHTML(it) : ''}
     <div class="actions">${actions}</div>

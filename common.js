@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.9.0';
+const WANDER_VERSION = '3.10.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
