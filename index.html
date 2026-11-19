@@ -298,6 +298,10 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 .card.area .desc{font-size:14px;color:var(--muted);margin-top:4px}
 .card.area.secondary{border-top:1px solid var(--rule);padding-top:18px}
 .card.area.secondary h3{font-size:24px}
+.card.area:not(.nat) h3{font-size:23px}   /* History: the closest area and the wider one, both a size down */
+.area-lvl{margin:0;padding:14px 20px 0;font:600 11.5px/1.3 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.area-lvl + .card.area.secondary{border-top:0;padding-top:4px}
+.area-lvl ~ .area-lvl{margin-top:8px;border-top:1px solid var(--rule);padding-top:18px}
 .factgrid{grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;margin:16px 0 0;border-top:1px solid var(--rule)}
 .factgrid>div{padding:10px 0;border-bottom:1px solid var(--rule)}
 .factgrid .wide{grid-column:1 / -1}
@@ -644,7 +648,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.15.0"></script>
+<script src="common.js?v=3.16.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -741,38 +745,51 @@ async function geosearch(lang, lat, lon, radius){
   return (d.query && d.query.pages) || [];
 }
 
-/* ---------- Area intro (neighbourhood + city) ---------- */
+/* ---------- Area intro: the closest named area first, then wider ones ---------- */
+/* Nominatim at zoom 14 (hamlet or neighbourhood) sets the place, languages and country at once, so the search can go on.
+   The area cards follow in the background: zoom 14, 12 (town) and 10 (county or city), each kept if it has a Wikipedia article,
+   closest first. Near Lake Arrowhead this gives Crest Park, Lake Arrowhead, San Bernardino County, instead of the county alone. */
+const WIDE_TYPES = /^(city|town|municipality|county|state_district|state|region|province|country)$/;
 async function loadArea(lat, lon, live = () => true){
   const z14 = await nominatim('reverse', {lat, lon, zoom:'14', addressdetails:'1', extratags:'1', polygon_geojson:'1', polygon_threshold:'0.0003'});
   if(!live()) return;
   const a = z14.address || {};
   state.areaGeo = (z14.geojson && /Polygon/.test(z14.geojson.type)) ? z14.geojson : null;
   state.langs = langsFor(a);
-  const hood = a.neighbourhood || a.quarter || a.suburb || a.city_district || a.borough;
+  const hood = a.neighbourhood || a.quarter || a.suburb || a.hamlet || a.city_district || a.borough;
   const city = a.city || a.town || a.village || a.municipality || a.county;
   state.place = [hood, city, a.country].filter(Boolean).join(', ');
   state.cc = (a.country_code||'').toLowerCase(); state.hood = hood || ''; state.city = city || '';
   state.sub = a['ISO3166-2-lvl4'] || '';   // e.g. GB-SCT: which UK nation's register applies
-  const key = (hood||'')+'|'+(city||'');
+  const key = (z14.osm_type || '') + (z14.osm_id || '') + '|' + (hood||'') + '|' + (city||'');
   if(key === state.areaKey) return;
-  state.areaKey = key;
+  state.areaKey = key; state.area = [];   // never show the last place's area under this one
+  loadAreaCards(lat, lon, z14, key).catch(() => { if(state.areaKey === key) state.areaKey = ''; });   // try again on the next search
+}
+async function loadAreaCards(lat, lon, z14, key){
+  const still = () => state.areaKey === key;
   const qids = [z14.extratags?.wikidata];
+  if(!WIDE_TYPES.test(z14.addresstype || '')){   // zoom 14 found a hamlet or neighbourhood: also ask for the town
+    try{ const z12 = await nominatim('reverse', {lat, lon, zoom:'12', extratags:'1'}); qids.push(z12.extratags?.wikidata); }catch(e){}
+    if(!still()) return;
+  }
   try{ const z10 = await nominatim('reverse', {lat, lon, zoom:'10', extratags:'1'}); qids.push(z10.extratags?.wikidata); }catch(e){}
-  if(!live()){ state.areaKey = ''; return; }
+  if(!still()) return;
   const ids = [...new Set(qids.filter(Boolean))];
-  if(!ids.length){ state.area=[]; return; }
-  const sites = state.langs.map(l=>l.replace(/-/g,'_')+'wiki').join('|');
+  if(!ids.length) return;
+  const langs = state.langs, sites = langs.map(l=>l.replace(/-/g,'_')+'wiki').join('|');
   const wd = await fetchJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&props=sitelinks&sitefilter=${sites}&ids=${ids.join('|')}`);
   const area = ids.map(q=>({key:'area:'+q, qid:q, versions:{}}));
-  await Promise.all(state.langs.map(async lang=>{
+  await Promise.all(langs.map(async lang=>{
     const titles = area.map(it=>wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title).filter(Boolean);
     if(!titles.length) return;
     const ex = await extractsFor(lang, titles).catch(()=>({}));
     area.forEach(it=>{ const t=wd.entities?.[it.qid]?.sitelinks?.[lang.replace(/-/g,'_')+'wiki']?.title; if(t && ex[t]){ it.versions[lang]=ex[t]; it.thumb = it.thumb || ex[t].thumb; } });
   }));
-  if(!live()){ state.areaKey = ''; return; }
+  if(!still()) return;
   state.area = area.filter(it=>Object.keys(it.versions).length);
   const mine = state.area;
+  render(); saveSessionSoon();
   loadAreaDetails(mine).then(()=>{ if(state.area===mine) render(); }).catch(()=>{});
 }
 
@@ -2945,7 +2962,8 @@ function render(){
   if(!state.pos) return;
   applyGuides(); updateExplore();
   try{ initMap(); }catch(e){ console.warn('map init', e); }
-  const area = state.mode === 'nature' ? natureAreaHTML() : state.area.map((it,i)=>areaHTML(it,i)).join('');
+  const A = state.area, lvl = t => `<p class="area-lvl">${t}</p>`;   // two sections when there is more than one area: the closest first, the widest last
+  const area = state.mode === 'nature' ? natureAreaHTML() : A.map((it,i)=>(A.length > 1 && i === 0 ? lvl('Right here') : A.length > 1 && i === A.length - 1 ? lvl('Wider area') : '') + areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>${MD().areaHead}</h2>${area}` : '';
   const rows = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))

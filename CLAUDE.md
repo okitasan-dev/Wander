@@ -50,7 +50,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 
 - **Cards** come from Wikipedia articles near you, enriched by Wikidata facts.
 - **Registers:** national heritage registers merge into matching cards, adding the designation, a **Listing** link and the register's text. Anything unmatched becomes its own card.
-- **Area card:** the city's article, its facts (including "Name in Māori" etc.), "The name" (the article's etymology section), "Earliest peoples" (its Indigenous/prehistory section, or the history section's opening paragraph when that is about the first peoples; `earlyPeoples`/`nameOrigin` in `common.js`), and "History in brief", which also draws on the earliest-peoples section and skips sentences already shown above it.
+- **Area cards** (`loadAreaCards`, in the background so the list isn't held up): the closest area with a Wikipedia article first, then wider ones, e.g. Crest Park, Lake Arrowhead, San Bernardino County. With more than one, they sit under "Right here" and "Wider area" (the widest), with a smaller heading. Each card has the area's article, its facts (including "Name in Māori" etc.), "The name" (the article's etymology section), "Earliest peoples" (its Indigenous/prehistory section, or the history section's opening paragraph when that is about the first peoples; `earlyPeoples`/`nameOrigin` in `common.js`), and "History in brief", which also draws on the earliest-peoples section and skips sentences already shown above it.
 - **AI prompt:** includes Indigenous and prehistoric history, folklore and sensitive-site rules.
 
 ### Nature mode
@@ -81,7 +81,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 ### Used by both modes
 | Source | Use and quirks |
 |---|---|
-| Nominatim (OSM) | Reverse geocoding: neighbourhood, city, `cc`, and `state.sub` (`ISO3166-2-lvl4`, e.g. `GB-SCT`, which picks the UK register) |
+| Nominatim (OSM) | Reverse geocoding: neighbourhood (or hamlet), city, `cc`, and `state.sub` (`ISO3166-2-lvl4`, e.g. `GB-SCT`, which picks the UK register). Area cards use zoom 14, 12 (skipped when zoom 14 is already a town or city) and 10, closest first. |
 | Wikipedia | Geosearch and extracts in the user's language and the local one |
 | Wikivoyage | Reads the 2 nearest destination articles per language (up to 3 languages) and parses `{{see}}`/`{{do}}`/`{{listing}}`/`{{vCard}}`/`{{voir}}`… templates with coordinates. History mode takes sights; Nature mode takes outdoor keywords. A match adds "Wikivoyage: …" to that card. |
 | Wikimedia Commons | Geosearch for files (ns 6), photos from before 1950 first; used as a fallback thumbnail for a matching card. Only standard thumbnail widths (250/330/500/960/1280) work; others give 400. |
@@ -175,6 +175,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `nature` | Mode switch, Nature sources (simulated), land card, prompt, guide import, reload |
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
 | `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
+| `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
 | `excursion-chips` | Hot springs chip count matches the Excursions list under each Wild/Developed filter; a switched-off section is named in the hidden note; Hot springs inside the Types menu; temperature and Closed/Historic flags (live NOAA + Wikidata, stand-in Wikipedia intros, Burbank) |
