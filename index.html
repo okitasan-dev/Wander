@@ -23,6 +23,11 @@
   --brass:#D0AE70; --brass-hi:#E3C68E; --brass-soft:rgba(208,174,112,.11); --on-brass:#1E180B;
   --patina:#5FB3A3; --you:#8DE3D4; --shadow:0 12px 34px rgba(0,0,0,.45);
 }}
+/* Nature mode: "Lush forest" greens, with a warm amber for you */
+:root.nature{--ground:#E9F2EA;--surface:#F4F9F4;--raise:#FFFFFF;--ink:#1B2E21;--muted:#56705D;--rule:rgba(37,61,44,.14);
+  --brass:#2E6F40;--brass-hi:#68BA7F;--brass-soft:rgba(104,186,127,.17);--on-brass:#F2FFF5;--patina:#68BA7F;--you:#D08A2E;--shadow:0 10px 30px rgba(37,61,44,.16)}
+@media (prefers-color-scheme:dark){:root.nature{--ground:#122019;--surface:#192A20;--raise:#203427;--ink:#E3F5E8;--muted:#8FAE98;--rule:rgba(207,255,220,.10);
+  --brass:#68BA7F;--brass-hi:#CFFFDC;--brass-soft:rgba(104,186,127,.14);--on-brass:#0D1B12;--patina:#2E6F40;--you:#F0B45C;--shadow:0 12px 34px rgba(0,0,0,.5)}}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font:400 16px/1.55 var(--sans);background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
@@ -74,6 +79,40 @@ svg{flex:none}
 .legend button[hidden]{display:none}
 .legend .lg-n{font-weight:600;color:var(--muted);margin-left:1px}
 .legend .lg-n:empty{display:none}
+:root.nature #map:not(.lay-sat):not(.lay-topo) .leaflet-tile-pane{filter:grayscale(.55) sepia(.25) hue-rotate(50deg) saturate(1.15) contrast(.92) brightness(1.04)}
+@media (prefers-color-scheme:dark){:root.nature #map:not(.lay-sat):not(.lay-topo) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) grayscale(.6) sepia(.3) hue-rotate(60deg) brightness(.74) contrast(1.08)}}
+:root.nature .osm{color:#0F2A17}
+@media (prefers-color-scheme:dark){:root.nature .osm{color:#fff}}
+.nat-only{display:none}
+:root.nature .nat-only{display:inline}
+/* nature area card: the layers under your feet */
+.layers{grid-column:1 / -1;margin-top:12px}
+.layer{padding:12px 0;border-top:1px solid var(--rule)}
+.layer h4{margin:0 0 4px;font:600 12px/1.3 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--brass)}
+.layer p{margin:0}
+.layer .lname{font:600 18px/1.3 var(--serif)}
+.layer .lrock{margin-top:2px;font-size:15px}
+.layer .lage{margin-top:2px;font-size:14px;color:var(--muted)}
+.layer .ldesc{margin-top:6px;font-size:15px;line-height:1.5}
+.layer .lsrc{margin-top:6px;font-size:12px;color:var(--muted)}
+.species{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px 10px;margin-top:10px}
+.sp{display:flex;flex-direction:column;min-width:0;text-decoration:none;color:var(--ink);line-height:1.3}
+.sp img,.sp .ph{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--surface);margin-bottom:5px}
+.sp b{font-weight:600;font-size:13px}
+.sp i{color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp small{color:var(--muted);font-size:11px;margin-top:1px}
+.spl{list-style:none;margin:8px 0 0;padding:0}
+.spl li{padding:8px 0;border-top:1px solid var(--rule);font-size:15px;line-height:1.45}
+.spl li i{color:var(--muted)}
+.spl li a{color:var(--ink);font-weight:600;text-decoration:none}
+.timeline li.ld{grid-template-columns:1fr;gap:2px}
+.spl li small{display:block;color:var(--muted);font-size:13px}
+/* the History / Nature switch in the dock */
+.dock button.mode-tg{flex:0 0 70px;position:relative;gap:0;padding:0 5px;justify-content:space-between;background:var(--surface);border:1px solid var(--rule)}
+.mode-tg::before{content:"";position:absolute;top:5px;bottom:5px;left:5px;width:28px;border-radius:11px;background:var(--brass);transition:transform .25s cubic-bezier(.3,.7,.4,1)}
+.mode-tg[aria-checked="true"]::before{transform:translateX(30px)}
+.mode-tg span{position:relative;z-index:1;width:28px;height:36px;display:grid;place-items:center;color:var(--muted);transition:color .2s}
+.mode-tg[aria-checked="false"] .mt-h,.mode-tg[aria-checked="true"] .mt-n{color:var(--on-brass)}
 .hidden-note{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 20px 0;padding:9px 12px;border-radius:10px;background:var(--brass-soft);font-size:13.5px;color:var(--muted)}
 .hidden-note button{color:var(--brass);font-weight:500;font-size:13.5px;flex:none}
 .lg{width:11px;height:11px;border-radius:50%;display:inline-block}
@@ -344,19 +383,20 @@ footer a{color:var(--muted)}
       <button type="button" data-layer="sat" aria-pressed="false"><i class="sw-sat"></i>Satellite</button>
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
     </div>
-    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i>Wikipedia<span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i>Plaque or landmark<span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i>Heritage listing<span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i>AI guide<span class="lg-n"></span></button></div>
+    <div class="legend" aria-label="Show or hide sources"><span class="lg-you"><i class="lg you"></i>You</span><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage listing</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
     <div class="hero">
       <div class="mark" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="16" cy="16" r="14.5"/><circle cx="16" cy="16" r="11" stroke-width=".7"/><path d="M16 5.5 19 16 16 26.5 13 16Z" fill="currentColor" fill-opacity=".9" stroke="none"/><path d="M16 16 13 16 16 26.5Z" fill="var(--ground)" fill-opacity=".55" stroke="none"/></svg></div>
-      <h1>Explore the history around you.</h1>
+      <h1 id="heroTitle">Explore the history around you.</h1>
     </div>
   </section>
 </main>
 
 <footer>
   Place data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Text from <a href="https://www.wikipedia.org/">Wikipedia</a> (CC BY-SA). Facts from <a href="https://www.wikidata.org/">Wikidata</a>.
+  <span class="nat-only">Geology from <a href="https://macrostrat.org/">Macrostrat</a> (CC BY 4.0). Species from <a href="https://www.inaturalist.org/">iNaturalist</a>. Elevation from <a href="https://open-meteo.com/">Open-Meteo</a>.</span>
   <span class="ver" id="ver"></span>
 </footer>
 
@@ -366,6 +406,7 @@ footer a{color:var(--muted)}
   <button id="refreshBtn" class="icon" aria-label="Refresh" title="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button>
   <button id="guideBtn" class="icon" aria-label="AI guide" title="AI guide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3C12.6 8.4 12.6 8.4 18 10.5C12.6 12.6 12.6 12.6 10.5 18C8.4 12.6 8.4 12.6 3 10.5C8.4 8.4 8.4 8.4 10.5 3Z"/><path d="M18.5 14.9C19.2 16.8 19.2 16.8 21.1 17.5C19.2 18.2 19.2 18.2 18.5 20.1C17.8 18.2 17.8 18.2 15.9 17.5C17.8 16.8 17.8 16.8 18.5 14.9Z" fill="currentColor" stroke="none"/></svg></button>
   <button id="settingsBtn" class="icon" aria-label="Settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+  <button id="modeBtn" class="mode-tg" role="switch" aria-checked="false" aria-label="Nature mode"><span class="mt-h"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9 12 4l8.5 5"/><path d="M5 9h14"/><path d="M6.5 9v8.5M10.2 9v8.5M13.8 9v8.5M17.5 9v8.5"/><path d="M4 20h16"/></svg></span><span class="mt-n"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19.5C5 11 10 5.5 19.5 4.5c.5 9.5-5 14.5-13 14.5"/><path d="M5.5 19.5 14 11"/></svg></span></button>
 </nav>
 
 <div class="look" id="look" hidden aria-live="polite">
@@ -408,8 +449,8 @@ footer a{color:var(--muted)}
       <span class="lbl">Sources</span>
       <div class="srcs">
         <span class="chk"><input type="checkbox" id="srcWiki" checked disabled> Wikipedia</span>
-        <span class="chk"><input type="checkbox" id="srcOsm"> Street plaques and landmarks</span>
-        <span class="chk"><input type="checkbox" id="srcWd"> Heritage registers</span>
+        <span class="chk"><input type="checkbox" id="srcOsm"> <span id="srcOsmLbl">Street plaques and landmarks</span></span>
+        <span class="chk"><input type="checkbox" id="srcWd"> <span id="srcWdLbl">Heritage registers</span></span>
       </div>
     </div>
     <form class="row" id="placeForm">
@@ -470,7 +511,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=2.7.8"></script>
+<script src="common.js?v=3.0.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -521,7 +562,8 @@ const state = {
   radius: store.get('radius', 805), sight: store.get('sight', 152), nearby:[], cards:new Map(), hiddenSrc: new Set(store.get('hiddenSrc', [])),
   expanded:new Set(), showOrig:new Set(),
   loads:0,
-  useOsm: store.get('useOsm', true), useWd: store.get('useWd', true)
+  useOsm: store.get('useOsm', true), useWd: store.get('useWd', true),
+  mode: store.get('mode', 'history') === 'nature' ? 'nature' : 'history', nature: null
 };
 
 /* ---------- utils ---------- */
@@ -866,6 +908,166 @@ function mergeWD(rows){
   }
 }
 
+/* ---------- Nature mode: what the land is made of and what lives on it ---------- */
+// Natural things on Wikidata (each class or a direct subclass of it): landforms, water, parks and reserves, trees, mines…
+const NATURE_CLASSES = 'Q8502 Q54050 Q207326 Q4022 Q47521 Q23397 Q124714 Q35509 Q34038 Q39816 Q150784 Q40080 Q23442 Q8072 Q179049 Q473972 Q46169 Q22698 Q167346 Q4421 Q170321 Q131681 Q736917 Q10884 Q811534 Q35666 Q185113 Q39594 Q12323 Q271669 Q35145263 Q15324 Q2042028 Q107679 Q133056 Q355304 Q1437299 Q47089 Q3240715 Q6017969 Q2143825 Q820477 Q177380';
+const NOT_NATURE = /\b(tennis|court|stadium|sports?|playground|golf|zoo|aquarium|amusement|theme park|skate|swimming|pool|athletic|ball ?park|baseball|soccer|football|cemetery|parking)\b/i;
+const fmtElev = m => `${Math.round(m * FT).toLocaleString()} ft`;
+async function loadNatureNearby(lat, lon, live = () => true){
+  const ul = state.userLang, langs = [...new Set([ul, ...state.langs])];
+  const km = (Math.min(state.radius * 1.3, 6000) / 1000).toFixed(2);
+  const q = `SELECT ?item ?itemLabel ?itemDescription ?coord ?typeLabel ?site ?title ?img ?elev WHERE {
+    SERVICE wikibase:around { ?item wdt:P625 ?coord. bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "${km}". }
+    ?item wdt:P31 ?type. ?type wdt:P279? ?cls. VALUES ?cls { ${NATURE_CLASSES.split(' ').map(x => 'wd:' + x).join(' ')} }
+    OPTIONAL { VALUES ?site { ${langs.map(l => `<https://${l}.wikipedia.org/>`).join(' ')} } ?art schema:about ?item; schema:isPartOf ?site; schema:name ?title. }
+    OPTIONAL { ?item wdt:P18 ?img }
+    OPTIONAL { ?item wdt:P2044 ?elev }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${[...langs, 'en'].join(',')}". }
+  } LIMIT 400`;
+  let rows = [];
+  try{ rows = (await fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), 25000)).results.bindings; }
+  catch(e){ state.loads++; return 0; }   // the other sources still load
+  if(!live()) return 0;
+  const by = new Map();
+  for(const b of rows){
+    const qid = b.item.value.split('/').pop(), m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord.value); if(!m) continue;
+    let f = by.get(qid);
+    if(!f){ f = {qid, lat: +m[2], lon: +m[1], label: b.itemLabel && b.itemLabel.value, labelLang: b.itemLabel && b.itemLabel['xml:lang'], desc: (b.itemDescription || {}).value || '',
+      types: new Set(), titles: {}, img: b.img && b.img.value, elev: b.elev ? parseFloat(b.elev.value) : null}; by.set(qid, f); }
+    const type = b.typeLabel && b.typeLabel.value; if(type && !/^Q\d+$/.test(type)) f.types.add(cap(type));
+    if(b.title && b.site){ const l = (/https:\/\/([^.]+)\./.exec(b.site.value) || [])[1]; if(l) f.titles[l] = b.title.value; }
+  }
+  const ex = {};
+  await Promise.all(langs.map(async l => { const t = [...by.values()].map(f => f.titles[l]).filter(Boolean); if(t.length) ex[l] = await extractsFor(l, t).catch(() => ({})); }));
+  if(!live()) return 0;
+  let added = 0;
+  for(const f of by.values()){
+    const versions = {}; let thumb;
+    for(const l of langs){ const e = f.titles[l] && ex[l] && ex[l][f.titles[l]]; if(e){ versions[l] = {title: e.title, extract: e.extract, url: e.url}; thumb = thumb || e.thumb; } }
+    const wiki = Object.keys(versions).length > 0;
+    if(NOT_NATURE.test([f.label, ...f.types].join(' | '))) continue;
+    if(!wiki){
+      if(!state.useWd || !f.label || /^Q\d+$/.test(f.label)) continue;
+      versions[f.labelLang || ul] = {title: f.label, extract: f.desc ? cap(f.desc) + '.' : '', url: 'https://www.wikidata.org/wiki/' + f.qid};
+    }
+    if(!thumb && f.img) thumb = f.img.replace(/^http:/, 'https:') + '?width=250';
+    const facts = [...f.types].slice(0, 2);
+    if(f.elev != null && isFinite(f.elev)) facts.push(`${fmtElev(f.elev)} elevation`);
+    let it = state.items.get(f.qid);
+    if(!it){ it = {key: f.qid, qid: f.qid, lat: f.lat, lon: f.lon, isNew: state.loads > 0, addedAt: Date.now(), factsLoaded: true}; state.items.set(f.qid, it); added++; }
+    it.versions = {...(it.versions || {}), ...versions}; it.facts = [...new Set([...facts, ...(it.facts || [])])];
+    if(thumb && !it.thumb) it.thumb = thumb;
+    if(wiki) delete it.src; else it.src = 'Wikidata';
+  }
+  state.loads++;
+  return added;
+}
+// OpenStreetMap: springs, peaks, rocks, notable trees, viewpoints, quarries, survey markers…
+const NAT_KIND = {peak:'Peak', hill:'Hill', volcano:'Volcano', spring:'Spring', hot_spring:'Hot spring', geyser:'Geyser', cave_entrance:'Cave entrance',
+  rock:'Rock outcrop', stone:'Boulder', cliff:'Cliff', arch:'Rock arch', saddle:'Saddle', ridge:'Ridge', valley:'Valley', gorge:'Gorge', beach:'Beach',
+  bay:'Bay', cape:'Cape', wetland:'Wetland', glacier:'Glacier', dune:'Dune', sinkhole:'Sinkhole', tree:'Notable tree'};
+function natKind(t){
+  if(t.natural === 'water') return ({pond:'Pond', lake:'Lake', reservoir:'Reservoir', river:'River', basin:'Basin', lagoon:'Lagoon'})[t.water] || 'Lake or pond';
+  if(t.natural) return NAT_KIND[t.natural] || cap(t.natural.replace(/_/g, ' '));
+  if(t.waterway) return t.waterway === 'waterfall' ? 'Waterfall' : cap(t.waterway);
+  if(t.geological) return cap(t.geological.replace(/_/g, ' '));
+  if(t.leisure === 'nature_reserve') return 'Nature reserve';
+  if(t.boundary === 'protected_area') return 'Protected area';
+  if(t.leisure === 'garden') return 'Botanical garden';
+  if(t.landuse === 'quarry') return t.disused || t['disused:landuse'] ? 'Former quarry' : 'Quarry';
+  if(t.man_made === 'adit') return 'Mine entrance';
+  if(t.man_made === 'mineshaft') return 'Mine shaft';
+  if(t.man_made === 'survey_point') return 'Survey marker';
+  if(t.tourism === 'viewpoint') return 'Viewpoint';
+  return 'Natural feature';
+}
+async function fetchOSMNature(lat, lon){
+  const r = Math.min(state.radius, 1500), A = `(around:${r},${lat},${lon})`;
+  const q = `[out:json][timeout:20];(
+    nwr${A}[natural~"^(peak|hill|volcano|spring|hot_spring|geyser|cave_entrance|rock|stone|cliff|arch|saddle|ridge|valley|gorge|beach|bay|cape|wetland|glacier|dune|sinkhole)$"];
+    nwr${A}[natural=tree][name]; nwr${A}[natural=tree][denotation~"^(natural_monument|landmark)$"]; nwr${A}[natural=tree][heritage];
+    nwr${A}[waterway=waterfall]; way${A}[waterway~"^(river|stream)$"][name]; nwr${A}[natural=water][name];
+    nwr${A}[leisure=nature_reserve][name]; nwr${A}[boundary=protected_area][name]; nwr${A}[leisure=garden]["garden:type"=botanical];
+    nwr${A}[landuse=quarry]; nwr${A}[man_made~"^(adit|mineshaft)$"]; nwr${A}[geological];
+    node${A}[tourism=viewpoint]; node${A}[man_made=survey_point];
+  );out center tags 200;`;
+  for(const base of OVERPASS){
+    try{ const d = await fetchJSON(base + '?data=' + encodeURIComponent(q), 25000); return d.elements || []; }catch(e){}
+  }
+  return [];
+}
+function mergeOSMNature(elements){
+  const ul = state.userLang, local = state.langs.find(l => l !== ul) || ul, seen = new Set();
+  for(const el of elements){
+    const t = el.tags || {}, lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon; if(lat == null) continue;
+    const kind = natKind(t), name = t.name || '', userName = t['name:' + ul] || '';
+    const species = t['species:' + ul] || t['species:en'] || t['taxon:' + ul] || t['taxon:en'] || t.species || t.taxon || t.genus || '';
+    const title = userName || name || (t.man_made === 'survey_point' && t.ref ? `Survey marker ${t.ref}` : t.natural === 'tree' && species ? cap(species) : kind);
+    if(name){ const k = name + '|' + kind; if(seen.has(k)) continue; seen.add(k); }   // a creek mapped in many pieces shows once
+    const facts = [kind];
+    if(t.ele && isFinite(parseFloat(t.ele))) facts.push(`${fmtElev(parseFloat(t.ele))} elevation`);
+    if(species && title !== cap(species)) facts.push(cap(species));
+    if(t.height && isFinite(parseFloat(t.height)) && t.natural === 'tree') facts.push(`${Math.round(parseFloat(t.height) * FT)} ft tall`);
+    if(t.natural === 'tree' && /^\d{4}/.test(t.start_date || '')) facts.push('Planted ' + t.start_date.slice(0, 4));
+    if(t.resource) facts.push('Quarried for ' + t.resource.replace(/;/g, ', '));
+    const existing = t.wikidata && state.items.get(t.wikidata);
+    if(existing){ existing.facts = [...new Set([...(existing.facts || []), ...facts.slice(1)])]; continue; }
+    const key = t.wikidata || `osm:${el.type}/${el.id}`;
+    if(state.items.has(key)) continue;
+    if(name && [...state.items.values()].some(it => Object.values(it.versions).some(v => v.title === name) && it.lat != null && hav(it, {lat, lon}) < 300)) continue;
+    const url = `https://www.openstreetmap.org/${el.type}/${el.id}`, versions = {};
+    if(name) versions[local] = {title: name, extract: t.description || '', url};
+    if(userName || !name) versions[ul] = {title: userName || title, extract: t['description:' + ul] || (name ? '' : t.description || ''), url};
+    state.items.set(key, {key, qid: t.wikidata, src: 'OpenStreetMap', versions, lat, lon, facts, tags: t, isNew: state.loads > 1, addedAt: Date.now(), factsLoaded: true});
+  }
+}
+// The area card: bedrock (Macrostrat geologic map), elevation (Open-Meteo), most-seen species (iNaturalist)
+const INAT_GROUPS = {Plantae: 'Plant', Aves: 'Bird', Insecta: 'Insect', Mammalia: 'Mammal', Reptilia: 'Reptile', Amphibia: 'Amphibian', Fungi: 'Fungus',
+  Arachnida: 'Arachnid', Mollusca: 'Mollusc', Actinopterygii: 'Fish', Chromista: 'Alga', Protozoa: 'Protozoan', Animalia: 'Animal'};
+function ageText(b, t){
+  if(b == null || !isFinite(b)) return '';
+  const n = x => x >= 10 ? Math.round(x).toLocaleString() : String(+x.toFixed(1));
+  const unit = x => x >= 1 ? [x, 'million'] : x >= 0.001 ? [x * 1000, 'thousand'] : [x * 1e6, ''];
+  const [bv, bu] = unit(b);
+  if(t == null || !isFinite(t) || t <= 0) return `less than ${n(bv)} ${bu} years old`.replace('  ', ' ');
+  const [tv, tu] = unit(t);
+  if(tu === bu) return n(tv) === n(bv) ? `about ${n(bv)} ${bu} years old`.replace('  ', ' ') : `${n(tv)}–${n(bv)} ${bu} years old`.replace('  ', ' ');
+  return `${n(tv)} ${tu} to ${n(bv)} ${bu} years old`.replace(/ {2,}/g, ' ');
+}
+function pickUnit(d){
+  const units = ((d && d.success && d.success.data) || []).filter(u => u && (u.name || u.strat_name || u.lith));
+  if(!units.length) return null;
+  const rank = {large: 0, medium: 1, small: 2, tiny: 3};
+  units.sort((a, b) => (rank[a.scale] ?? 1) - (rank[b.scale] ?? 1) || String(b.descrip || '').length - String(a.descrip || '').length);
+  const u = units[0], clean = x => String(x || '').replace(/Major:|Minor:|[{}]/g, '').replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
+  const bi = u.b_int_name || '', ti = u.t_int_name || '';
+  return {name: clean(u.name || u.strat_name), rock: clean(u.lith), descrip: clean(u.descrip || u.comments),
+    interval: bi && ti && bi !== ti ? `${ti} to ${bi}` : bi || ti || clean(u.age), age: ageText(parseFloat(u.b_age), parseFloat(u.t_age)),
+    ref: u.ref && (u.ref.authors || u.ref.ref_title) ? clean([u.ref.authors, u.ref.ref_year].filter(Boolean).join(', ')) : ''};
+}
+async function loadNature(lat, lon, live = () => true){
+  const n = {key: 'nature', loading: true, lat, lon}, keep = state.nature;
+  if(keep && hav(keep, {lat, lon}) < 150 && !keep.loading) Object.assign(n, {geo: keep.geo, elev: keep.elev, species: keep.species, speciesTotal: keep.speciesTotal, speciesRadius: keep.speciesRadius});
+  state.nature = n; renderSoon();
+  const rad = Math.max(state.radius, 800), f = x => x.toFixed(5);
+  const [geo, elev, life] = await Promise.allSettled([
+    fetchJSON(`https://macrostrat.org/api/v2/geologic_units/map?lat=${f(lat)}&lng=${f(lon)}`, 15000),
+    fetchJSON(`https://api.open-meteo.com/v1/elevation?latitude=${f(lat)}&longitude=${f(lon)}`, 10000),
+    fetchJSON('https://api.inaturalist.org/v1/observations/species_counts?' + new URLSearchParams({lat: f(lat), lng: f(lon), radius: (rad / 1000).toFixed(2),
+      verifiable: 'true', per_page: '24', locale: state.userLang}), 15000)
+  ]);
+  if(!live() || state.nature !== n) return;
+  if(geo.status === 'fulfilled') n.geo = pickUnit(geo.value);
+  if(elev.status === 'fulfilled'){ const e = (elev.value.elevation || [])[0]; if(isFinite(e)) n.elev = e; }
+  if(life.status === 'fulfilled'){
+    n.speciesTotal = life.value.total_results || 0; n.speciesRadius = rad;
+    n.species = (life.value.results || []).filter(r => r.taxon).map(r => { const t = r.taxon;
+      return {id: t.id, common: cap(t.preferred_common_name || t.name), sci: t.name, group: INAT_GROUPS[t.iconic_taxon_name] || '',
+        photo: t.default_photo && (t.default_photo.square_url || t.default_photo.url), count: r.count || 0, url: `https://www.inaturalist.org/taxa/${t.id}`}; });
+  }
+  n.loading = false; render();
+}
+
 async function loadFacts(){
   const need = [...state.items.values()].filter(it=>it.qid && !it.factsLoaded).slice(0,40);
   if(!need.length) return;
@@ -917,16 +1119,20 @@ async function refresh(force){
   try{
     await loadArea(lat, lon, live); if(!live()) return;
     libAfterArea({lat, lon}); updateExplore();
-    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Reading ${state.langs.map(langName).join(' and ')} Wikipedia…</span>`);
-    const extra = Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
-    const added = await loadNearby(lat, lon, live); if(!live()) return;
+    const nat = state.mode === 'nature', md = MD();
+    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${nat ? md.reading : `Reading ${state.langs.map(langName).join(' and ')} Wikipedia…`}</span>`);
+    const extra = nat ? Promise.all([[], state.useOsm ? fetchOSMNature(lat, lon) : []])
+                      : Promise.all([state.useWd ? fetchWDAround(lat, lon) : [], state.useOsm ? fetchOSM(lat, lon) : []]);
+    const land = nat ? loadNature(lat, lon, live) : null;
+    const added = nat ? await loadNatureNearby(lat, lon, live) : await loadNearby(lat, lon, live); if(!live()) return;
     state.lastLoad = {lat, lon}; state.lastLoadTime = Date.now();
     render();
-    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>Checking plaques and heritage registers…</span>`);
+    setStatus(`<span class="place">${esc(state.place)}</span><span class="sub2"><span class="spin"></span>${md.checking}</span>`);
     const [wdRows, osmEls] = await extra; if(!live()) return;
-    if(state.useWd) mergeWD(wdRows); if(state.useOsm) mergeOSM(osmEls);
+    if(nat){ if(state.useOsm) mergeOSMNature(osmEls); }
+    else { if(state.useWd) mergeWD(wdRows); if(state.useOsm) mergeOSM(osmEls); }
     if(added && state.loads>1 && navigator.vibrate) navigator.vibrate(40);
-    loadFacts();
+    if(nat) await land; else loadFacts();
   }catch(e){
     if(!live()) return;
     setStatus('Could not load: '+esc(e.message)+' — check your connection and tap ↻');
@@ -1070,6 +1276,74 @@ function layerMenu(open){ $('#layerMenu').hidden = !open; $('#layerBtn').setAttr
 $('#layerBtn').onclick = e => { e.stopPropagation(); layerMenu($('#layerMenu').hidden); };
 $('#layerMenu').onclick = e => { const b = e.target.closest('[data-layer]'); if(!b) return; setLayer(b.dataset.layer); layerMenu(false); };
 document.addEventListener('click', e => { if(!$('#layerMenu').hidden && !e.target.closest('#layerMenu')) layerMenu(false); });
+/* ---------- Modes: History (people, buildings, events) and Nature (rocks, water, land, life) ----------
+   A mode decides what is searched for, what the area card shows, which AI guides apply, the prompt and the colours.
+   Everything else (GPS, map, radius, Look, Places) is shared. */
+const MODES = {
+  history: {hero: 'Explore the history around you.', areaHead: 'About this area', theme: ['#E6E9E4', '#0C2123'],
+    legend: {wiki: 'Wikipedia', osm: 'Plaque or landmark', wd: 'Heritage listing', ai: 'AI guide'},
+    names: {wiki: 'Wikipedia', osm: 'plaques and landmarks', wd: 'heritage listings', ai: 'AI guide places'},
+    srcs: ['Street plaques and landmarks', 'Heritage registers'], checking: 'Checking plaques and heritage registers…',
+    empty: 'Nothing with a Wikipedia article within {r}. Try a bigger radius in Settings.'},
+  nature: {hero: 'Explore the land around you.', areaHead: 'About this land', theme: ['#E9F2EA', '#122019'],
+    legend: {wiki: 'Wikipedia', osm: 'Natural feature', wd: 'Wikidata', ai: 'AI guide'},
+    names: {wiki: 'Wikipedia', osm: 'natural features', wd: 'Wikidata entries', ai: 'AI guide places'},
+    srcs: ['Springs, peaks, trees and other features', 'Wikidata entries without an article'], reading: 'Reading the landscape…',
+    checking: 'Checking maps and nature records…', empty: 'No natural features found within {r}. Try a bigger radius in Settings.'}
+};
+const MD = () => MODES[state.mode] || MODES.history;
+function applyModeUI(){
+  const nat = state.mode === 'nature', md = MD();
+  document.documentElement.classList.toggle('nature', nat);
+  const b = $('#modeBtn'); b.setAttribute('aria-checked', String(nat)); b.title = nat ? 'Nature · tap for History' : 'History · tap for Nature';
+  document.querySelectorAll('.legend [data-src]').forEach(x => { x.querySelector('.lg-t').textContent = md.legend[x.dataset.src]; });
+  const hero = $('#heroTitle'); if(hero) hero.textContent = md.hero;   // only there before the first results
+  $('#srcOsmLbl').textContent = md.srcs[0]; $('#srcWdLbl').textContent = md.srcs[1];
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = md.theme[/dark/.test(m.media) ? 1 : 0]; });
+  if(M.map){   // the map's circles take the new colours
+    if(M.ring) M.ring.setStyle({color: cssv('--brass')});
+    [M.sight, M.acc].forEach(c => c && c.setStyle({color: cssv('--you'), fillColor: cssv('--you')}));
+    if(M.me) M.me.setStyle({color: cssv('--surface'), fillColor: cssv('--you')});
+    if(M.area) M.area.setStyle({color: cssv('--patina')});
+  }
+}
+function setMode(m){
+  if(!MODES[m] || m === state.mode) return;
+  state.mode = m; store.set('mode', m); haptic();
+  state.gen++; state.loading = false; setBusy(false);   // a search still running for the other mode is dropped
+  state.items.clear(); state.nature = null; state.loads = 0; state.lastLoad = null; state.lastLoadTime = 0; state.expanded.clear();
+  for(const p of M.pins.values()) p.remove(); M.pins.clear();
+  applyModeUI(); render();
+  if(state.pos) refresh(); else setStatus('');
+  if($('#guide').open){ setDepthRadio(); updateGuideSheet(); }
+}
+$('#modeBtn').onclick = () => setMode(state.mode === 'nature' ? 'history' : 'nature');
+applyModeUI();
+// The nature area card: name, a one-line summary, then (under More) the layers and the AI guide's overview
+function natureAreaHTML(){
+  const n = state.nature; if(!n) return '';
+  const open = state.expanded.has('nature'), ag = state.areaGuide, g = n.geo;
+  const teaser = [g && [g.rock ? cap(g.rock.split(',')[0]) : g.name, g.age].filter(Boolean).join(', '), n.elev != null ? `${fmtElev(n.elev)} above sea level` : '',
+    n.speciesTotal ? `${n.speciesTotal.toLocaleString()} species seen nearby` : ''].filter(Boolean).join(' · ');
+  const toggle = `<button data-act="areatoggle" data-key="nature">${open ? 'Less' : 'More about the land here'}</button>`;
+  const head = `<div><h3>${esc(state.hood || state.city || ag && ag.name || 'The land here')}</h3>${teaser ? `<div class="sub">${esc(teaser)}</div>` : n.loading ? `<div class="sub"><span class="spin"></span>Reading the ground…</div>` : ''}</div>`;
+  if(!open) return `<article class="card area nat" data-key="nature">${head}<div class="actions">${toggle}</div></article>`;
+  let layers = '';
+  if(g) layers += `<section class="layer"><h4>Bedrock</h4><p class="lname">${esc(g.name)}</p>${g.rock ? `<p class="lrock">${esc(cap(g.rock))}</p>` : ''}`
+    + `${g.interval || g.age ? `<p class="lage">${esc([g.interval, g.age].filter(Boolean).join(' · '))}</p>` : ''}${g.descrip ? `<p class="ldesc">${esc(trimText(g.descrip, 420))}</p>` : ''}`
+    + `<p class="lsrc">Geologic map via Macrostrat${g.ref ? ' · ' + esc(g.ref) : ''}</p></section>`;
+  if(n.elev != null) layers += `<section class="layer"><h4>Ground</h4><p class="lname">${esc(fmtElev(n.elev))} above sea level</p></section>`;
+  if(n.species && n.species.length) layers += `<section class="layer"><h4>Life</h4><p class="ldesc">${n.speciesTotal.toLocaleString()} species recorded within ${esc(fmtDist(n.speciesRadius))} on iNaturalist. Seen most often:</p>`
+    + `<div class="species">${n.species.slice(0, 12).map(sp => `<a class="sp" target="_blank" rel="noopener" href="${esc(sp.url)}">${sp.photo ? `<img loading="lazy" alt="" src="${esc(sp.photo)}">` : '<span class="ph"></span>'}`
+      + `<b>${esc(sp.common)}</b><i>${esc(sp.sci)}</i><small>${sp.group ? esc(sp.group) + ' · ' : ''}${sp.count.toLocaleString()} sightings</small></a>`).join('')}</div></section>`;
+  if(n.loading) layers += `<p class="gather"><span class="spin"></span>Reading the ground…</p>`;
+  else if(!layers) layers = `<p class="ldesc">No geology, elevation or species records came back for this spot.</p>`;
+  const intro = ag && ag.summary ? `<p class="text" lang="${esc(state.userLang)}"${wlTerms(ag.terms) ? ` data-wl="t:${wlTerms(ag.terms)}"` : ''}>${esc(ag.summary)}</p>` : '';
+  const more = ag ? guideHTML(ag) : '';
+  return `<article class="card area nat open" data-key="nature">${head}${intro}<div class="layers">${layers}</div>${more ? `<div class="more">${more}</div>` : ''}`
+    + `<div class="actions">${toggle}<button data-act="guide" data-key="nature">AI guide</button></div></article>`;
+}
+
 function toggleMap(){
   const w = $('#mapWrap'); const hidden = w.classList.toggle('collapsed');
   $('#mapToggle').textContent = hidden ? 'Show map' : 'Hide map'; store.set('mapHidden', hidden);
@@ -1182,6 +1456,7 @@ function applyGuides(){
   for(const k of [...state.items.keys()]) if(k.startsWith('guide:')) state.items.delete(k);   // rebuilt below, so merged guides leave no stale copies
   const byQid = new Map(); for(const it of state.items.values()){ if(it.qid) byQid.set(it.qid, it); delete it.ai; }
   for(const g of guides){
+    if((g.mode || 'history') !== state.mode) continue;   // nature guides show in Nature mode, the rest in History
     const a = g.area || {};
     if(a.lat != null && a.lon != null && (a.summary || (a.keyPoints||[]).length)){ const d = hav(state.pos, a); if(d < best){ best = d; state.areaGuide = a; } }
     (g.places || []).forEach((p, i)=>{
@@ -1199,7 +1474,8 @@ function guideHTML(g){
   let h = '';
   if(g.seeToday) h += `<p class="see"><b>What to look for${g.kind ? ` · ${esc(g.kind)}` : ''}</b>${esc(g.seeToday)}${g.located ? `<small>Location: ${esc(g.located)}</small>` : ''}</p>`;
   if(g.keyPoints && g.keyPoints.length) h += `<ul class="kp">${g.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
-  if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
+  if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li${(t.date || '').length > 12 ? ' class="ld"' : ''}><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
+  if(g.species && g.species.length) h += `<h4>Plants and animals</h4><ul class="spl">${g.species.map(x=>`<li><a target="_blank" rel="noopener" href="https://www.inaturalist.org/taxa/search?q=${encodeURIComponent(x.sci || x.name)}">${esc(x.name)}</a>${x.sci && x.sci !== x.name ? ` <i>${esc(x.sci)}</i>` : ''}${x.note || x.months ? `<small>${esc([x.note, x.months ? 'Best seen: ' + x.months : ''].filter(Boolean).join(' · '))}</small>` : ''}</li>`).join('')}</ul>`;
   if(g.trivia && g.trivia.length) h += `<h4>Local finds</h4><ul class="factoids">${g.trivia.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`;
   if(g.sources && g.sources.length) h += `<ul class="gsrc">${g.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title)}</a></li>`).join('')}</ul>`;
   const wk = wlTerms(g.terms);
@@ -1217,7 +1493,47 @@ const GUIDE_HINTS = {
 // with briefer entries, so the reply stays short enough to finish.
 const GUIDE_SIZES = {402:['¼ mi', 8, 12, 8, 12, 'near'], 805:['½ mi', 10, 15, 10, 15], 1609:['1 mi', 12, 18, 12, 18],
   3219:['2 mi', 15, 22, 15, 22], 8047:['5 mi', 18, 22, 15, 22, 'town']};
+// Nature mode's prompt: the same reply format, aimed at survey reports, field guides and environmental records
+const NATURE_HINTS = {
+  us: 'the USGS Publications Warehouse (pubs.usgs.gov) and National Geologic Map Database (ngmdb.usgs.gov), state geological survey reports, USDA NRCS soil surveys, and environmental impact reports for local projects (in California, CEQAnet)',
+  gb: 'British Geological Survey maps, memoirs and GeoIndex, Natural England SSSI citations, local Wildlife Trusts and geology groups (RIGS)',
+  ie: 'Geological Survey Ireland, National Parks and Wildlife Service site synopses', jp: 'Geological Survey of Japan (GSJ) map sheets and explanatory texts, Ministry of the Environment biodiversity surveys, prefectural red data books',
+  fr: 'BRGM InfoTerre geological map notices, INPN and ZNIEFF sheets', de: 'the state geological survey (Landesamt) and its Geotop register, nature reserve ordinances',
+  it: 'ISPRA CARG geological map sheets and notes', es: 'IGME MAGNA geological map sheets and memoirs', ca: 'the Geological Survey of Canada (GEOSCAN)',
+  au: 'Geoscience Australia, state geological surveys, the Atlas of Living Australia', nz: 'GNS Science geological maps', ch: 'swisstopo geological atlas sheets'
+};
+function naturePrompt(deep, radius){
+  const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, size = GUIDE_SIZES[radius] || GUIDE_SIZES[1609], n = state.nature || {};
+  const locals = state.langs.filter(l=>l!==ul).map(l=>`${langName(l)} (${l})`);
+  const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it); return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
+  const known = [];
+  if(n.geo) known.push(`Bedrock here, from the Macrostrat geologic map: ${[n.geo.name, n.geo.rock, n.geo.interval, n.geo.age].filter(Boolean).join('; ')}. Check it against local sources.`);
+  if(n.elev != null) known.push(`Elevation: about ${Math.round(n.elev)} m.`);
+  if(n.species && n.species.length) known.push(`Most-recorded species nearby on iNaturalist: ${n.species.slice(0, 10).map(x => x.sci).join(', ')}.`);
+  const schema = '{"wander":1,"mode":"nature","area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"species":[{"name":"…","scientific":"…","note":"…","months":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
+  return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the natural history of the land around me, within about ${size[0]} (${radius} m): what it is made of, how it took shape, its water, soil, plants and animals, and how all of that has changed. Give it to me as data for my walking app, Wander.
+
+RESEARCH
+- First identify the official geological and topographic map sheet that covers this spot (in the US, the USGS 7.5-minute quadrangle name; elsewhere, the national survey's sheet name or number). Much of the best material is filed under that name.
+- Search the web${locals.length ? ` in ${locals.join(' and ')} as well as English` : ''}. Go past the first page of results to primary documents, especially PDFs (try searches with filetype:pdf and site:.gov or the local equivalent): geological survey reports and open-file reports, the explanatory booklets that come with geologic maps, geological society field-trip guidebooks (their numbered stops are ideal), soil surveys, groundwater, watershed and flood-control reports, environmental impact reports and assessments for local construction projects (they hold site-specific geology, biology and archaeology), urban forest plans and street-tree inventories, historical ecology studies, herbarium, museum and fossil collection records, university theses and local natural-history societies${NATURE_HINTS[state.cc] ? ` (here: ${NATURE_HINTS[state.cc]})` : ''}. Use Wikipedia only to check facts.
+- ${deep ? `Deep dive: use your deep research mode if you have one, up to about 40 searches, and cover the ${size[1]+7}–${size[2]+8} most interesting places.` : `Keep it quick: about ${size[3]}–${size[4]} searches, then stop. Cover the ${size[1]}–${size[2]} most interesting places, spread across the area.`}
+${size[5] === 'near' ? `- This is a close-up guide for a few minutes' walk: look for the small things on these streets (a boulder, a spring, an old tree, the stone a building is made of).\n` : ''}${size[5] === 'town' ? `- This is a town-wide guide: favour the most notable places, spread them across the whole area, and keep each entry brief.\n` : ''}- Every place must be a spot I can walk to and see something: outcrops and road cuts, boulders, building and paving stones (and the quarry they came from), springs, creeks (including buried or channelled ones), lakes, ponds and wetlands, hills, peaks and viewpoints, terraces and fault scarps, caves, quarries and mines, fossil sites, landslides, notable and heritage trees, remnant native plant communities, wildlife habitat (nesting sites, roosts, migration stopovers) and survey benchmarks. Include spots where something natural happened (an earthquake rupture, a flood, a fire, a landslide) when a source ties it to the place, and lost landscapes (a former marsh, a buried stream, a vanished lake) with whatever traces remain.
+- For each place, say what to look for and exactly where (e.g. "tilted sandstone beds in the road cut on the north side of X"), how precisely the spot is known and from what source, and set confidence to match.
+- Every fact needs a source link. For a PDF, link to the page (add #page=N) and name the figure or table where you can. Do not invent details or positions; if something is uncertain, say so.
+
+WHAT MY APP ALREADY KNOWS
+${known.join('\n') || '(nothing about the ground yet)'}
+Places (id | name | lat, lon) — enrich these where you find more, and add places it is missing:
+${near.join('\n') || '(none yet)'}
+
+REPLY
+Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
+${schema}
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In species, list up to 12 plants and animals typical of or special to this area (native ones especially; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+}
 function guidePrompt(deep, radius){
+  if(state.mode === 'nature') return naturePrompt(deep, radius);
   const p = state.pos, f = n => n.toFixed(5), ul = state.userLang, size = GUIDE_SIZES[radius] || GUIDE_SIZES[1609];
   const locals = state.langs.filter(l=>l!==ul).map(l=>`${langName(l)} (${l})`);
   const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it);
@@ -1260,11 +1576,15 @@ function updateGuideSheet(){
   $('#gOpen').href = has ? 'https://claude.ai/new?q=' + encodeURIComponent(prompt) : '#';
   $('#gOpenGpt').href = has ? 'https://chatgpt.com/?q=' + encodeURIComponent(prompt) : '#';
   const list = loadGuides().slice().reverse();
-  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.places.length} places${(g.count||1) > 1 ? ` · from ${g.count} guides` : ''} · ${new Date(g.savedAt).toLocaleDateString()}</small></span>
+  $('#gList').innerHTML = list.length ? '<h4>Your guides</h4>' + list.map(g=>`<div class="gitem"><span>${esc((g.area && g.area.name) || 'Guide')}<small>${g.mode === 'nature' ? 'Nature · ' : ''}${g.places.length} places${(g.count||1) > 1 ? ` · from ${g.count} guides` : ''} · ${new Date(g.savedAt).toLocaleDateString()}</small></span>
       <span class="gacts">${(g.count||1) > 1 && g.latest ? `<button type="button" data-fresh="${esc(g.id)}">Start fresh</button>` : ''}<button type="button" data-rm="${esc(g.id)}">Remove</button></span></div>`).join('')
     + `<button type="button" class="gall" id="gRemoveAll">Remove all guides</button>` : '';
 }
-function openGuide(){ $('#settings').open = false; updateGuideSheet(); $('#gMsg').textContent = ''; $('#guide').open = true; }
+function setDepthRadio(){   // each mode remembers its own depth; Nature starts on Deep dive, where survey reports turn up
+  const v = store.get('guideDepth.' + state.mode, state.mode === 'nature' ? 'deep' : 'quick');
+  document.querySelectorAll('input[name="gDepth"]').forEach(r => { r.checked = r.value === v; });
+}
+function openGuide(){ $('#settings').open = false; setDepthRadio(); updateGuideSheet(); $('#gMsg').textContent = ''; $('#guide').open = true; }
 async function copyText(text, btn){
   try{ await navigator.clipboard.writeText(text); }
   catch(e){ const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); try{ document.execCommand('copy'); }catch(_){} t.remove(); }
@@ -1272,9 +1592,10 @@ async function copyText(text, btn){
 }
 function importGuide(text){
   const incoming = decodeGuidePayload(text), r = addGuide(incoming), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
-  render();
+  const switched = (incoming.mode || 'history') !== state.mode;
+  if(switched) setMode(incoming.mode || 'history'); else render();
   geocodeGuide(g.id);
-  return (incoming.partial ? `The reply was cut off, so only the ${n(incoming.places.length)} that arrived complete were kept. ` : '')
+  return (switched ? `Switched to ${incoming.mode === 'nature' ? 'Nature' : 'History'} mode for this guide. ` : '') + (incoming.partial ? `The reply was cut off, so only the ${n(incoming.places.length)} that arrived complete were kept. ` : '')
     + (r.merged ? `Merged into ${g.area.name || 'your guide'}: ${n(r.added)} added, ${n(r.updated)} combined (${g.places.length} in total).`
                 : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`);
 }
@@ -1324,7 +1645,7 @@ function saveSession(){
   try{
     const items = [...state.items.values()].filter(it => it.src !== 'AI guide').map(({ai, ...it}) => (it.more && it.more.loading ? {...it, more: undefined} : it));
     const area = state.area.map(a => (a.details && a.details.loading ? {...a, details: undefined} : a));
-    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
+    localStorage.setItem(SESSION_KEY, JSON.stringify({v: 1, mode: state.mode, nature: state.nature && !state.nature.loading ? state.nature : null, savedAt: Date.now(), loadedAt: state.lastLoadTime, pos: state.pos, manual: state.manual, remote: !!state.remote,
       place: state.place, cc: state.cc, hood: state.hood, city: state.city, langs: state.langs, areaKey: state.areaKey, area, areaGeo: state.areaGeo,
       lastLoad: state.lastLoad, items, expanded: [...state.expanded]}));
   }catch(e){ /* storage full: skip */ }
@@ -1333,10 +1654,10 @@ let sessionTimer = null;
 function saveSessionSoon(){ clearTimeout(sessionTimer); sessionTimer = setTimeout(saveSession, 1500); }
 function restoreSession(){
   let s = null; try{ s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){}
-  if(!s || s.v !== 1 || !s.pos || Date.now() - s.savedAt > SESSION_MAX_AGE) return false;
+  if(!s || s.v !== 1 || !s.pos || Date.now() - s.savedAt > SESSION_MAX_AGE || (s.mode || 'history') !== state.mode) return false;
   Object.assign(state, {pos: s.pos, manual: !!s.manual, remote: s.remote == null ? !!s.manual : !!s.remote, place: s.place || '', cc: s.cc || '', hood: s.hood || '', city: s.city || '', langs: s.langs || [state.userLang],
     areaKey: s.areaKey || '', area: s.area || [], areaGeo: s.areaGeo || null, lastLoad: s.lastLoad || s.pos, lastLoadTime: s.loadedAt || s.savedAt,
-    items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || [])});
+    items: new Map((s.items || []).map(it => [it.key, it])), expanded: new Set(s.expanded || []), nature: s.nature || null});
   return true;
 }
 addEventListener('pagehide', () => { try{ sessionStorage.setItem('wander.scroll', String(scrollY)); }catch(e){} saveSession(); });
@@ -1443,8 +1764,8 @@ function render(){
   if(!state.pos) return;
   applyGuides(); updateExplore();
   try{ initMap(); }catch(e){ console.warn('map init', e); }
-  const area = state.area.map((it,i)=>areaHTML(it,i)).join('');
-  $('#areaWrap').innerHTML = area ? `<h2>About this area</h2>${area}` : '';
+  const area = state.mode === 'nature' ? natureAreaHTML() : state.area.map((it,i)=>areaHTML(it,i)).join('');
+  $('#areaWrap').innerHTML = area ? `<h2>${MD().areaHead}</h2>${area}` : '';
   const rows = [...state.items.values()]
     .filter(it=>it.lat!=null).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d);
@@ -1459,10 +1780,10 @@ function render(){
     if(r.band !== band){ band = r.band; html += bandHead(band, rows.filter(x=>x.band===band).length); }
     html += cardHTML(r.it, {num:i+1, band:r.band});
   });
-  const SRC_NAMES = {wiki:'Wikipedia', osm:'plaques and landmarks', wd:'heritage listings', ai:'AI guide places'};
+  const SRC_NAMES = MD().names;
   const note = hiddenCount ? `<div class="hidden-note"><span>${hiddenCount} place${hiddenCount===1?'':'s'} hidden: ${[...state.hiddenSrc].filter(x=>present.has(x)).map(x=>SRC_NAMES[x]).join(', ')}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
   $('#listWrap').innerHTML = note + (rows.length ? html
-    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">Nothing with a Wikipedia article within ${radiusLabel()}. Try a bigger radius in Settings.</div>`));
+    : (state.loading ? '' : hiddenCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`));
   state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
   const items = rows.map(r=>r.it);
   try{ updateMap(items); }catch(e){ console.warn('map', e); }
@@ -1484,7 +1805,7 @@ function bandHead(band, n){
 function sightLabel(){ const o = $('#sight') && $('#sight').selectedOptions[0]; return o ? o.textContent : fmtDist(state.sight); }
 function radiusLabel(){ const o = $('#radius') && $('#radius').selectedOptions[0]; return o ? o.textContent : fmtDist(state.radius); }
 let rt=null; function renderSoon(){ if(rt) return; rt=setTimeout(()=>{rt=null; render();}, 400); }
-function findItem(key){ return state.items.get(key) || state.area.find(a=>a.key===key); }
+function findItem(key){ return key === 'nature' ? state.nature : state.items.get(key) || state.area.find(a=>a.key===key); }
 
 /* ---------- events ---------- */
 document.addEventListener('click', e=>{
@@ -1550,7 +1871,7 @@ $('#guide').addEventListener('click', e=>{
   if(fresh){ const before = loadGuides(); guideStartFresh(fresh.dataset.fresh); after(before, 'Kept only the newest guide for that area.'); }
   if(all){ const before = loadGuides(), n = before.length; if(confirm(`Remove all ${n} AI guide${n===1?'':'s'} from this device?`)){ saveGuides([]); after(before, 'All guides removed.'); } }
 });
-document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = updateGuideSheet);
+document.querySelectorAll('input[name="gDepth"]').forEach(r=>r.onchange = ()=>{ store.set('guideDepth.' + state.mode, r.value); updateGuideSheet(); });
 $('#depthHelpBtn').onclick = ()=>{ const b = $('#depthHelpBtn'), open = b.getAttribute('aria-expanded') !== 'true';
   b.setAttribute('aria-expanded', String(open)); $('#depthHelp').hidden = !open; };
 { const saved = String(store.get('guideRadius', 1609)), radios = [...document.querySelectorAll('input[name="gRadius"]')];

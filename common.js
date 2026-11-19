@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '2.7.8';
+const WANDER_VERSION = '3.0.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -303,7 +303,7 @@ function salvageGuide(s){
     }
   }
   if(!places.length && !area) throw new Error('The guide data is incomplete — copy the whole block');
-  return {wander: 1, area: area || {}, places, partial: true};
+  return {wander: 1, mode: /"mode"\s*:\s*"nature"/.test(s) ? 'nature' : undefined, area: area || {}, places, partial: true};
 }
 /* Index just past the {...} that starts at s[i] (the end of the text if it never closes) */
 function endOf(s, i){
@@ -337,9 +337,11 @@ function normalizeGuide(g){
     return {id, name, localName: str(p.localName, 120), kind: str(p.kind, 60), seeToday: str(p.seeToday, 300), located: str(p.located, 200), address, folklore: p.folklore === true, lat, lon, confidence: ['high','medium','low'].includes(p.confidence) ? p.confidence : '', ...body(p)};
   });
   const ar = g.area && typeof g.area === 'object' ? g.area : {};
-  const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar)};
+  const area = {name: str(ar.name, 120), lat: num(ar.lat, -90, 90), lon: num(ar.lon, -180, 180), ...body(ar),
+    species: arr(ar.species, 16, x => { const name = str(x && x.name, 80), sci = str(x && (x.scientific || x.sci), 100);
+      return name || sci ? {name: name || sci, sci, note: str(x.note, 220), months: str(x.months, 60)} : null; })};
   if(!places.length && !area.summary) throw new Error('The guide has no places');
-  return {area, places};
+  return {mode: g.mode === 'nature' ? 'nature' : 'history', area, places};   // which Wander mode the guide belongs to
 }
 function loadGuides(){ try{ const v = JSON.parse(localStorage.getItem(GUIDE_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
 function saveGuides(list){ try{ localStorage.setItem(GUIDE_KEY, JSON.stringify(list.slice(-GUIDE_MAX))); return true; }catch(e){ return false; } }
@@ -381,14 +383,16 @@ function mergeEntry(a, b){
     timeline: byDate(unionBy([...(a.timeline||[]), ...(b.timeline||[])], t => (t.date||'') + '|' + normText(t.text).slice(0, 40), 14)),
     trivia: unionBy([...(b.trivia||[]), ...(a.trivia||[])], normText, 8),
     sources: unionBy([...(b.sources||[]), ...(a.sources||[])], s => s.url, 12),
-    terms: unionBy([...(b.terms||[]), ...(a.terms||[])], t => t.text.toLowerCase(), 10)};
+    terms: unionBy([...(b.terms||[]), ...(a.terms||[])], t => t.text.toLowerCase(), 10),
+    ...(a.species || b.species ? {species: unionBy([...(b.species||[]), ...(a.species||[])], x => (x.sci || x.name).toLowerCase(), 16)} : {})};
 }
 const guideCentre = g => { if(g.area && hasPos(g.area)) return g.area;
   const ps = (g.places||[]).filter(hasPos); return ps.length ? {lat: ps.reduce((s, p) => s + p.lat, 0)/ps.length, lon: ps.reduce((s, p) => s + p.lon, 0)/ps.length} : null; };
 /* Fold a newly imported guide into storage: merge with a guide for the same area, or add it. Returns what happened. */
 function addGuide(g){
   const list = loadGuides(), c = guideCentre(g);
-  const host = c && list.slice().reverse().find(x => { const xc = guideCentre(x); return xc && metres(xc, c) <= GUIDE_AREA_M; });
+  const mode = g.mode || 'history';   // history and nature guides for the same spot stay separate
+  const host = c && list.slice().reverse().find(x => { const xc = guideCentre(x); return (x.mode || 'history') === mode && xc && metres(xc, c) <= GUIDE_AREA_M; });
   if(!host){
     const saved = {...g, id: Date.now().toString(36), savedAt: Date.now(), count: 1, latest: g};
     list.push(saved); saveGuides(list); return {guide: saved, merged: false, added: g.places.length, updated: 0};
