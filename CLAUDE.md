@@ -49,7 +49,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 
 - **Cards** come from Wikipedia articles near you, enriched by Wikidata facts.
 - **Registers:** national heritage registers merge into matching cards, adding the designation, a **Listing** link and the register's text. Anything unmatched becomes its own card.
-- **Area card:** the city's article, its facts, and "History in brief".
+- **Area card:** the city's article, its facts (including "Name in Māori" etc.), "The name" (the article's etymology section), "Earliest peoples" (its Indigenous/prehistory section, or the history section's opening paragraph when that is about the first peoples; `earlyPeoples`/`nameOrigin` in `common.js`), and "History in brief", which also draws on the earliest-peoples section and skips sentences already shown above it.
 - **AI prompt:** includes Indigenous and prehistoric history, folklore and sensitive-site rules.
 
 ### Nature mode
@@ -90,7 +90,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 ### History mode
 | Source | Use and quirks |
 |---|---|
-| Wikidata SPARQL | Two queries: heritage (`P1435`, limit 150) and **archaeological sites in their own query** (limit 80), so that listed buildings can't crowd them out |
+| Wikidata SPARQL | Three queries: heritage (`P1435`, limit 150), **archaeological sites in their own query** (limit 80), so that listed buildings can't crowd them out, and **Indigenous and ancient site types** (limit 60: petroglyph, rock art, geoglyph, midden, earthworks, burial mound, kofun, pueblo, village site, marae, pā, heiau, ahu; QIDs verified; urupā and other burial grounds deliberately left out). Strong in New Zealand, some in Canada, thin in California. Names: `P1705` (native label) and `P1448` (official name) in an Indigenous or older language (`ORIG_LANGS`) become "Name in …" facts for areas and places. Ordinary labels in those languages are **not** used: most are translations of the modern name (a Navajo label for New York). |
 | OpenStreetMap Overpass | Plaques, memorials, ruins. **Blocked from the sandbox** (connections cut), so tests simulate it. |
 | Historic England (England) | ArcGIS `services-eu1…/NHLE_v02_VIEW`. Covers Grade I and II\* (**Grade II excluded**: it's ~90% of entries, down to lamp posts), scheduled monuments, parks and gardens, battlefields, wrecks and World Heritage Sites. Names come in CAPS and are tidied by `heTitle`. |
 | Historic Environment Scotland | `inspire.hes.scot`: Category A listed, Properties in Care, scheduled monuments, gardens, battlefields, World Heritage Sites, plus **Canmore** archaeology (`ARCHAEOLOG='Y'`, with "No class/event/findspot" dropped). The `services-eu1…/HES_Scheduled_Monuments` copy belongs to a council, so don't use it. |
@@ -125,6 +125,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 - **Register caps:** in dense centres (Westminster, Edinburgh Old Town), only the **nearest 40 new cards per register layer** are added, and register-made cards hold at most 5 facts. Matches with existing cards are always merged, and a card keeps one grade (the first, highest-ranked).
 - **Dedup everywhere:** name overlap (`nameOverlap(...).cont ≥ .5`) plus distance (150 m for points, 500 m for areas). The same place from two registers becomes one card.
 - **AI guides** are stored in `wander.guides` (max 20) and normalised and sanitised on import.
+  - History guides carry `indigenousName` for the area and each place (the Indigenous or earliest known name, its people or language and meaning), shown as "Original name".
   - Each guide is tagged `mode` (history/nature) and optionally `topic` (springs/fishing).
   - Guides merge only with the same mode and topic, within 800 m (8 km for topic guides). Places within a guide merge by `samePlace`.
   - Nature guides carry `ground` (bedrock, surface, soil, water, climate, plants, trees, hazards) and `species`.
@@ -146,7 +147,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - D Slate, E Overcast, F Storm (dark D), from the Stormy-morning palette: #6A89A7, #BDDDFC, #88BDF2, #384959.
   - Planned as a Settings section with Appearance Auto/Light/Dark. B and E have no dark version yet.
 - **Wales (Cadw)** register: not added; check whether DataMapWales WFS allows CORS.
-- **Indigenous history (History mode):** the owner wants Indigenous history, prehistory, prominent Indigenous cultural sites and original place names in the area info, not territory maps. Today only the AI guide prompt covers it. Ideas under discussion: Wikipedia's prehistory/Indigenous/name sections in the area card, Wikidata Indigenous site types (marae, pā, village sites) as cards, and Indigenous names from Wikidata `P1705`. Native Land Digital (territories) is not needed.
+- **Indigenous history (History mode):** the owner wants Indigenous history, prehistory, prominent Indigenous cultural sites and original place names, not territory maps (Native Land Digital isn't needed). Done in 3.12.0: area-card sections, Wikidata site types and names, guide `indigenousName`. Possible later: official dual names from New Zealand's Gazetteer (LINZ, needs a key) and Canada's CGNDB (`geogratis.gc.ca`, not on the sandbox allowlist, CORS unchecked); Australia has no single open source.
 - **Unverified live** (blocked from the sandbox): OSM Overpass features (street trees, OSM peaks and springs, fishing spots), the BRGM geology layer, and Wikivoyage/Commons (tested with simulated responses only).
 - **Only testable on a phone:** haptics, compass/Look, Add to Home Screen, and Google Maps links.
 - **Possible later:** more registers (Netherlands Rijksmonumenten, Wales), and France via the new data.gouv API if it gains geo search.
@@ -172,5 +173,6 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
+| `indigenous-history` | "The name" and "Earliest peoples" (simulated Wikipedia, incl. Burbank/London/Kyoto samples), "Name in Māori" and site types (live Wikidata: Auckland marae, Stanley Park village site), guide `indigenousName` |
 | `geology-live`, `soil-climate-quakes`, `in-season`, `species-groups`, `species-rows`, `gbif`, `ebird` | Live Nature data (`ONLY="Kyoto,London"` limits the places in the first three) |
 | `excursions`, `skyline`, `place-timeline`, `deep-time-dates` | Hot springs and fishing, skyline peaks, place-page guide timeline, date parsing |

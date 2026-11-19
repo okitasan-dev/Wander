@@ -249,6 +249,8 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
 .card.area{border-top:0;padding-top:4px}
 .card.area h3{font:600 32px/1.12 var(--serif);letter-spacing:-.01em}
 .card.area .text{font-size:16px}
+.card.area .text.sec{margin-top:4px;font-size:15px}
+.secl{font:600 12.5px/1 var(--sans);color:var(--brass);text-decoration:none;white-space:nowrap}
 .card.area .thumb{width:88px;height:88px}
 .card.area:not(.open) .actions{margin-top:10px}
 
@@ -601,7 +603,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.11.1"></script>
+<script src="common.js?v=3.12.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -755,16 +757,24 @@ async function loadAreaDetails(area){
     UNION { BIND("nick" AS ?kind) ?item wdt:P1449 ?v. FILTER(LANG(?v) IN ("${ul}", "en")) }
     UNION { BIND("motto" AS ?kind) ?item wdt:P1451 ?v. }
     UNION { BIND("water" AS ?kind) ?item wdt:P206 ?v. }
-    ${L} } LIMIT 120`;
+    UNION { BIND("P1705" AS ?kind) ?item wdt:P1705 ?v. }
+    UNION { BIND("P1448" AS ?kind) ?item wdt:P1448 ?v. }
+    ${L} } LIMIT 160`;
   const safe = p => p.catch(()=>[]);
   const [basics, pops, misc, ...facts] = await Promise.all([safe(sparql(qBasics)), safe(sparql(qPop)), safe(sparql(qMisc)), ...ids.map(q=>safe(sparql(qFactoids(q, 'area', ul))))]);
   // history text: the reader's language first, then the local language
+  // and, from the same articles, the earliest peoples and where the name comes from
   const texts = await Promise.all(area.map(async a=>{
-    const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>a.versions[l]);
+    const order = [ul, ...state.langs.filter(l=>l!==ul)].filter(l=>a.versions[l]), out = {};
     for(const lang of order){
-      try{ const t = await fullText(lang, a.versions[lang].title); const rows = timeline(t); if(rows.length>=2) return {lang, rows}; }catch(e){}
+      try{
+        const t = await fullText(lang, a.versions[lang].title);
+        if(!out.early){ const e = earlyPeoples(t); if(e) out.early = {...e, lang}; }
+        if(!out.name){ const n = nameOrigin(t); if(n) out.name = {...n, lang}; }
+        const rows = timeline(t); if(rows.length>=2){ out.hist = {lang, rows}; break; }
+      }catch(e){}
     }
-    return null;
+    return out;
   }));
   area.forEach((a, i)=>{
     const id = a.qid, d = {facts:[]};
@@ -778,6 +788,8 @@ async function loadAreaDetails(area){
     const P = pops.filter(b=>b.item.value.endsWith('/'+id)).map(b=>({n:+b.pop.value, y:b.pd ? b.pd.value.slice(0,4).replace(/^\+/,'') : ''}));
     if(P.length){ P.sort((a,b)=>(b.y||'').localeCompare(a.y||'')); const p = P[0]; d.pop = p.n;
       d.facts.push(['Population', `${esc(fmtNum(p.n, true))}${p.y?` <small>${esc(p.y)}</small>`:''}`]); }
+    const titles = Object.values(a.versions).map(v=>v.title);
+    d.facts.push(...origNameFacts([...misc1('P1705'), ...misc1('P1448')].map(b=>({lang: b.v['xml:lang'], v: b.v.value})), titles));
     const ar = first('areaAmt'); if(ar){ const q = toImperial(Math.abs(+ar.value), unitOf((first('areaUnit')||{}).value)); d.facts.push(['Area', esc(fmtNum(q.n))+(q.u?' '+q.u:'')]); }
     const el = first('elevAmt'); if(el){ const q = toImperial(+el.value, unitOf((first('elevUnit')||{}).value)||'m'); d.facts.push(['Elevation', esc(fmtNum(q.n))+' '+q.u]); }
     const selfName = ((bestVersion(a).v||{}).title||'').toLowerCase();
@@ -808,7 +820,9 @@ async function loadAreaDetails(area){
     const motto = misc1('motto')[0];
     if(motto){ const ml = motto.v['xml:lang'] || ''; F.push(`Its motto is <span lang="${esc(ml)}">“${esc(motto.v.value)}”</span>${ml && ml!==ul ? ` <span class="lang">(${esc(langName(ml))})</span>` : ''}.`); }
     d.factoids = F.slice(0, 9);
-    if(texts[i]){ d.hist = texts[i].rows; d.histLang = texts[i].lang; }
+    const T = texts[i] || {};
+    if(T.hist){ d.hist = T.hist.rows; d.histLang = T.hist.lang; }
+    d.early = T.early || null; d.name = T.name || null;
     a.details = d;
   });
 }
@@ -830,7 +844,7 @@ function osmFacts(t, m){
 async function loadPlaceDetails(it){
   if(it.more) return;
   it.more = {loading:true}; render();
-  const ul = state.userLang, m = {facts:[], hist:[], histLang:null, events:[], factoids:[]};
+  const ul = state.userLang, m = {facts:[], hist:[], histLang:null, events:[], factoids:[], titles: Object.values(it.versions||{}).map(v=>v.title)};
   const jobs = [];
   if(it.qid) jobs.push(sparql(qPlace(it.qid, ul)).then(rows=>placeFacts(rows, m)).catch(()=>{}));
   if(it.qid) jobs.push(sparql(qFactoids(it.qid, 'place', ul)).then(rows=>{ m.factoids = factoidList(rows, (bestVersion(it).v||{}).title).slice(0, 7); }).catch(()=>{}));
@@ -976,8 +990,12 @@ async function fetchWDAround(lat, lon){
     SERVICE wikibase:label { bd:serviceParam wikibase:language "${langs}". }
   } LIMIT ${limit}`;
   const run = query => fetchJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(query), 25000).then(d => d.results.bindings).catch(() => []);
-  const [her, arch] = await Promise.all([run(q('?item wdt:P1435 ?her.', 150)), run(q('?item wdt:P31/wdt:P279? wd:Q839954.', 80))]);
-  return [...arch, ...her];
+  // Indigenous and ancient places that Wikidata doesn't class as archaeological sites (checked QIDs): petroglyph, rock art,
+  // geoglyph, midden, earthworks, burial mound, kofun, pueblo, village site, marae, pā, heiau, ahu. Burial grounds such as urupā are left out.
+  const native = 'Q42195 Q1211146 Q45791 Q1152199 Q1349587 Q5737 Q1141225 Q251749 Q65037959 Q186685 Q1234236 Q3097744 Q402996'.split(' ').map(x=>'wd:'+x).join(' ');
+  const [her, arch, first] = await Promise.all([run(q('?item wdt:P1435 ?her.', 150)), run(q('?item wdt:P31/wdt:P279? wd:Q839954.', 80)),
+    run(q(`VALUES ?cls { ${native} } ?item wdt:P31/wdt:P279? ?cls.`, 60))]);
+  return [...arch, ...first, ...her];
 }
 function mergeWD(rows){
   const ul = state.userLang;
@@ -2375,6 +2393,7 @@ function applyGuides(){
 }
 function guideHTML(g){
   let h = '';
+  if(g.indigenousName) h += `<p class="see"><b>Original name</b>${esc(g.indigenousName)}</p>`;
   if(g.seeToday) h += `<p class="see"><b>What to look for${g.kind ? ` · ${esc(g.kind)}` : ''}</b>${esc(g.seeToday)}${g.located ? `<small>Location: ${esc(g.located)}</small>` : ''}</p>`;
   if(g.keyPoints && g.keyPoints.length) h += `<ul class="kp">${g.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
   if(g.timeline && g.timeline.length) h += `<h4>Timeline</h4><ol class="timeline">${g.timeline.map(t=>`<li${(t.date || '').length > 12 ? ' class="ld"' : ''}><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;
@@ -2489,8 +2508,8 @@ function guidePrompt(deep, radius){
   const near = (state.nearby || []).slice(0, 30).map(r=>{ const {v} = bestVersion(r.it);
     return `${r.it.qid || '-'} | ${v ? v.title : ''} | ${f(r.it.lat)}, ${f(r.it.lon)}`; });
   const areas = state.area.map(a=>`${a.qid} | ${(bestVersion(a).v||{}).title || ''} (the area itself)`);
-  const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
-    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","folklore":false,"summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
+  const schema = '{"wander":1,"area":{"name":"…","lat":0,"lon":0,"indigenousName":"…","summary":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}]},'
+    + '"places":[{"id":"Q123 or null","name":"…","localName":"…","indigenousName":"…","kind":"…","lat":0,"lon":0,"located":"…","address":"…","folklore":false,"summary":"…","seeToday":"…","keyPoints":["…"],"timeline":[{"date":"…","text":"…"}],"trivia":["…"],"sources":[{"title":"…","url":"https://…"}],"terms":[{"text":"…","wiki":"…","lang":"en"}],"confidence":"high|medium|low"}]}';
   return `I'm standing at ${f(p.lat)}, ${f(p.lon)}${state.place ? ` (${state.place})` : ''}. Find the history around me, within about ${size[0]} (${radius} m), and give it to me as data for my walking app, Wander.
 
 RESEARCH
@@ -2512,7 +2531,7 @@ ${[...areas, ...near].join('\n') || '(none yet)'}
 REPLY
 Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
 ${schema}
-Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline, starting with the earliest human presence and the Indigenous peoples' history (not with colonial founding), with dates like "c. 8,000 years ago" where that is what sources give. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house", "Village site", "Shell midden", "Ancient trail" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
+Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline, starting with the earliest human presence and the Indigenous peoples' history (not with colonial founding), with dates like "c. 8,000 years ago" where that is what sources give. indigenousName (for the area and for each place) is its Indigenous or earliest known name: the name, the people or language it comes from, and what it means where a source says, e.g. "Tāmaki Makaurau (Māori): Tāmaki desired by many"; leave it empty unless a source gives one. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house", "Village site", "Shell midden", "Ancient trail" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
   const has = !!state.pos, deep = document.querySelector('input[name="gDepth"]:checked').value === 'deep';
@@ -2698,11 +2717,19 @@ function areaHTML(it, idx){
   const intro = ag && ag.summary ? ag.summary : bodyV.extract || '';
   const facts = (d.facts||[]).map(([l,v])=>`<div${v.replace(/<[^>]+>/g,'').length>22?' class="wide"':''}><dt>${esc(l)}</dt><dd>${v}</dd></div>`).join('');
   let more = '';
-  if(d.hist && d.hist.length){
+  // From the article: where the name comes from, and the first peoples here
+  const sec = (title, x) => { if(!x) return ''; const foreign = x.lang!==ul, v = it.versions[x.lang];
+    return `<h4>${title}${foreign?` <span class="lang">(${esc(langName(x.lang))})</span>`:''}</h4><p class="text sec" lang="${esc(x.lang)}"${v ? ` data-wl="a:${esc(x.lang)}:${esc(v.title)}"` : ''}>${esc(x.text)}${v && v.url ? ` <a class="secl" target="_blank" rel="noopener" href="${esc(v.url.split('#')[0] + '#' + encodeURIComponent(x.head.replace(/ /g, '_')))}">More</a>` : ''}</p>`
+      + (foreign ? xlateHTML(x.text, x.lang, {about: head.title}) : ''); };
+  more += sec('The name', d.name) + sec('Earliest peoples', d.early);
+  // The timeline skips sentences "Earliest peoples" already shows (while two or more remain)
+  const shown = d.early && d.early.lang===d.histLang ? (d.hist||[]).filter(h=>!d.early.text.includes(h.s)) : d.hist;
+  const hist = shown && shown.length>=2 ? shown : d.hist;
+  if(hist && hist.length){
     const foreign = d.histLang!==ul;
     more += `<h4>History in brief${foreign?` <span class="lang">(${esc(langName(d.histLang))})</span>`:''}</h4>
-      <ol class="timeline" lang="${esc(d.histLang)}"${it.versions[d.histLang] ? ` data-wl="a:${esc(d.histLang)}:${esc(it.versions[d.histLang].title)}"` : ''}>${d.hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
-    if(foreign) more += xlateHTML(d.hist.map(h=>`${h.label}: ${h.s}`).join('\n'), d.histLang, {about: head.title});
+      <ol class="timeline" lang="${esc(d.histLang)}"${it.versions[d.histLang] ? ` data-wl="a:${esc(d.histLang)}:${esc(it.versions[d.histLang].title)}"` : ''}>${hist.map(h=>`<li><span class="yr">${esc(h.label)}</span><span>${esc(trimText(h.s, 260))}</span></li>`).join('')}</ol>`;
+    if(foreign) more += xlateHTML(hist.map(h=>`${h.label}: ${h.s}`).join('\n'), d.histLang, {about: head.title});
   }
   if(ag) more = guideHTML(ag) + more;
   more += factoidsHTML(d.factoids);

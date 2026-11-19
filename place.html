@@ -241,7 +241,7 @@ body.event #guideSec{order:2} body.event #facts{order:4} body.event #trivia{orde
   </div>
 </div>
 
-<script src="common.js?v=3.11.1"></script>
+<script src="common.js?v=3.12.0"></script>
 <script>
 "use strict";
 /* Wander place page: richer detail about one place, opened from a card title on the main page.
@@ -433,6 +433,7 @@ async function main(){
   const gp = guideFor(QID);
   if(gp){
     let h = gp.summary ? `<p class="gh-sum">${esc(gp.summary)}</p>` : '';
+    if(gp.indigenousName) h += `<p class="see"><b>Original name</b>${esc(gp.indigenousName)}</p>`;
     if(gp.seeToday) h += `<p class="see"><b>What to look for${gp.kind ? ` · ${esc(gp.kind)}` : ''}</b>${esc(gp.seeToday)}${gp.located ? `<small>Location: ${esc(gp.located)}</small>` : ''}</p>`;
     if(gp.keyPoints.length) h += `<ul class="points">${gp.keyPoints.map(k=>`<li>${esc(k)}</li>`).join('')}</ul>`;
     if((gp.timeline || []).length) h += `<h3 class="gh-tl">Timeline</h3><ol class="timeline">${byDate(gp.timeline).map(t=>`<li${(t.date || '').length > 12 ? ' class="ld"' : ''}><span class="yr">${esc(t.date || '·')}</span><span>${esc(t.text)}</span></li>`).join('')}</ol>`;

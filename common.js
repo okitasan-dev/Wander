@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.11.1';
+const WANDER_VERSION = '3.12.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -116,6 +116,52 @@ function historySection(text){
   }
   return out.join(' ').trim();
 }
+/* ---------- The earliest peoples and the place's name, from the article's own sections ---------- */
+// Section headings about Indigenous peoples and prehistory, and about the name, in the languages Wander reads
+const EARLY_RE = /indigen|aborigin|first nations|first peoples|native americans?|native peoples?|native inhabitants|original inhabitants|first inhabitants|early inhabitants|pre-?columbian|pre-?colonial|pre-?contact|pre-?hispanic|pre-?european|pre-?settlement|prehistor|^early (?:history|settlement|peoples?)$|^before (?:the )?(?:europeans?|spaniards|spanish|british|colonists|colonization|colonisation|settlement)|māori|maori|ainu|urgeschicht|vorgeschicht|frühgeschicht|préhistoire|protohistoire|prehistoria|prehispán|precolomb|preistoria|pré-história|pré-colonial|prehistorie|oergeschiedenis|先史|原始|縄文|史前|선사|доистор|первобыт/i;
+const NAME_RE = /etymolog|toponym|^names?$|^naming$|^the name$|origin of the name|name origin|namensherkunft|^name und |^nom$|toponymie|origine du nom|toponimia|^nombre$|toponimo|origine del nome|^nome$|toponímia|^naam$|^herkomst van de naam|地名|名称|名稱|由来|語源|지명|топоним|назван/i;
+// Opening history paragraphs that are about the first peoples (used when no section has its own heading)
+const EARLY_TEXT_RE = /indigenous|aborigin|first nations|native american|tribe|tribal|inhabited by|originally home to|ancestral|prehistor|archaeolog|hunter-gatherer|years ago|\bBCE?\b|neolithic|mesolithic|palaeolithic|paleolithic|bronze age|iron age|paleo-?indian|jōmon|jomon|ainu|māori|maori|ureinwohner|indigène|autochtone|indígena|originari/i;
+/* Text of the first section whose heading matches re (with its subsections), as paragraphs */
+function sectionText(text, re){
+  const out = []; let inSec = false, level = 0, head = '';
+  for(const ln of String(text || '').split('\n')){
+    const m = /^(=+)\s*(.*?)\s*=+\s*$/.exec(ln);
+    if(m){ const lv = m[1].length; if(inSec && lv <= level) break; if(!inSec && re.test(m[2])){ inSec = true; level = lv; head = m[2]; } continue; }
+    if(inSec && ln.trim()) out.push(ln.trim());
+  }
+  return out.length ? {head, paras: out} : null;
+}
+/* A few opening sentences, at most n characters */
+const leadSentences = (paras, k, n) => trimText(sentences(paras.join(' ')).slice(0, k).join(' '), n);
+const longEnough = (t, n) => t.length >= (/[぀-ヿ一-鿿가-힯]/.test(t) ? n / 3 : n);   // Chinese, Japanese and Korean say more per character
+/* The earliest peoples here: a section of their own, or the history section's opening paragraph when it is about them */
+function earlyPeoples(text){
+  const s = sectionText(text, EARLY_RE);
+  if(s){ const t = leadSentences(s.paras, 4, 700); if(longEnough(t, 60)) return {head: s.head, text: t}; }
+  const h = sectionText(text, HIST_RE);
+  if(h && h.paras[0] && EARLY_TEXT_RE.test(h.paras[0])){ const t = leadSentences([h.paras[0]], 3, 600); if(longEnough(t, 60)) return {head: h.head, text: t}; }
+  return null;
+}
+/* Where the name comes from */
+function nameOrigin(text){
+  const s = sectionText(text, NAME_RE); if(!s) return null;
+  const t = leadSentences(s.paras, 3, 500); return longEnough(t, 40) ? {head: s.head, text: t} : null;
+}
+/* Wikidata's native-language and official names (P1705, P1448) in the place's Indigenous or older languages, as facts:
+   [["Name in Māori", "Tāmaki Makaurau"], …]. Wikidata's ordinary labels in these languages are mostly translations
+   of the modern name (a Navajo label for New York), so only these two properties count. */
+const ORIG_LANGS = new Set(('mi haw sm to fj ty rap mh ch ain ryu se smn sms sma smj sjd kl iu ike ikt cr crk oj ojb otw moe mic chr nv lkt dak hai lut tli ik esu ale '
+  + 'nah yua qu quz ay gn arn gd ga cy kw gv br eu').split(' '));
+function origNameFacts(names, skip){   // skip: names already shown (titles)
+  const seen = new Set(), drop = new Set((skip || []).map(x => String(x || '').toLowerCase())), out = [];
+  for(const n of names){
+    const lang = String(n.lang || '').toLowerCase(), base = lang.split('-')[0], v = String(n.v || '').trim();
+    if(!v || !ORIG_LANGS.has(base) || seen.has(base) || drop.has(v.toLowerCase())) continue;
+    seen.add(base); out.push(['Name in ' + langName(base), esc(v)]);
+  }
+  return out.slice(0, 3);
+}
 let SENT_RE = null;
 try{ SENT_RE = new RegExp('(?<=[.!?])\\s+(?=[A-ZÀ-ÖØ-Þ0-9"“‘(\\u0370-\\u03FF\\u0400-\\u04FF\\u0590-\\u05FF\\u0600-\\u06FF])|(?<=[。！？])'); }catch(e){}
 function sentences(t){
@@ -161,7 +207,10 @@ function timeline(text, n=5){
     const out=[]; for(let i=0;i<n;i++){ const r=rows[Math.round(i*(rows.length-1)/(n-1))]; if(!out.includes(r)) out.push(r); }
     return out;
   };
-  let rows = pick(historySection(text));
+  let src = historySection(text);
+  const early = sectionText(text, EARLY_RE), flat = t => t.replace(/\s+/g, ' ');
+  if(early){ const e = early.paras.join(' '); if(!flat(src).includes(flat(e).slice(0, 120))) src = e + ' ' + src; }
+  let rows = pick(src);
   if(rows.length<3) rows = pick(text.replace(/^=+.*=+\s*$/gm,' '));
   return rows;
 }
@@ -228,7 +277,7 @@ const factoidsHTML = F => F && F.length ? `<h4>Did you know</h4><ul class="facto
 /* ---------- Per-place fact sheet (loaded when "More" is tapped) ---------- */
 const yearNum = t => { const m = /^([+-]?)(\d+)-/.exec(t||''); return m ? (m[1]==='-' ? -m[2] : +m[2]) : null; };
 function qPlace(q, ul){
-  return `SELECT ?kind ?pid ?val ?valLabel ?amt ?unit ?time ?prec WHERE {
+  return `SELECT ?kind ?pid ?val ?valLabel ?name ?amt ?unit ?time ?prec WHERE {
     { BIND("v" AS ?kind)
       VALUES ?pid { wd:P31 wd:P84 wd:P149 wd:P1435 wd:P138 wd:P417 wd:P140 wd:P112 wd:P170 wd:P547 wd:P186 wd:P361 wd:P88 wd:P127 }
       ?pid wikibase:directClaim ?wdt. wd:${q} ?wdt ?val. FILTER(isIRI(?val)) }
@@ -239,6 +288,9 @@ function qPlace(q, ul){
       wd:${q} ?p ?st. ?st ?psv ?node. ?st wikibase:rank ?r. FILTER(?r != wikibase:DeprecatedRank)
       OPTIONAL { ?node wikibase:timeValue ?time; wikibase:timePrecision ?prec }
       OPTIONAL { ?node wikibase:quantityAmount ?amt; wikibase:quantityUnit ?unit } }
+    UNION
+    { BIND("o" AS ?kind) VALUES ?pid { wd:P1705 wd:P1448 }
+      ?pid wikibase:directClaim ?wdt. wd:${q} ?wdt ?name. FILTER(isLiteral(?name)) }
     UNION
     { BIND("e" AS ?kind) BIND(wd:P793 AS ?pid)
       wd:${q} p:P793 ?st. ?st ps:P793 ?val.
@@ -255,6 +307,9 @@ function placeFacts(rows, m){
   const add = (l, v) => { if(v) m.facts.push([l, esc(v)]); };
   const list = (pid, n) => { const L = labels(pid); return L.length ? L.slice(0,n).map(cap).join(', ') : null; };
   add('Type', list('P31', 2));
+  // Its name in an Indigenous or older language (native label first, then official name)
+  const names = ['P1705', 'P1448'].flatMap(pid => (by[pid]||[]).filter(r=>r.kind.value==='o' && r.name).map(r=>({lang: r.name['xml:lang'], v: r.name.value})));
+  m.facts.push(...origNameFacts(names, m.titles));
   add('Founded', time('P571')); add('Opened', time('P1619')); add('Closed', time('P576'));
   add('Architect', list('P84', 2)); add('Style', list('P149', 2));
   add('Founded by', list('P112', 2)); add('Created by', list('P170', 2)); add('Commissioned by', list('P88', 1));
@@ -331,7 +386,7 @@ function normalizeGuide(g){
   const url = v => { const u = str(v, 600); return /^https?:\/\/[^\s"'<>]+$/i.test(u) ? u : ''; };
   const sources = v => arr(v, 8, s => { const u = url(s && s.url); return u ? {title: str(s.title, 120) || u.replace(/^https?:\/\/(www\.)?/, '').split('/')[0], url: u} : null; });
   const timeline = v => arr(v, 12, t => { const text = str(t && t.text, 300), date = str(t && t.date, 40); return text ? {date, text} : null; });
-  const body = p => ({ summary: str(p.summary, 900), keyPoints: arr(p.keyPoints, 6, k => str(k, 300)), timeline: timeline(p.timeline),
+  const body = p => ({ summary: str(p.summary, 900), indigenousName: str(p.indigenousName || p.originalName, 240), keyPoints: arr(p.keyPoints, 6, k => str(k, 300)), timeline: timeline(p.timeline),
     trivia: arr(p.trivia, 6, k => str(k, 300)), sources: sources(p.sources),
     terms: arr(p.terms, 8, t => { const text = str(t && t.text, 80), title = str(t && (t.wiki || t.title), 150), lang = String((t && t.lang) || 'en').toLowerCase();
       return text && title && /^[a-z]{2,3}(-[a-z]+)?$/.test(lang) ? {text, title, lang} : null; }) });
@@ -404,7 +459,7 @@ function mergeEntry(a, b){
   return {...a, ...b,
     id: a.id || b.id || null, name: b.name || a.name, localName: b.localName || a.localName, kind: b.kind || a.kind,
     lat: better.lat ?? a.lat ?? null, lon: better.lon ?? a.lon ?? null, located: better.located || b.located || a.located || '', confidence: better.confidence || b.confidence || a.confidence || '',
-    summary: b.summary || a.summary, seeToday: b.seeToday || a.seeToday,
+    summary: b.summary || a.summary, seeToday: b.seeToday || a.seeToday, indigenousName: b.indigenousName || a.indigenousName || '',
     keyPoints: unionBy([...(b.keyPoints||[]), ...(a.keyPoints||[])], normText, 8),
     timeline: byDate(unionBy([...(a.timeline||[]), ...(b.timeline||[])], t => (t.date||'') + '|' + normText(t.text).slice(0, 40), 14)),
     trivia: unionBy([...(b.trivia||[]), ...(a.trivia||[])], normText, 8),
