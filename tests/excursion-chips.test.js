@@ -26,5 +26,15 @@ const J = (r, body) => r.fulfill({status: 200, contentType: 'application/json', 
   await pg.evaluate(() => { state.springFilter = 'all'; setHiddenSrc(new Set(['spring'])); }); const off = await look();
   console.log('switched off', JSON.stringify(off)); ok('switched-off hot springs are named in the hidden note', off.cards === 0 && /Hot springs/.test(off.note));
   await pg.click('#showAllSrc'); await pg.waitForTimeout(200); ok('Show all brings them back', (await look()).cards > 0);
+  // they are their own entries in the Types menu, not chips outside it; Types' Hide all / Show all covers them
+  const where = await pg.evaluate(() => ({inTypes: !!document.querySelector('#catMenu [data-src="spring"]'), inRow: !!document.querySelector('.lg-row [data-src="spring"]'), heading: !document.querySelector('.lg-farh').hidden}));
+  console.log('placement', JSON.stringify(where)); ok('Hot springs sits inside the Types menu, under Excursions', where.inTypes && !where.inRow && where.heading);
+  await pg.click('.lg-catbtn'); await pg.waitForTimeout(150);
+  await pg.screenshot({path: OUT + '/types-excursions.png'});
+  await pg.click('#catMenu [data-all="cat"]:not([data-show])'); await pg.waitForTimeout(150);
+  const hid = await pg.evaluate(() => ({cards: document.querySelectorAll('.card.far').length, dot: !document.querySelector('.lg-catbtn .lg-dot').hidden}));
+  await pg.click('#catMenu [data-all="cat"][data-show]'); await pg.waitForTimeout(150);
+  const back = await pg.evaluate(() => document.querySelectorAll('.card.far').length);
+  ok('Types Hide all hides Excursions too, Show all brings them back', hid.cards === 0 && hid.dot && back > 0);
   console.log('errors', errs); await b.close(); srv.close && srv.close(); process.exit(0);
 })();

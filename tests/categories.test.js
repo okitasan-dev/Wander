@@ -58,21 +58,36 @@ const N = [
   const clip = async () => { const r = await pg.$eval('.legend', e => { const x = e.getBoundingClientRect(); return {y: x.y}; }); return {x: 0, y: Math.max(0, r.y - 60), width: 390, height: 420}; };
   await pg.screenshot({path: OUT + '/categories-chips.png', clip: await clip()});
 
-  // hide a category: its cards and pins go, and the note says so
-  await pg.click('.lg-cats [data-cat="relig"]'); await pg.waitForTimeout(200);
+  // the Types menu: opens, hides a category: its cards and pins go, and the note says so
+  await pg.click('.lg-catbtn'); await pg.waitForTimeout(150);
+  ok('Types menu opens', await pg.evaluate(() => !document.querySelector('#catMenu').hidden && document.querySelector('#lgMenu').hidden));
+  await pg.screenshot({path: OUT + '/categories-types-menu.png', clip: await clip()});
+  await pg.click('#catMenu [data-cat="relig"]'); await pg.waitForTimeout(200);
   const afterCat = await pg.evaluate(() => ({cards: document.querySelectorAll('#listWrap article[data-key]').length, note: (document.querySelector('.hidden-note') || {}).innerText, saved: localStorage.getItem('wander.hiddenCat')}));
   console.log('after hiding Religious:', JSON.stringify(afterCat));
   ok('category hidden and remembered', /Religious sites/.test(afterCat.note || '') && /relig/.test(afterCat.saved || ''));
+  ok('Types button shows a dot', await pg.evaluate(() => !document.querySelector('.lg-catbtn .lg-dot').hidden));
+  await pg.click('#catMenu [data-all="cat"]:not([data-show])'); await pg.waitForTimeout(150);
+  ok('Types: Hide all hides every card', await pg.evaluate(() => document.querySelectorAll('#listWrap article[data-key]').length === 0 && [...document.querySelectorAll('#catMenu [data-cat]')].every(b => b.getAttribute('aria-pressed') === 'false')));
+  await pg.click('#catMenu [data-all="cat"][data-show]'); await pg.waitForTimeout(150);
+  ok('Types: Show all brings them back', await pg.evaluate(() => state.hiddenCat.size === 0 && document.querySelectorAll('#listWrap article[data-key]').length > 0 && document.querySelector('.lg-catbtn .lg-dot').hidden));
+  await pg.click('#catMenu [data-cat="relig"]'); await pg.waitForTimeout(150);
 
   // the Sources menu: opens, hides AI guide places, closes on an outside tap
   await pg.click('.lg-srcbtn'); await pg.waitForTimeout(150);
-  const menu = await pg.evaluate(() => ({open: !document.querySelector('#lgMenu').hidden, rows: [...document.querySelectorAll('#lgMenu [data-src]')].filter(b => !b.hidden).map(b => b.textContent)}));
+  const menu = await pg.evaluate(() => ({open: !document.querySelector('#lgMenu').hidden, typesClosed: document.querySelector('#catMenu').hidden, rows: [...document.querySelectorAll('#lgMenu [data-src]')].filter(b => !b.hidden).map(b => b.textContent)}));
   console.log('menu:', JSON.stringify(menu));
   await pg.screenshot({path: OUT + '/categories-menu.png', clip: await clip()});
   await pg.click('#lgMenu [data-src="ai"]'); await pg.waitForTimeout(150);
   const afterSrc = await pg.evaluate(() => ({stillOpen: !document.querySelector('#lgMenu').hidden, dot: !document.querySelector('.lg-srcbtn .lg-dot').hidden, note: document.querySelector('.hidden-note').innerText}));
   console.log('after hiding AI guide:', JSON.stringify(afterSrc));
   ok('menu stays open while choosing, dot shows a source is off', afterSrc.stillOpen && afterSrc.dot && /AI guide/.test(afterSrc.note));
+  ok('opening Sources closed Types', menu.typesClosed);
+  await pg.click('#lgMenu [data-all="src"]:not([data-show])'); await pg.waitForTimeout(150);
+  ok('Sources: Hide all hides every card', await pg.evaluate(() => document.querySelectorAll('#listWrap article[data-key]').length === 0 && [...document.querySelectorAll('#lgMenu [data-src]')].every(b => b.getAttribute('aria-pressed') === 'false')));
+  await pg.click('#lgMenu [data-all="src"][data-show]'); await pg.waitForTimeout(150);
+  ok('Sources: Show all brings them back, Types left alone', await pg.evaluate(() => state.hiddenSrc.size === 0 && state.hiddenCat.has('relig')));
+  await pg.click('#lgMenu [data-src="ai"]'); await pg.waitForTimeout(150);
   await pg.click('.lg-you'); await pg.waitForTimeout(150);
   ok('tap elsewhere closes the menu', await pg.evaluate(() => document.querySelector('#lgMenu').hidden));
   await pg.click('#showAllSrc'); await pg.waitForTimeout(150);
