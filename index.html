@@ -46,7 +46,10 @@ svg{flex:none}
 /* map */
 #mapWrap{position:relative;display:none;border-bottom:1px solid var(--rule)}
 #mapWrap.show{display:block}
-#map{height:44vh;min-height:260px;z-index:1;background:var(--surface)}
+#map{height:44vh;min-height:260px;z-index:1;background:var(--surface);-webkit-touch-callout:none}
+.drop-d{color:var(--muted);font-size:13px}
+.drop-pin{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--brass);border:3px solid var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.leaflet-popup-content button.lookhere{display:inline-flex;margin-top:10px;padding:8px 14px;border-radius:999px;background:var(--brass);color:var(--surface);font-size:14px;font-weight:600}
 #mapWrap.collapsed #map{display:none}
 #map .leaflet-tile-pane{filter:grayscale(.8) contrast(.92) brightness(1.04)}
 @media (prefers-color-scheme:dark){#map .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) grayscale(.55) brightness(.78) contrast(1.08)}}
@@ -648,7 +651,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.16.0"></script>
+<script src="common.js?v=3.17.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2138,6 +2141,19 @@ function initMap(){
   const stopFollow = ()=>{ if(M.programmatic) return; M.follow=false; $('#recenterBtn').style.display='inline-flex'; };
   M.map.on('dragstart', stopFollow);
   M.map.on('popupopen', e=>{ const b = e.popup.getElement() && e.popup.getElement().querySelector('[data-goto]'); if(b) b.onclick = ()=>{ M.map.closePopup(); scrollToCard(b.dataset.goto); }; });
+  M.map.on('contextmenu', e => dropPin(e.latlng));   // a long press on a phone (Leaflet turns it into contextmenu on iPhone too), or a right-click
+}
+/* Long-press the map: a pin drops there with a "Look around here" button, which searches that spot like the Go box does */
+function dropPin(ll){
+  if(M.drop) M.drop.remove();
+  haptic();
+  const d = state.pos ? hav(state.pos, {lat: ll.lat, lon: ll.lng}) : 0;
+  const html = `<b>Dropped pin</b><br><span class="drop-d">${d > 30 ? `${fmtDist(d)} from ${state.manual ? 'the spot you’re exploring' : 'you'}` : 'Right where you are'}</span><br><button type="button" class="lookhere">Look around here</button>`;
+  const icon = L.divIcon({className: '', html: '<div class="drop-pin"></div>', iconSize: [22, 22], iconAnchor: [11, 26], popupAnchor: [0, -26]});
+  const m = M.drop = L.marker(ll, {icon, zIndexOffset: 1000}).addTo(M.map).bindPopup(html, {closeButton: true, autoPanPaddingTopLeft: L.point(12, 64), autoPanPaddingBottomRight: L.point(12, 64)}).openPopup();   // clear of the map's buttons and the Exploring pill
+  m.on('popupclose', () => { if(M.drop === m){ m.remove(); M.drop = null; } });   // closing the popup takes the pin away
+  const btn = m.getPopup().getElement().querySelector('.lookhere');
+  btn.onclick = () => { M.drop = null; m.remove(); state.libPending = {kind: 'searched', text: 'Dropped pin'}; setManual(ll.lat, ll.lng); };
 }
 function recenter(){
   if(!M.map || !state.pos) return;
