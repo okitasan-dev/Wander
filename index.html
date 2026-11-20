@@ -652,7 +652,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.20.1"></script>
+<script src="common.js?v=3.20.2"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1955,9 +1955,17 @@ function chainKeep(it){
     return (/\b(first|original|flagship|oldest|founding)\b/.test(t) && local.some(l => t.includes(l)))
       || /\bhistoric(al)?\b[^.]{0,40}\b(building|landmark|site|structure)\b|\b(listed|landmark) building\b/.test(t); });
 }
+/* Wikidata facts for every card with a Wikidata ID, and the chain check for every card, including cards restored from the
+   last visit or added by other sources (40 to a query, the queries side by side). */
 async function loadFacts(){
-  const need = [...state.items.values()].filter(it=>it.qid && !it.factsLoaded).slice(0,40);
-  if(!need.length) return;
+  const all = [...state.items.values()].filter(it=>it.qid && (!it.factsLoaded || !it.chainChecked));
+  if(!all.length) return;
+  const chunks = []; for(let i = 0; i < all.length; i += 40) chunks.push(all.slice(i, i + 40));
+  await Promise.all(chunks.map(factsFor));
+  render();
+}
+async function factsFor(need){
+  const fresh = new Set(need.filter(it=>!it.factsLoaded));   // the rest only need the chain check
   need.forEach(it=>it.factsLoaded=true);
   const q = `SELECT ?item ?typeLabel ?t ?p ?archLabel ?styleLabel ?herLabel ?chainT ?otherT WHERE {
     VALUES ?item { ${need.map(i=>'wd:'+i.qid).join(' ')} }
@@ -1984,8 +1992,10 @@ async function loadFacts(){
       if(!f.built && b.t) f.built = fmtTime(b.t.value, b.p && b.p.value);
     }
     for(const it of need){
+      it.chainChecked = true;   // answered (a failed query leaves it to the next try)
       const f = by[it.qid]; if(!f) continue;
       if(f.chainOnly && !f.her.size && !chainKeep(it)){ it.chain = true; continue; }   // a chain or company, not a place: leave it out
+      if(!fresh.has(it)) continue;
       const facts = [];
       const type=[...f.type][0]; if(type) facts.push(type.charAt(0).toUpperCase()+type.slice(1));
       if(f.built) facts.push('Est. '+f.built);
@@ -1995,7 +2005,6 @@ async function loadFacts(){
       it.facts = [...new Set([...facts, ...(it.facts||[])])];
     }
   }catch(e){ /* factoids are optional */ }
-  render();
 }
 
 /* ---------- refresh cycle ---------- */
@@ -3399,6 +3408,7 @@ $('#placeForm').onsubmit = async e=>{
 // Reopening: show what Wander last showed, then bring it up to date
 if(restoreSession()){
   render(); updateStatus();
+  if(state.mode === 'history') loadFacts();   // cards saved from an earlier visit get the newest checks (chains) without waiting for a search
   let y = 0; try{ y = +sessionStorage.getItem('wander.scroll') || 0; }catch(e){}
   if(y) requestAnimationFrame(() => scrollTo(0, y));
   if(state.manual && Date.now() - state.lastLoadTime > STALE) refresh();

@@ -36,5 +36,28 @@ const CASES = [
   console.log(`loadFacts took ${Date.now() - t0} ms; shown:`, got.shown.join(' · '));
   for(const [, title, , keep] of CASES) ok(`${keep ? 'kept   ' : 'skipped'} ${title}`, got.shown.some(s => s.includes(title)) === keep);
   ok('pins match the list', got.pins === got.shown.length);
+
+  // reopening: a card saved before the chain check existed (facts already loaded) is checked straight away, without a new search
+  await pg.evaluate(() => {
+    state.items.clear(); state.items.set('Q16198409', {key: 'Q16198409', qid: 'Q16198409', lat: 34.1571, lon: -118.2639, factsLoaded: true,
+      versions: {en: {title: 'Acapulco Mexican Restaurant and Cantina', extract: 'A chain founded in Pasadena in 1960.', url: '#'}}, facts: []});
+    state.lastLoad = {...state.pos}; state.lastLoadTime = Date.now(); render(); saveSession(); });
+  const before = await pg.evaluate(() => JSON.parse(localStorage.getItem('wander.session')).items.map(i => i.key));
+  await pg.reload(); await pg.waitForTimeout(400);
+  const atOnce = await pg.evaluate(() => [...document.querySelectorAll('#listWrap article[data-key] h3')].map(h => h.textContent.trim()));
+  await pg.waitForFunction(() => !document.querySelector('#listWrap article[data-key="Q16198409"]'), null, {timeout: 20000}).catch(() => {});
+  const after = await pg.evaluate(() => ({shown: [...document.querySelectorAll('#listWrap article[data-key] h3')].map(h => h.textContent.trim()), searched: state.loads}));
+  console.log('saved:', before, '| on reopening:', atOnce, '| a moment later:', JSON.stringify(after));
+  ok('a card saved from an earlier visit is checked on reopening, with no new search', before.includes('Q16198409') && !after.shown.some(s => /Acapulco/.test(s)) && !after.searched);
+
+  // a busy area: the chain is the 46th card, past the first query's 40
+  const busy = await pg.evaluate(async () => {
+    state.items.clear();
+    for(let i = 0; i < 45; i++) state.items.set('b' + i, {key: 'b' + i, qid: 'Q' + (1000 + i), lat: 34.1598 + i * .00005, lon: -118.2635, versions: {en: {title: 'Place ' + i, extract: '', url: '#'}}});
+    state.items.set('Q16198409', {key: 'Q16198409', qid: 'Q16198409', lat: 34.1571, lon: -118.2639, versions: {en: {title: 'Acapulco Mexican Restaurant and Cantina', extract: 'A chain founded in Pasadena in 1960.', url: '#'}}});
+    await loadFacts(); return {acapulco: !!state.items.get('Q16198409').chain, checked: [...state.items.values()].filter(it => it.chainChecked).length};
+  });
+  console.log('busy area:', JSON.stringify(busy));
+  ok('every card is checked, not just the first 40', busy.acapulco && busy.checked === 46);
   console.log(fails ? 'FAIL' : 'PASS'); console.log('errors', errs); await b.close(); process.exit(fails ? 1 : 0);
 })();
