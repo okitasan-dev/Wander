@@ -14,13 +14,21 @@ const CASES = [
   ['Q3309185', "Philippe's", "Philippe's is a restaurant in Los Angeles.", true],
   ['Q4931577', "Bob's Big Boy", "Bob's Big Boy is a restaurant in Burbank.", true],       // restaurant and building
   ['Q7676074', "Tail o' the Pup", 'A hot dog stand shaped like a hot dog.', true],
+  // organizations, agencies and tournaments are not places either; places that are also run by a nonprofit stay
+  ['Q214126', 'Los Angeles Police Department', 'The LAPD is the police department of Los Angeles.', false],
+  ['Q1512334', 'Onassis Foundation', 'A cultural foundation.', false],
+  ['Q54958878', 'Hugel-JTBC LA Open', 'A women\'s golf tournament.', false],
+  ['Q981112', 'Los Angeles Music Center', 'A performing arts complex.', true],
+  ['Q6682231', 'Los Angeles LGBT Center', 'A community center.', true],
+  ['Q3328437', 'Museum of Neon Art', 'An art museum in Glendale.', true],
+  ['Q1624932', 'Hollywood Forever Cemetery', 'A cemetery in Hollywood.', true],
 ];
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({viewport: {width: 390, height: 844}, serviceWorkers: 'block'});
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.route(/^https?:\/\//, r => { const u = new URL(r.request().url()), h = u.hostname;
-    if(/cdnjs|fonts|query\.wikidata\.org/.test(h)) return /query\.wikidata/.test(h) && !/chainT/.test(u.searchParams.get('query') || '') ? J(r, {results: {bindings: []}}) : r.continue();
+    if(/cdnjs|fonts|query\.wikidata\.org/.test(h)) return /query\.wikidata/.test(h) && !/[?]listed/.test(u.searchParams.get('query') || '') ? J(r, {results: {bindings: []}}) : r.continue();
     if(h === 'nominatim.openstreetmap.org') return J(r, {name: 'Glendale', addresstype: 'city', address: {city: 'Glendale', country: 'United States', country_code: 'us'}, extratags: {}});
     return r.abort(); });
   await pg.goto('file://' + require('path').resolve(__dirname, '..') + '/index.html'); await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(400);
@@ -59,5 +67,25 @@ const CASES = [
   });
   console.log('busy area:', JSON.stringify(busy));
   ok('every card is checked, not just the first 40', busy.acapulco && busy.checked === 46);
+
+  // a whole search, as on a phone with a slow Overpass: the Acapulco card is never shown, not even for a moment
+  await ctx.close();
+  const ctx2 = await b.newContext({viewport: {width: 390, height: 844}, serviceWorkers: 'block'}); const p2 = await ctx2.newPage(); p2.on('pageerror', e => errs.push(e.message));
+  await p2.route(/^https?:\/\//, async r => { const u = new URL(r.request().url()), h = u.hostname, sp = u.searchParams;
+    if(/cdnjs|fonts|query\.wikidata\.org/.test(h)) return r.continue();
+    if(h === 'nominatim.openstreetmap.org') return J(r, {name: 'Glendale', addresstype: 'city', address: {city: 'Glendale', country: 'United States', country_code: 'us'}, extratags: {}});
+    if(h === 'en.wikipedia.org' && sp.get('generator') === 'geosearch') return J(r, {query: {pages: [
+      {pageid: 1, title: 'Acapulco Mexican Restaurant and Cantina', extract: 'A chain founded in Pasadena in 1960.', fullurl: '#', coordinates: [{lat: 34.1571, lon: -118.26389}], pageprops: {wikibase_item: 'Q16198409'}},
+      {pageid: 2, title: 'Alex Theatre', extract: 'A theatre in Glendale.', fullurl: '#', coordinates: [{lat: 34.1575, lon: -118.2610}], pageprops: {wikibase_item: 'Q4717884'}}]}});
+    if(/overpass/.test(h)){ await new Promise(res => setTimeout(res, 12000)); return J(r, {elements: []}); }
+    if(/wikipedia|wikivoyage|wikimedia/.test(h)) return J(r, {query: {pages: []}});
+    return r.abort(); });
+  await p2.goto('file://' + require('path').resolve(__dirname, '..') + '/index.html'); await p2.evaluate(() => localStorage.clear()); await p2.reload(); await p2.waitForTimeout(300);
+  await p2.evaluate(() => setManual(34.15984, -118.26346));
+  let seen = false, alex = false, end = 0;
+  for(let i = 0; i < 80; i++){ const st = await p2.evaluate(() => ({aca: !!document.querySelector('#listWrap article[data-key="Q16198409"]'), alex: !!document.querySelector('#listWrap article[data-key="Q4717884"]'), loading: state.loading}));
+    seen = seen || st.aca; alex = alex || st.alex; if(!st.loading && i > 3 && !end) end = i; if(end && i > end + 6) break; await p2.waitForTimeout(250); }
+  console.log('whole search: Acapulco ever shown:', seen, '| Alex Theatre shown:', alex);
+  ok('during a slow search the chain is never shown, real places are', !seen && alex);
   console.log(fails ? 'FAIL' : 'PASS'); console.log('errors', errs); await b.close(); process.exit(fails ? 1 : 0);
 })();

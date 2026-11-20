@@ -673,7 +673,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.21.0"></script>
+<script src="common.js?v=3.21.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -1000,6 +1000,12 @@ async function loadNearby(lat, lon, live = () => true){
     const ex = await extractsFor(ul, need.map(it=>it.userTitle)).catch(()=>({}));
     need.forEach(it=>{ const v=ex[it.userTitle]; if(v){ it.versions[ul]={title:v.title, extract:v.extract, url:v.url}; if(!it.thumb && v.thumb) it.thumb=v.thumb; } });
   }
+  // Leave out chains, companies and organizations before the list shows them (at most a 4 s wait; a slow answer still hides them later)
+  // (other redraws meanwhile, e.g. the area cards or photos arriving, keep the cards being checked out of sight)
+  const fresh = [...state.items.values()].filter(it => !it.src && it.qid && !it.chainChecked);
+  fresh.forEach(it => { it.checking = true; });
+  if(live()) await Promise.race([chainCheck(fresh), sleep(4000)]);
+  fresh.forEach(it => { delete it.checking; });
   state.loads++;
   return added;
 }
@@ -1964,11 +1970,15 @@ function photosHTML(){
     + speciesRow(ph.map(x => `<a class="sp photo" target="_blank" rel="noopener" href="${esc(x.url)}"><img loading="lazy" alt="" src="${esc(x.thumb)}" onerror="this.outerHTML='<span class=ph></span>'"><b>${esc(x.title)}</b><small>${x.year ? x.year : ''}</small></a>`));
 }
 
-/* Articles about a chain or company (Acapulco, In-N-Out, Starbucks…) are often pinned to one branch or the head office,
-   so they turned up as if they were places. Skip one when every Wikidata type it has is a chain ("chain", Q65553774,
-   and everything under it) or a plain business, company or brand, unless it is listed as heritage, or its intro says this
-   is the first, original or flagship location here, or a historic building or landmark (chainKeep). */
-const CHAIN_ONLY_TYPES = 'wd:Q4830453 wd:Q783794 wd:Q6881511 wd:Q891723 wd:Q658255 wd:Q431289 wd:Q167270';   // business, company, enterprise, public company, subsidiary, brand, trademark
+/* Not places: articles about a chain, company, organization, agency, sports team or tournament (Acapulco, In-N-Out, the
+   Onassis Foundation, the LAPD, the LA Open…) are pinned to one branch, an office or a venue, so they turned up as places.
+   Skip one when EVERY Wikidata type it has is one of these (a museum or school that is also "nonprofit organization" keeps
+   its place type and stays), unless it is listed heritage, or its intro says this is the first, original or flagship location
+   here, or a historic building or landmark (chainKeep). Checked as Wikipedia cards arrive (chainCheck), so they never show,
+   and again for every other card in loadFacts. it.chain marks a skipped card. */
+const NOT_PLACE_TREES = 'wd:Q65553774 wd:Q732717 wd:Q12973014 wd:Q847017 wd:Q18608583 wd:Q157031';   // chain, law enforcement agency, sports team, sports club, recurring sporting event, foundation (and every subclass)
+const CHAIN_ONLY_TYPES = 'wd:Q4830453 wd:Q783794 wd:Q6881511 wd:Q891723 wd:Q658255 wd:Q431289 wd:Q167270 wd:Q43229 wd:Q163740 wd:Q79913 wd:Q327333 wd:Q2659904 wd:Q2990946';
+   // business, company, enterprise, public company, subsidiary, brand, trademark, organization, nonprofit, NGO, government agency, government organization, golf tournament
 function chainKeep(it){
   const text = Object.values(it.versions || {}).map(v => v.extract || '').join(' ');
   const local = [state.hood, state.city].filter(Boolean).map(x => x.toLowerCase());
@@ -1976,22 +1986,44 @@ function chainKeep(it){
     return (/\b(first|original|flagship|oldest|founding)\b/.test(t) && local.some(l => t.includes(l)))
       || /\bhistoric(al)?\b[^.]{0,40}\b(building|landmark|site|structure)\b|\b(listed|landmark) building\b/.test(t); });
 }
-/* Wikidata facts for every card with a Wikidata ID, and the chain check for every card, including cards restored from the
-   last visit or added by other sources (40 to a query, the queries side by side). */
+// "Restaurant", "hotel" and "school" sit under business or organization in Wikidata, so never test those classes with P279*.
+// Wikidata returns each card's types and whether each sits under a not-a-place class; the app decides. (Testing "has another
+// type" with FILTER NOT EXISTS inside the query gave wrong answers and took 12 s.)
+async function chainCheck(items){
+  items = items.filter(it => it.qid && !it.chainChecked); if(!items.length) return;
+  const chunks = []; for(let i = 0; i < items.length; i += 60) chunks.push(items.slice(i, i + 60));
+  const direct = new Set(CHAIN_ONLY_TYPES.split(' ').map(x => x.slice(3))); let hid = 0;
+  await Promise.all(chunks.map(async part => {
+    const q = `SELECT ?item ?t ?root ?listed WHERE { VALUES ?item { ${part.map(i => 'wd:' + i.qid).join(' ')} }
+      OPTIONAL { ?item wdt:P31 ?t. OPTIONAL { VALUES ?root { ${NOT_PLACE_TREES} } ?t wdt:P279* ?root } }
+      BIND(EXISTS { ?item wdt:P1435 [] } AS ?listed) }`;
+    let rows; try{ rows = (await fetchJSON('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), 15000)).results.bindings; }
+    catch(e){ return; }   // no answer: checked again on the next try (only the request is guarded, so a bug here still shows up)
+    {
+      const by = new Map();   // QID → {types: Map(type → not-a-place?), listed}
+      for(const b of rows){ const id = b.item.value.split('/').pop(), e = by.get(id) || {types: new Map(), listed: b.listed && b.listed.value === 'true'}; by.set(id, e);
+        if(b.t){ const t = b.t.value.split('/').pop(); e.types.set(t, e.types.get(t) || !!b.root || direct.has(t)); } }
+      for(const it of part){ const e = by.get(it.qid); if(!e) continue; it.chainChecked = true;
+        if(e.types.size && [...e.types.values()].every(Boolean) && !e.listed && !chainKeep(it)){ it.chain = true; hid++; } }
+    }
+  }));
+  if(hid) renderSoon();   // in case the answer came after the list was shown
+}
+/* The not-a-place check for every card with a Wikidata ID (including cards restored from the last visit or added by other
+   sources), then Wikidata facts for the rest, 40 to a query, the queries side by side. */
 async function loadFacts(){
-  const all = [...state.items.values()].filter(it=>it.qid && (!it.factsLoaded || !it.chainChecked));
-  if(!all.length) return;
+  const items = [...state.items.values()].filter(it=>it.qid);
+  await chainCheck(items);
+  const all = items.filter(it=>!it.factsLoaded && !it.chain);
+  if(!all.length){ render(); return; }
   const chunks = []; for(let i = 0; i < all.length; i += 40) chunks.push(all.slice(i, i + 40));
   await Promise.all(chunks.map(factsFor));
   render();
 }
 async function factsFor(need){
-  const fresh = new Set(need.filter(it=>!it.factsLoaded));   // the rest only need the chain check
   need.forEach(it=>it.factsLoaded=true);
-  const q = `SELECT ?item ?typeLabel ?t ?p ?archLabel ?styleLabel ?herLabel ?chainT ?otherT WHERE {
+  const q = `SELECT ?item ?typeLabel ?t ?p ?archLabel ?styleLabel ?herLabel WHERE {
     VALUES ?item { ${need.map(i=>'wd:'+i.qid).join(' ')} }
-    BIND(EXISTS { ?item wdt:P31 ?ct. { ?ct wdt:P279* wd:Q65553774 } UNION { VALUES ?ct { ${CHAIN_ONLY_TYPES} } } } AS ?chainT)
-    BIND(EXISTS { ?item wdt:P31 ?ot. FILTER NOT EXISTS { ?ot wdt:P279* wd:Q65553774 } FILTER(?ot NOT IN (${CHAIN_ONLY_TYPES.split(' ').join(', ')})) } AS ?otherT)
     OPTIONAL { ?item wdt:P31 ?type. }
     OPTIONAL { ?item p:P571/psv:P571 [ wikibase:timeValue ?t; wikibase:timePrecision ?p ]. }
     OPTIONAL { ?item wdt:P84 ?arch. }
@@ -2004,7 +2036,6 @@ async function factsFor(need){
     const by = {};
     for(const b of d.results.bindings){
       const id = b.item.value.split('/').pop(); const f = by[id] || (by[id]={type:new Set(), arch:new Set(), style:new Set(), her:new Set(), built:null});
-      f.chainOnly = b.chainT && b.chainT.value === 'true' && !(b.otherT && b.otherT.value === 'true');
       const lab = k => b[k] && !/^Q\d+$/.test(b[k].value) ? b[k].value : null;
       if(lab('typeLabel')) f.type.add(lab('typeLabel'));
       if(lab('archLabel')) f.arch.add(lab('archLabel'));
@@ -2013,10 +2044,7 @@ async function factsFor(need){
       if(!f.built && b.t) f.built = fmtTime(b.t.value, b.p && b.p.value);
     }
     for(const it of need){
-      it.chainChecked = true;   // answered (a failed query leaves it to the next try)
       const f = by[it.qid]; if(!f) continue;
-      if(f.chainOnly && !f.her.size && !chainKeep(it)){ it.chain = true; continue; }   // a chain or company, not a place: leave it out
-      if(!fresh.has(it)) continue;
       const facts = [];
       const type=[...f.type][0]; if(type) facts.push(type.charAt(0).toUpperCase()+type.slice(1));
       if(f.built) facts.push('Est. '+f.built);
@@ -3048,7 +3076,7 @@ function render(){
   const area = state.mode === 'nature' ? natureAreaHTML() : A.map((it,i)=>(A.length > 1 && i === 0 ? lvl('Right here') : A.length > 1 && i === A.length - 1 ? lvl('Wider area') : '') + areaHTML(it,i)).join('');
   $('#areaWrap').innerHTML = area ? `<h2>${MD().areaHead}</h2>${area}` : '';
   const rows = [...state.items.values()]
-    .filter(it=>it.lat!=null && !it.chain).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
+    .filter(it=>it.lat!=null && !it.chain && !it.checking).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3).sort((a,b)=>a.d-b.d);
   const present = new Set(rows.map(r=>srcClass(r.it))), perSrc = {}, perCat = {};
   rows.forEach(r=>{ const c = srcClass(r.it); perSrc[c] = (perSrc[c] || 0) + 1; r.cat = catOf(r.it); perCat[r.cat] = (perCat[r.cat] || 0) + 1; });
