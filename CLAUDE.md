@@ -144,14 +144,15 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 - **eBird key on the device:** the repo and site are public, so a committed key would be visible to anyone.
 - **Photos rows:** tiles show 2 rows that scroll sideways (`speciesRow`); 6 or fewer show as a plain grid.
 - **Group chips:** counts come from iNaturalist and show "+" when GBIF adds more. Per-group GBIF counts would cost 10 more requests.
-- **Persistence:** these settings are saved on the device: mode, radius, sight, layer, Excursion range, spring filter, group picks, guide topic/radius/depth (per mode), hidden sources and visit recording.
+- **Appearance** (Settings → Appearance: Auto / Light / Dark, `wander.appearance`): dark mode stays as `@media (prefers-color-scheme:dark)` blocks in each page's CSS. A small script in each page's `<head>` (`applyAppearance`) rewrites those blocks' conditions (`all` / `not all`) and the theme-color metas (`data-scheme`) before the first paint, so there's no flash. New dark-mode CSS must go in such a media block in the page's own `<style>` to be covered.
+- **Persistence:** these settings are saved on the device: appearance, mode, radius, sight, layer, Excursion range, spring filter, group picks, guide topic/radius/depth (per mode), hidden sources and visit recording.
 
 ## Open threads and ideas
 
 - **Theme picker** (deferred by the owner): Classic (current), plus the mockups in `design/mockup-themes.js`:
   - A Terracotta, B Golden hour, C Dusk (dark A), from the Tuscan-sunset palette: #E35336, #FFD3AC, #9988A1, #8A2B0E.
   - D Slate, E Overcast, F Storm (dark D), from the Stormy-morning palette: #6A89A7, #BDDDFC, #88BDF2, #384959.
-  - Planned as a Settings section with Appearance Auto/Light/Dark. B and E have no dark version yet.
+  - Planned as a Settings section next to Appearance (Auto/Light/Dark, done in 3.21.0). B and E have no dark version yet.
 - **Wales (Cadw)** register: not added; check whether DataMapWales WFS allows CORS.
 - **Indigenous history (History mode):** the owner wants Indigenous history, prehistory, prominent Indigenous cultural sites and original place names, not territory maps (Native Land Digital isn't needed). Done in 3.12.0: area-card sections, Wikidata site types and names, guide `indigenousName`. Possible later: official dual names from New Zealand's Gazetteer (LINZ, needs a key) and Canada's CGNDB (`geogratis.gc.ca`, not on the sandbox allowlist, CORS unchecked); Australia has no single open source.
 - **Unverified live** (blocked from the sandbox): OSM Overpass features (street trees, OSM peaks and springs, fishing spots), the BRGM geology layer, and Wikivoyage/Commons (tested with simulated responses only).
@@ -183,6 +184,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `wikidata-links` | "Where … died" and fact-grid names become article links after one lookup (simulated Wikidata), names without articles stay plain, redraws reuse the answers, tapping opens the panel |
 | `guide-parts` | Prompts ask for parts of 8 (12 town-wide); parts pasted one by one or all at once become one guide; a cut-off last part; a single block as before |
 | `chain-skip` | Chain and company articles skipped (Acapulco, In-N-Out, Starbucks, El Torito; live Wikidata types), kept when first-here or historic, single restaurants kept; a card saved from an earlier visit is checked on reopening; a 46th card is checked too |
+| `appearance` | Settings → Appearance on a dark and a light phone: Auto follows, Light and Dark override (page and status bar), remembered after a reload with a correct first frame, the place page too |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |

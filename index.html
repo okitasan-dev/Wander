@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0C2123" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" data-scheme="light" content="#E6E9E4" media="(prefers-color-scheme: light)"><meta name="theme-color" data-scheme="dark" content="#0C2123" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Wander">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png">
 <title>Wander — local history around you</title>
@@ -482,6 +482,19 @@ footer a{color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.spin{animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}}
 @media (min-width:700px){.hero h1{font-size:52px}}
 </style>
+<script>/* Settings → Appearance (wander.appearance): Auto follows the phone; Light or Dark overrides it. The dark-mode rules
+   stay in the CSS as @media (prefers-color-scheme:dark) blocks; this rewrites their condition before the page is drawn. */
+function applyAppearance(a){
+  const dark = a === 'dark' ? 'all' : a === 'light' ? 'not all' : '(prefers-color-scheme: dark)', light = a === 'dark' ? 'not all' : a === 'light' ? 'all' : '(prefers-color-scheme: light)';
+  if(!window.DARK_RULES){ window.DARK_RULES = [];
+    for(const sh of document.styleSheets){ let rs; try{ rs = sh.cssRules; }catch(e){ continue; }   // other sites' stylesheets can't be read
+      for(const r of rs) if(r.media && /prefers-color-scheme:\s*dark/.test(r.media.mediaText)) DARK_RULES.push(r); } }
+  DARK_RULES.forEach(r => { r.media.mediaText = dark; });
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.media = m.dataset.scheme === 'dark' ? dark : light; });   // the phone's status bar
+  document.documentElement.style.colorScheme = a === 'dark' || a === 'light' ? a : '';   // form controls and scrollbars
+}
+try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'auto'); }catch(e){}
+</script>
 </head>
 <body lang="en">
 <div id="status" role="status" hidden></div>
@@ -574,6 +587,14 @@ footer a{color:var(--muted)}
       <a class="mini" id="ebirdGet" target="_blank" rel="noopener" href="https://ebird.org/api/keygen">Get one</a>
     </div>
     <div class="row">
+      <label for="appearance">Appearance</label>
+      <select id="appearance">
+        <option value="auto">Auto (follow phone)</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+    <div class="row">
       <label for="ulang">Your language</label>
       <select id="ulang"></select>
     </div>
@@ -652,7 +673,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.20.2"></script>
+<script src="common.js?v=3.21.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2292,7 +2313,7 @@ function applyModeUI(){
   document.querySelectorAll('.legend [data-src]').forEach(x => { x.querySelector('.lg-t').textContent = md.legend[x.dataset.src]; });
   const hero = $('#heroTitle'); if(hero) hero.textContent = md.hero;   // only there before the first results
   $('#srcOsmLbl').textContent = md.srcs[0]; $('#srcWdLbl').textContent = md.srcs[1];
-  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = md.theme[/dark/.test(m.media) ? 1 : 0]; });
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = md.theme[m.dataset.scheme === 'dark' ? 1 : 0]; });
   if(M.map){   // the map's circles take the new colours
     if(M.ring) M.ring.setStyle({color: cssv('--brass')});
     [M.sight, M.acc].forEach(c => c && c.setStyle({color: cssv('--you'), fillColor: cssv('--you')}));
@@ -3228,6 +3249,8 @@ $('#srcWd').onchange = e=>{ state.useWd=e.target.checked; store.set('useWd',stat
 const ulSel = $('#ulang');
 ulSel.innerHTML = UI_LANGS.map(l=>`<option value="${l}">${esc(langName(l))}</option>`).join('');
 ulSel.value = state.userLang;
+$('#appearance').value = store.get('appearance', 'auto');
+$('#appearance').onchange = e => { store.set('appearance', e.target.value); applyAppearance(e.target.value); };
 ulSel.onchange = e=>{ state.userLang=e.target.value; store.set('userLang',state.userLang); state.items.clear(); state.areaKey=''; state.loads=0; state.lastLoadTime=0; refresh(); };
 /* ---------- Places library: samples, searches, places you've been, and AI guides ----------
    Searches and visits are kept on this device under wander.places, each {id, name, lat, lon, kinds, at, pinned}.
