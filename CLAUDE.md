@@ -50,6 +50,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 ### History mode
 
 - **Cards** come from Wikipedia articles near you, enriched by Wikidata facts.
+- **Chains skipped:** articles about a chain or company (e.g. Acapulco Mexican Restaurant, pinned to one Glendale branch) are left out when every Wikidata type is a chain (`Q65553774` and its subclasses) or a plain business/company/brand (`CHAIN_ONLY_TYPES`), checked in `loadFacts`' query. Kept if listed heritage, or the intro mentions the first/original/flagship location together with this town or neighbourhood, or a historic building or landmark (`chainKeep`). "Restaurant" and "hotel" are subclasses of business in Wikidata, so a business-subclass test would drop single restaurants like Philippe's; don't use one.
 - **Registers:** national heritage registers merge into matching cards, adding the designation, a **Listing** link and the register's text. Anything unmatched becomes its own card.
 - **Area cards** (`loadAreaCards`, in the background so the list isn't held up): the closest area with a Wikipedia article first, then wider ones, e.g. Crest Park, Lake Arrowhead, San Bernardino County. With more than one, they sit under "Right here" and "Wider area" (the widest), with a smaller heading. Each card has the area's article, its facts (including "Name in Māori" etc.), "The name" (the article's etymology section), "Earliest peoples" (its Indigenous/prehistory section, or the history section's opening paragraph when that is about the first peoples; `earlyPeoples`/`nameOrigin` in `common.js`), and "History in brief", which also draws on the earliest-peoples section and skips sentences already shown above it.
 - **AI prompt:** includes Indigenous and prehistoric history, folklore and sensitive-site rules.
@@ -181,6 +182,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `show-less` | Open Nature and History area cards: Show less at the top and the bottom, and closing from the bottom scrolls back to the card |
 | `wikidata-links` | "Where … died" and fact-grid names become article links after one lookup (simulated Wikidata), names without articles stay plain, redraws reuse the answers, tapping opens the panel |
 | `guide-parts` | Prompts ask for parts of 8 (12 town-wide); parts pasted one by one or all at once become one guide; a cut-off last part; a single block as before |
+| `chain-skip` | Chain and company articles skipped (Acapulco, In-N-Out, Starbucks, El Torito; live Wikidata types), kept when first-here or historic, single restaurants kept |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
