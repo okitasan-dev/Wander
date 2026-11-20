@@ -287,6 +287,7 @@ h2.band b{font:600 20px/1.2 var(--serif);color:var(--ink)}
   font:400 15px/1.55 var(--serif);letter-spacing:.02em;box-shadow:inset 0 0 0 3px var(--ground),inset 0 0 0 4px color-mix(in srgb,var(--brass) 45%,transparent)}
 .inscr .cap{display:block;font:500 11px/1 var(--sans);color:var(--brass);letter-spacing:.04em;margin-bottom:8px}
 .actions{grid-column:1 / -1;display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.actions.top{margin-top:8px}   /* Show less, right under an open area card's heading */
 .actions button,.actions a{font-size:13.5px;font-weight:500;color:var(--brass);padding:4px 0}
 
 /* area frontispiece */
@@ -651,7 +652,7 @@ footer a{color:var(--muted)}
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.17.0"></script>
+<script src="common.js?v=3.18.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2310,7 +2311,7 @@ function natureAreaHTML(){
   const label = u => u.name && u.name.length <= 40 ? u.name : first(u.name).length <= 40 && first(u.name) || first(u.rock);
   const teaser = [svc ? [label(svc), svc.age].filter(Boolean).join(', ') : ai ? [ai.name || first(ai.rock), ai.age].filter(Boolean).join(', ') : '',
     n.elev != null ? `${fmtElev(n.elev)} above sea level` : '', n.speciesTotal ? `${n.speciesTotal.toLocaleString()} species seen nearby` : ''].filter(Boolean).join(' · ');
-  const toggle = `<button data-act="areatoggle" data-key="nature">${open ? 'Less' : 'More about the land here'}</button>`;
+  const toggle = `<button data-act="areatoggle" data-key="nature">${open ? 'Show less' : 'More about the land here'}</button>`;
   const head = `<div><h3>${esc(state.hood || state.city || ag && ag.name || 'The land here')}</h3>${teaser ? `<div class="sub">${esc(teaser)}</div>` : n.loading ? `<div class="sub"><span class="spin"></span>Reading the ground…</div>` : ''}</div>`;
   if(!open) return `<article class="card area nat" data-key="nature">${head}<div class="actions">${toggle}</div></article>`;
   const AI = '<span class="aitag">AI guide · for this area</span>';
@@ -2405,7 +2406,7 @@ function natureAreaHTML(){
   if(!n.loading && !ag && !svc) layers += `<p class="lsrc">No geologic map answered for this spot. Make an AI guide to fill in the bedrock from local surveys.</p>`;
   const intro = ag && ag.summary ? `<p class="text" lang="${esc(state.userLang)}"${wlTerms(ag.terms) ? ` data-wl="t:${wlTerms(ag.terms)}"` : ''}>${esc(ag.summary)}</p>` : '';
   const more = ag ? guideHTML(ag) : '';
-  return `<article class="card area nat open" data-key="nature">${head}${intro}<div class="layers">${layers}</div>${more ? `<div class="more">${more}</div>` : ''}`
+  return `<article class="card area nat open" data-key="nature">${head}<div class="actions top">${toggle}</div>${intro}<div class="layers">${layers}</div>${more ? `<div class="more">${more}</div>` : ''}`
     + `<div class="actions">${toggle}<button data-act="guide" data-key="nature">AI guide</button></div></article>`;
 }
 
@@ -2874,7 +2875,7 @@ function areaHTML(it, idx){
       ${open && d.desc?`<div class="desc">${esc(cap(d.desc))}</div>`:''}
     </div>
     ${it.thumb?`<img class="thumb" loading="lazy" alt="" src="${esc(it.thumb)}">`:''}`;
-  const toggle = `<button data-act="areatoggle" data-key="${k}">${open?'Less':'More about '+esc(sub||head.title)}</button>`;
+  const toggle = `<button data-act="areatoggle" data-key="${k}">${open?'Show less':'More about '+esc(sub||head.title)}</button>`;
   // Collapsed: just the name and picture
   if(!open) return `<article class="card area${idx>0?' secondary':''}" data-key="${k}">${headline}<div class="actions">${toggle}</div></article>`;
   const orig = state.showOrig.has(it.key);
@@ -2906,6 +2907,7 @@ function areaHTML(it, idx){
   actions += `<a class="btn" target="_blank" rel="noopener" href="${esc(bodyV.url||head.url)}">Article</a>`;
   return `<article class="card area open${idx>0?' secondary':''}" data-key="${k}">
     ${headline}
+    <div class="actions top">${toggle}</div>
     ${intro?`<p class="text" lang="${esc(ag && ag.summary ? ul : bodyLang)}" data-wl="${ag && ag.summary ? (wlTerms(ag.terms) ? 't:' + wlTerms(ag.terms) : '') : `a:${esc(bodyLang)}:${esc(bodyV.title)}`}">${esc(intro)}${!(ag && ag.summary) && bodyLang!==ul?` <span class="lang">(${esc(langName(bodyLang))})</span>`:''}</p>` + (ag && ag.summary ? '' : xlateHTML(intro, bodyLang, {about: head.title, googleURL: lv && bodyLang===localLang ? translateLink(localLang, lv.title) : ''})):''}
     ${facts?`<dl class="factgrid">${facts}</dl>`:''}
     ${loading}
@@ -3043,7 +3045,10 @@ document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b) return;
   const key = b.dataset.key, it = findItem(key); if(!it) return;
   if(b.dataset.act==='areatoggle'){
-    state.expanded.has(key) ? state.expanded.delete(key) : state.expanded.add(key); render();
+    const closing = state.expanded.has(key);
+    closing ? state.expanded.delete(key) : state.expanded.add(key); render();
+    if(closing){ const card = document.querySelector(`#areaWrap article[data-key="${CSS.escape(key)}"]`);   // closed from the bottom: go back up to its heading
+      if(card && card.getBoundingClientRect().top < 0) card.scrollIntoView({block: 'start', behavior: 'smooth'}); }
   }
   if(b.dataset.act==='more'){
     const opening = !state.expanded.has(key);

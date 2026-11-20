@@ -1,0 +1,41 @@
+// Open area cards have a "Show less" right under the heading; closing from the bottom one scrolls back up to the card.
+const {OUT} = require('./paths');
+const {chromium} = require('playwright');
+const J = (r, body) => r.fulfill({status: 200, contentType: 'application/json', headers: {'access-control-allow-origin': '*'}, body: JSON.stringify(body)});
+(async () => {
+  const b = await chromium.launch();
+  const ctx = await b.newContext({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, serviceWorkers: 'block'});
+  const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  await pg.route(/^https?:\/\//, r => { const h = new URL(r.request().url()).hostname;
+    if(/cdnjs|fonts/.test(h)) return r.continue();
+    if(h === 'nominatim.openstreetmap.org') return J(r, {name: 'Magnolia Park', addresstype: 'suburb', address: {suburb: 'Magnolia Park', city: 'Burbank', country: 'United States', country_code: 'us'}, extratags: {}});
+    if(h === 'query.wikidata.org') return J(r, {results: {bindings: []}});
+    return r.abort(); });
+  await pg.goto('file://' + require('path').resolve(__dirname, '..') + '/index.html'); await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(400);
+  let fails = 0; const ok = (t, c) => { console.log((c ? 'ok   ' : 'FAIL ') + t); if(!c) fails++; };
+  await pg.evaluate(() => setManual(34.18172, -118.31143)); await pg.waitForTimeout(2500);
+  const long = 'A long stand-in paragraph about this place. '.repeat(60);
+  const check = async (name, key, setup) => {
+    await pg.evaluate(setup, long); await pg.waitForTimeout(200);
+    const sel = `#areaWrap article[data-key="${key}"]`;
+    await pg.click(`${sel} [data-act="areatoggle"]`); await pg.waitForTimeout(200);
+    const open = await pg.evaluate(s => { const c = document.querySelector(s); const t = [...c.querySelectorAll('[data-act="areatoggle"]')];
+      return {open: c.classList.contains('open'), labels: t.map(x => x.textContent), topFirst: t[0] && t[0].closest('.actions.top') && t[0].getBoundingClientRect().top - c.getBoundingClientRect().top}; }, sel);
+    console.log(name, 'open:', JSON.stringify(open));
+    ok(`${name}: Show less at the top and the bottom`, open.open && open.labels.join('|') === 'Show less|Show less' && open.topFirst < 150);
+    if(key === 'nature') await pg.screenshot({path: OUT + '/show-less.png', clip: await pg.$eval(sel, e => { const r = e.getBoundingClientRect(); return {x: 0, y: r.y + scrollY - 40, width: 390, height: 320}; }), fullPage: true});
+    await pg.click(`${sel} .actions.top [data-act="areatoggle"]`); await pg.waitForTimeout(200);
+    ok(`${name}: top Show less closes it`, await pg.evaluate(s => !document.querySelector(s).classList.contains('open'), sel));
+    await pg.click(`${sel} [data-act="areatoggle"]`); await pg.waitForTimeout(200);
+    const bottom = `${sel} .actions:not(.top) [data-act="areatoggle"]`;
+    await pg.$eval(bottom, e => e.scrollIntoView({block: 'center'})); await pg.waitForTimeout(100);
+    await pg.click(bottom); await pg.waitForTimeout(900);
+    const after = await pg.evaluate(s => { const c = document.querySelector(s), r = c.getBoundingClientRect(); return {open: c.classList.contains('open'), top: Math.round(r.top), inView: r.top >= -2 && r.top < innerHeight}; }, sel);
+    console.log(name, 'closed from bottom:', JSON.stringify(after));
+    ok(`${name}: bottom Show less closes and scrolls back to the card`, !after.open && after.inView);
+  };
+  await check('Nature', 'nature', long => { state.mode = 'nature'; applyModeUI(); state.nature = {elev: 180, speciesTotal: 612, intro: long}; state.areaGuide = {name: 'Burbank', summary: long, ground: {}}; render(); });
+  await check('History', 'area:Q39561', long => { state.mode = 'history'; applyModeUI(); state.areaGuide = null;
+    state.area = [{key: 'area:Q39561', qid: 'Q39561', versions: {en: {title: 'Burbank, California', extract: long, url: '#'}}, details: {facts: [['Founded', '1887']]}}]; render(); });
+  console.log(fails ? 'FAIL' : 'PASS'); console.log('errors', errs); await b.close(); process.exit(fails ? 1 : 0);
+})();

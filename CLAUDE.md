@@ -68,6 +68,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - Life, with group chips
   - Photos
 - **AI content in the card** sits in boxes labelled "AI guide · for this area".
+- **Show less:** open area cards (this one and History's) have a Show less right under the heading as well as at the bottom; closing from the bottom scrolls back up to the card.
 - **Excursions** (hot springs and fishing) use their own radius (Settings → Excursion range: 10/25/50/100 mi), their own chips and pins (♨ and fish), and a Wild/Developed filter for springs.
 - **Look mode** adds skyline peaks (`skylineAhead`) in the direction the phone points.
 
@@ -176,6 +177,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `nature` | Mode switch, Nature sources (simulated), land card, prompt, guide import, reload |
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
 | `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
+| `show-less` | Open Nature and History area cards: Show less at the top and the bottom, and closing from the bottom scrolls back to the card |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
