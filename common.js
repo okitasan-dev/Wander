@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.18.0';
+const WANDER_VERSION = '3.19.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -219,6 +219,38 @@ async function fullText(lang, title){
   return (d.query && d.query.pages && d.query.pages[0] && d.query.pages[0].extract) || '';
 }
 
+/* ---------- Wikidata names linked to their Wikipedia articles ---------- */
+/* Names from Wikidata (people who died or are buried here, architects, works set here…) are drawn as
+   <span class="wdn" data-q="Q…">. After each redraw, linkWdNames looks up the articles of the ones it hasn't seen,
+   in one small query, and turns each into a link that opens the article panel: the reader's language, else English.
+   The facts never wait for this; the answers are remembered for the visit. */
+const wdName = (iri, html) => { const q = String(iri || '').split('/').pop(); return /^Q\d+$/.test(q) ? `<span class="wdn" data-q="${q}">${html}</span>` : html; };
+const WDN = {got: new Map(), asked: new Set()};
+function linkWdNames(root = document){
+  const ul = (typeof state !== 'undefined' && state.userLang) || 'en', need = new Set();
+  for(const el of root.querySelectorAll('span.wdn[data-q]')){
+    const k = ul + '|' + el.dataset.q;
+    if(!WDN.got.has(k)){ if(!WDN.asked.has(k)) need.add(el.dataset.q); continue; }
+    const a = WDN.got.get(k); el.removeAttribute('data-q'); if(!a) continue;
+    const link = document.createElement('a'); link.className = 'wl'; link.href = a.href; link.dataset.lang = a.lang; link.dataset.title = a.title;
+    link.innerHTML = el.innerHTML; el.replaceWith(link);
+  }
+  if(!need.size) return;
+  const ids = [...need].slice(0, 100); ids.forEach(q => WDN.asked.add(ul + '|' + q));
+  sparql(`SELECT ?x ?u ?e WHERE { VALUES ?x { ${ids.map(q => 'wd:' + q).join(' ')} }
+    OPTIONAL { ?u schema:about ?x; schema:isPartOf <https://${ul}.wikipedia.org/>. } OPTIONAL { ?e schema:about ?x; schema:isPartOf <https://en.wikipedia.org/>. } }`)
+    .then(rows => {
+      const by = new Map(rows.map(r => [r.x.value.split('/').pop(), r]));
+      for(const q of ids){
+        const r = by.get(q), a = r && (r.u || r.e), m = a && /^https:\/\/([a-z0-9-]+)\.wikipedia\.org\/wiki\/(.+)$/.exec(a.value);
+        let title = null; if(m) try{ title = decodeURIComponent(m[2]).replace(/_/g, ' '); }catch(e){}
+        WDN.got.set(ul + '|' + q, title ? {href: a.value, lang: m[1], title} : null);
+      }
+      linkWdNames(document);
+    })
+    .catch(() => ids.forEach(q => WDN.got.set(ul + '|' + q, null)));   // no links this visit rather than asking again on every redraw
+}
+
 /* ---------- "Did you know" factoids from Wikidata ---------- */
 const joinAnd = L => L.length < 2 ? (L[0]||'') : L.slice(0,-1).join(', ') + ' and ' + L[L.length-1];
 /* One query per place: each part picks the best-known few items (by number of Wikipedia editions). */
@@ -253,21 +285,21 @@ function factoidList(rows, self){
   const items = rel => { const seen = new Set(); return (by[rel]||[]).filter(r=>r.xLabel && real(r.xLabel.value) && !(rel==='named' && same(r.xLabel.value)))
     .sort((a,b)=>(+(b.links||{}).value||0)-(+(a.links||{}).value||0)).filter(r=>!seen.has(r.xLabel.value) && seen.add(r.xLabel.value)); };
   const count = rel => { const r = (by[rel+'#']||[])[0]; return r && r.n ? +r.n.value : 0; };
-  const work = s => `<i>${esc(s)}</i>`, out = [];
+  const work = s => `<i>${esc(s)}</i>`, out = [], nm = r => wdName(r.x && r.x.value, esc(r.xLabel.value));   // names link to their articles once linkWdNames finds them
   const list = (rel, fmt, one, many) => { const L = items(rel); if(!L.length) return; const n = count(rel), l = joinAnd(L.map(fmt)); out.push(n > L.length ? many(fmtNum(n), l) : one(l)); };
-  list('set', r=>work(r.xLabel.value), l=>`The setting of ${l}.`, (n,l)=>`The setting of ${n} books, films and other works, including ${l}.`);
-  list('film', r=>work(r.xLabel.value), l=>`A filming location for ${l}.`, (n,l)=>`A filming location for ${n} films and shows, including ${l}.`);
-  list('event', r=>{ const y = r.date ? fmtTime(r.date.value, 9) : ''; return esc(r.xLabel.value) + (y && !r.xLabel.value.includes(y) ? ` (${esc(y)})` : ''); }, l=>`Scene of ${l}.`);
-  list('depict', r=>work(r.xLabel.value) + (r.byLabel && real(r.byLabel.value) ? ` by ${esc(r.byLabel.value)}` : ''), l=>`Pictured in ${l}.`);
-  list('lived', r=>esc(r.xLabel.value), l=>`Once home to ${l}.`);
-  list('home', r=>esc(r.xLabel.value), l=>`Home to ${l}.`);
-  list('buried', r=>esc(r.xLabel.value), l=>`The final resting place of ${l}.`, (n,l)=>`The final resting place of ${n} notable people, including ${l}.`);
-  list('died', r=>esc(r.xLabel.value), l=>`Where ${l} died.`);
-  list('named', r=>esc(r.xLabel.value), l=>`Gave its name to ${l}.`);
+  list('set', r=>wdName(r.x.value, work(r.xLabel.value)), l=>`The setting of ${l}.`, (n,l)=>`The setting of ${n} books, films and other works, including ${l}.`);
+  list('film', r=>wdName(r.x.value, work(r.xLabel.value)), l=>`A filming location for ${l}.`, (n,l)=>`A filming location for ${n} films and shows, including ${l}.`);
+  list('event', r=>{ const y = r.date ? fmtTime(r.date.value, 9) : ''; return nm(r) + (y && !r.xLabel.value.includes(y) ? ` (${esc(y)})` : ''); }, l=>`Scene of ${l}.`);
+  list('depict', r=>wdName(r.x.value, work(r.xLabel.value)) + (r.byLabel && real(r.byLabel.value) ? ` by ${wdName(r.by && r.by.value, esc(r.byLabel.value))}` : ''), l=>`Pictured in ${l}.`);
+  list('lived', nm, l=>`Once home to ${l}.`);
+  list('home', nm, l=>`Home to ${l}.`);
+  list('buried', nm, l=>`The final resting place of ${l}.`, (n,l)=>`The final resting place of ${n} notable people, including ${l}.`);
+  list('died', nm, l=>`Where ${l} died.`);
+  list('named', nm, l=>`Gave its name to ${l}.`);
   const old = items('oldest')[0];
-  if(old && yearNum(old.date.value) <= new Date().getFullYear() - 75){ const y = fmtTime(old.date.value, old.prec && old.prec.value); if(y) out.push(`Among its oldest landmarks is ${esc(old.xLabel.value)}, from ${esc(y)}.`); }
+  if(old && yearNum(old.date.value) <= new Date().getFullYear() - 75){ const y = fmtTime(old.date.value, old.prec && old.prec.value); if(y) out.push(`Among its oldest landmarks is ${nm(old)}, from ${esc(y)}.`); }
   const tall = items('tallest')[0];
-  if(tall && tall.amt){ const q = toImperial(+tall.amt.value, unitOf(tall.unit && tall.unit.value)); if(q.u==='ft') out.push(`Among its tallest structures is ${esc(tall.xLabel.value)}, at ${esc(fmtNum(q.n))} ft.`); }
+  if(tall && tall.amt){ const q = toImperial(+tall.amt.value, unitOf(tall.unit && tall.unit.value)); if(q.u==='ft') out.push(`Among its tallest structures is ${nm(tall)}, at ${esc(fmtNum(q.n))} ft.`); }
   const her = count('heritage');
   if(her >= 3) out.push(`At least ${esc(fmtNum(her))} heritage-listed places lie within its borders.`);
   return out;
@@ -306,15 +338,19 @@ function placeFacts(rows, m){
   const qty = pid => { const r = (by[pid]||[]).find(r=>r.kind.value==='n' && r.amt); return r ? {n:Math.abs(+r.amt.value), u:unitOf(r.unit && r.unit.value)} : null; };
   const add = (l, v) => { if(v) m.facts.push([l, esc(v)]); };
   const list = (pid, n) => { const L = labels(pid); return L.length ? L.slice(0,n).map(cap).join(', ') : null; };
+  const linked = (pid, n) => { const seen = new Set();   // people and places: names that link to their articles
+    const L = (by[pid]||[]).filter(r=>r.kind.value==='v' && r.valLabel && !isQ(r.valLabel.value) && !seen.has(r.valLabel.value) && seen.add(r.valLabel.value));
+    return L.length ? L.slice(0,n).map(r=>wdName(r.val.value, esc(cap(r.valLabel.value)))).join(', ') : null; };
+  const addH = (l, h) => { if(h) m.facts.push([l, h]); };
   add('Type', list('P31', 2));
   // Its name in an Indigenous or older language (native label first, then official name)
   const names = ['P1705', 'P1448'].flatMap(pid => (by[pid]||[]).filter(r=>r.kind.value==='o' && r.name).map(r=>({lang: r.name['xml:lang'], v: r.name.value})));
   m.facts.push(...origNameFacts(names, m.titles));
   add('Founded', time('P571')); add('Opened', time('P1619')); add('Closed', time('P576'));
-  add('Architect', list('P84', 2)); add('Style', list('P149', 2));
-  add('Founded by', list('P112', 2)); add('Created by', list('P170', 2)); add('Commissioned by', list('P88', 1));
-  add('Named after', list('P138', 2)); add('Dedicated to', list('P417', 2)); add('Commemorates', list('P547', 2));
-  add('Religion', list('P140', 1)); add('Material', list('P186', 3)); add('Part of', list('P361', 1)); add('Owned by', list('P127', 1));
+  addH('Architect', linked('P84', 2)); add('Style', list('P149', 2));
+  addH('Founded by', linked('P112', 2)); addH('Created by', linked('P170', 2)); addH('Commissioned by', linked('P88', 1));
+  addH('Named after', linked('P138', 2)); addH('Dedicated to', linked('P417', 2)); addH('Commemorates', linked('P547', 2));
+  add('Religion', list('P140', 1)); add('Material', list('P186', 3)); addH('Part of', linked('P361', 1)); addH('Owned by', linked('P127', 1));
   const h = qty('P2048'); if(h){ const q = toImperial(h.n, h.u||'m'); add('Height', fmtNum(q.n)+' '+q.u); }
   const f = qty('P1101'); if(f) add('Floors', fmtNum(f.n));
   const v = qty('P1174'); if(v) add('Visitors a year', fmtNum(v.n, true));
@@ -627,7 +663,7 @@ function wlLinkIn(el, list, max = 12){
   let made = 0;
   for(const t of [...list].sort((a, b) => b.text.length - a.text.length)){
     if(made >= max) break;
-    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: n => n.parentElement.closest('a,button,.xl,.wl,script,style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: n => n.parentElement.closest('a,button,.xl,.wl,.wdn,script,style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
     for(let n; (n = walk.nextNode());){
       const s = n.nodeValue; let i = s.indexOf(t.text);
       if(i < 0 && !cjk(t.text)){ const j = s.toLowerCase().indexOf(t.text.toLowerCase()); if(j >= 0 && t.text.length >= 8) i = j; }
@@ -643,6 +679,7 @@ function wlLinkIn(el, list, max = 12){
 }
 /* Link every opted-in element on the page; elements whose links are still loading are linked when they arrive */
 function applyWikiLinks(root = document){
+  linkWdNames(root);
   for(const el of root.querySelectorAll('[data-wl]:not([data-wl-done])')){
     const spec = el.dataset.wl, list = wlListFor(spec);
     if(list === null){ wlLoad(spec).then(() => applyWikiLinks(document)); continue; }

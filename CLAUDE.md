@@ -136,6 +136,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - Topic guides add temperature, access, land, season, species, rules and safety per place.
   - Importing a guide for the other mode switches to it.
   - The prompts ask for a single JSON block, and cut-off replies are salvaged.
+- **Wikidata names link to Wikipedia:** names in "Did you know" (died, buried, lived here, set or filmed here, events, oldest/tallest) and in the fact grid (Architect, Founded by, Created by, Named after, Dedicated to, Commemorates, Commissioned by, Part of, Owned by) are drawn as `<span class="wdn" data-q>` (`wdName`). After each redraw, `applyWikiLinks` calls `linkWdNames`, which asks Wikidata for those items' articles in one small query (reader's language, else English) and turns them into article-panel links. The fact queries themselves are unchanged: putting the article lookup inside them made area queries 2–4× slower. Answers are remembered for the visit; a failed lookup leaves names plain.
 - **AI vs service data:** service data leads, and the AI fills gaps or adds detail, always labelled. When two maps disagree, both are shown.
 - **iNaturalist pacing:** Nature mode makes about 12 iNaturalist calls per spot, and parallel bursts got 429s, hence the queue. Taxon lookups for GBIF and eBird species are cached in `wander.taxa`.
 - **Season test:** a species is "seasonal" if this month and its neighbours hold at least 2.5× the share they hold for all sightings there. This corrects for busy months like spring bioblitzes.
@@ -178,6 +179,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `places-library`, `go-box`, `gps-toggle`, `dock`, `sheets`, `depth-help` | Places library, Go box parsing and geocoding, GPS pause, dock, sheets, ? help |
 | `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
 | `show-less` | Open Nature and History area cards: Show less at the top and the bottom, and closing from the bottom scrolls back to the card |
+| `wikidata-links` | "Where … died" and fact-grid names become article links after one lookup (simulated Wikidata), names without articles stay plain, redraws reuse the answers, tapping opens the panel |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
