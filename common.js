@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.19.0';
+const WANDER_VERSION = '3.20.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -417,7 +417,8 @@ function salvageGuide(s){
   }
   if(!places.length && !area) throw new Error('The guide data is incomplete — copy the whole block');
   const topic = (/"topic"\s*:\s*"(springs|fishing)"/.exec(s) || [])[1];
-  return {wander: 1, mode: /"mode"\s*:\s*"nature"/.test(s) || topic ? 'nature' : undefined, topic, area: area || {}, places, partial: true};
+  const part = +(/"part"\s*:\s*(\d+)/.exec(s) || [])[1] || undefined, parts = +(/"parts"\s*:\s*(\d+)/.exec(s) || [])[1] || undefined;   // which part was cut off
+  return {wander: 1, mode: /"mode"\s*:\s*"nature"/.test(s) || topic ? 'nature' : undefined, topic, part, parts, area: area || {}, places, partial: true};
 }
 /* Index just past the {...} that starts at s[i] (the end of the text if it never closes) */
 function endOf(s, i){

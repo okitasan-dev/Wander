@@ -135,7 +135,7 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - Nature guides carry `ground` (bedrock, surface, soil, water, climate, plants, trees, hazards) and `species`.
   - Topic guides add temperature, access, land, season, species, rules and safety per place.
   - Importing a guide for the other mode switches to it.
-  - The prompts ask for a single JSON block, and cut-off replies are salvaged.
+  - **Sent in parts** (`replyRules`): every prompt asks for the data in parts of 8 places (12 for town-wide guides), part 1 with the full area, later parts with only the area's name and position, each ending "Reply \"next\" for part N of M". Long single replies made ChatGPT's stream time out. `decodeGuidePayloads` reads one block or several (a whole pasted chat); later parts of the same reply fold into one guide without raising its count, and "keep only the newest" keeps every part (`latest.partsSeen`). The import message says which parts are in and what's next. A cut-off block is salvaged and keeps its part number.
 - **Wikidata names link to Wikipedia:** names in "Did you know" (died, buried, lived here, set or filmed here, events, oldest/tallest) and in the fact grid (Architect, Founded by, Created by, Named after, Dedicated to, Commemorates, Commissioned by, Part of, Owned by) are drawn as `<span class="wdn" data-q>` (`wdName`). After each redraw, `applyWikiLinks` calls `linkWdNames`, which asks Wikidata for those items' articles in one small query (reader's language, else English) and turns them into article-panel links. The fact queries themselves are unchanged: putting the article lookup inside them made area queries 2–4× slower. Answers are remembered for the visit; a failed lookup leaves names plain.
 - **AI vs service data:** service data leads, and the AI fills gaps or adds detail, always labelled. When two maps disagree, both are shown.
 - **iNaturalist pacing:** Nature mode makes about 12 iNaturalist calls per spot, and parallel bursts got 429s, hence the queue. Taxon lookups for GBIF and eBird species are cached in `wander.taxa`.
@@ -180,6 +180,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `area-name` | Nature card heading follows the place: away spot, then back to GPS, then a mode swap (jumping mid-search) |
 | `show-less` | Open Nature and History area cards: Show less at the top and the bottom, and closing from the bottom scrolls back to the card |
 | `wikidata-links` | "Where … died" and fact-grid names become article links after one lookup (simulated Wikidata), names without articles stay plain, redraws reuse the answers, tapping opens the panel |
+| `guide-parts` | Prompts ask for parts of 8 (12 town-wide); parts pasted one by one or all at once become one guide; a cut-off last part; a single block as before |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
