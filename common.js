@@ -386,6 +386,21 @@ function decodeGuidePayload(text){
   if(data.partial) g.partial = true;
   return g;
 }
+/* Guides sent in parts (to keep each reply short): one paste may hold several ```json blocks, e.g. a whole chat.
+   Each block that looks like guide data is read on its own; a single block reads exactly as before. */
+function decodeGuidePayloads(text){
+  const s = String(text || '');
+  if(s.includes('#import=') || !s.includes('{')) return [decodeGuidePayload(s)];
+  const blocks = [];
+  for(let i = s.indexOf('{'); i >= 0; ){ const end = endOf(s, i), chunk = s.slice(i, end);
+    if(/"(wander|places|area)"\s*:/.test(chunk)) blocks.push(chunk);
+    i = s.indexOf('{', end); }
+  if(blocks.length <= 1) return [decodeGuidePayload(s)];
+  const out = []; let err = null;
+  for(const b of blocks){ try{ out.push(decodeGuidePayload(b)); }catch(e){ err = err || e; } }
+  if(!out.length) throw err || new Error('No guide data found');
+  return out;
+}
 /* A reply that stopped partway: keep the area and every place whose data arrived complete */
 function salvageGuide(s){
   const take = i => { const end = endOf(s, i); try{ return {o: JSON.parse(s.slice(i, end)), end}; }catch(e){ return null; } };
@@ -450,7 +465,9 @@ function normalizeGuide(g){
     species: arr(ar.species, 16, x => { const name = str(x && x.name, 80), sci = str(x && (x.scientific || x.sci), 100);
       return name || sci ? {name: name || sci, sci, note: str(x.note, 220), months: str(x.months, 60)} : null; })};
   if(!places.length && !area.summary) throw new Error('The guide has no places');
-  return {mode: g.mode === 'nature' || topic ? 'nature' : 'history', ...(topic ? {topic} : {}), area, places};   // which Wander mode the guide belongs to
+  const parts = num(g.parts, 1, 50), part = num(g.part, 1, 50);   // "part 2 of 4" when the assistant sent the guide in parts
+  return {mode: g.mode === 'nature' || topic ? 'nature' : 'history', ...(topic ? {topic} : {}), area, places,   // which Wander mode the guide belongs to
+    ...(parts > 1 && part ? {part: Math.round(part), parts: Math.round(parts)} : {})};
 }
 function loadGuides(){ try{ const v = JSON.parse(localStorage.getItem(GUIDE_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
 function saveGuides(list){ try{ localStorage.setItem(GUIDE_KEY, JSON.stringify(list.slice(-GUIDE_MAX))); return true; }catch(e){ return false; } }
@@ -514,20 +531,30 @@ function addGuide(g){
   const mode = g.mode || 'history', topic = g.topic || '';   // history, nature, hot-springs and fishing guides for the same spot stay separate
   const reach = topic ? 8000 : GUIDE_AREA_M;   // regional guides merge when centred within five miles
   const host = c && list.slice().reverse().find(x => { const xc = guideCentre(x); return (x.mode || 'history') === mode && (x.topic || '') === topic && xc && metres(xc, c) <= reach; });
+  const first = g.part ? {...g, partsSeen: [g.part]} : g;
   if(!host){
-    const saved = {...g, id: Date.now().toString(36), savedAt: Date.now(), count: 1, latest: g};
+    const saved = {...g, id: Date.now().toString(36), savedAt: Date.now(), count: 1, latest: first};
     list.push(saved); saveGuides(list); return {guide: saved, merged: false, added: g.places.length, updated: 0};
   }
-  const places = (host.places || []).slice(); let added = 0, updated = 0;
+  const {area, places, added, updated} = foldGuide(host, g);
+  // the next part of the same reply: not another guide, and "keep only the newest" keeps every part of it
+  const L = host.latest, cont = !!(g.parts && L && L.parts === g.parts && !(L.partsSeen || []).includes(g.part));
+  const latest = cont ? {...L, ...foldGuide(L, g), partsSeen: [...L.partsSeen, g.part]} : first;
+  delete latest.added; delete latest.updated;
+  const merged = {...host, area, places, count: cont ? (host.count || 1) : (host.count || 1) + 1, savedAt: Date.now(), latest};
+  saveGuides([...list.filter(x => x !== host), merged]);
+  return {guide: merged, merged: true, added, updated, cont};
+}
+/* Fold guide g's area and places into base's: the same place found twice becomes one */
+function foldGuide(base, g){
+  const places = (base.places || []).slice(); let added = 0, updated = 0;
   for(const p of g.places){
     const i = places.findIndex(q => samePlace(q, p));
     if(i >= 0){ places[i] = mergeEntry(places[i], p); updated++; } else { places.push(p); added++; }
   }
-  const area = mergeEntry(host.area || {}, g.area || {});
-  area.name = (host.area && host.area.name) || area.name; area.lat = host.area && host.area.lat != null ? host.area.lat : area.lat; area.lon = host.area && host.area.lon != null ? host.area.lon : area.lon;
-  const merged = {...host, area, places, count: (host.count || 1) + 1, savedAt: Date.now(), latest: g};
-  saveGuides([...list.filter(x => x !== host), merged]);
-  return {guide: merged, merged: true, added, updated};
+  const area = mergeEntry(base.area || {}, g.area || {});
+  area.name = (base.area && base.area.name) || area.name; area.lat = base.area && base.area.lat != null ? base.area.lat : area.lat; area.lon = base.area && base.area.lon != null ? base.area.lon : area.lon;
+  return {area, places, added, updated};
 }
 /* Keep only the newest guide imported for that area */
 function guideStartFresh(id){ const list = loadGuides(); const i = list.findIndex(g => g.id === id); if(i < 0 || !list[i].latest) return;

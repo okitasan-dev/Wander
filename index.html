@@ -626,7 +626,7 @@ footer a{color:var(--muted)}
     <div class="btnrow"><a class="ghost" id="gOpen" target="_blank" rel="noopener">Open in Claude</a><a class="ghost" id="gOpenGpt" target="_blank" rel="noopener">Open in ChatGPT</a></div>
     <h4>Import a generated guide</h4>
     <div class="btnrow"><button type="button" class="primary" id="gPaste">Paste guide</button></div>
-    <textarea id="gImport" rows="3" placeholder="Or paste the data block here by hand" aria-label="Guide data from the assistant"></textarea>
+    <textarea id="gImport" rows="3" placeholder="Or paste the data block here by hand (one part at a time, or all of them at once)" aria-label="Guide data from the assistant"></textarea>
     <div class="btnrow"><button type="button" class="ghost" id="gImportBtn">Add guide</button></div>
     <p id="gMsg" role="status"></p>
     <div id="gList"></div>
@@ -2631,8 +2631,7 @@ Places (id | name | lat, lon) — enrich these where you find more, and add plac
 ${near.join('\n') || '(none yet)'}
 
 REPLY
-Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
-${schema}
+${replyRules(schema, ul)}
 Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences on what the land is made of and how it came to look the way it does. Give the area 3–5 key points (landform, rocks, water, soil, climate, plant community) and, as its timeline, the deep history oldest first: when the rocks formed, major geological events, ice ages and old sea levels, the first people and how they used the land, what grew here before modern development, and the big changes since (drainage, channelling, fires, plantings). Write dates like "c. 15 million years ago", "c. 12,000 years ago" or "1938". In ground, describe this area in a sentence or two each: bedrock (the formation's name, its rock types, its age in years, notes on how it formed and where a walker can see it, and the map sheet that shows it), surface deposits (what lies on top of the bedrock: river gravels, landslide debris, fill), soil (type and what it means for what grows), water (watershed, creeks and springs, including buried ones, and groundwater) climate (zone, typical seasons, anything local such as fog or wind), plants (the native plant community, what grew here before development, where remnants survive, and any rare or protected plants) hazards (the natural forces that shaped and still shape the place: faults and earthquakes, landslides, floods, fires, liquefaction or subsidence, told as history and as what a walker can see, not as alarm) and trees (the commonest street and park trees, which are native, and any notable ones, from the city's tree inventory or urban forest plan where there is one); cite these in the area's sources. In species, list up to 12 plants and animals typical of or special to this area (native ones especially, including native plants a walker can find; say if one is rare, protected or introduced), each with its common name, scientific name, a short note and, if it matters, the months it is most easily seen. For each place: summary at most ${size[5] === 'town' ? '40 words, at most 3 key points, 3 timeline items and 2 trivia' : '60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Sandstone outcrop", "Spring", "Fault scarp", "Heritage oak", "Buried creek", "Fossil site", "Viewpoint" or "Building stone"; seeToday says in one sentence what to look at now (or that nothing visible remains); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable rock units, species, events or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 // Hot springs and fishing: a wider radius, and every kind of source, the obscure and the secret especially
@@ -2665,8 +2664,7 @@ WHAT MY APP ALREADY KNOWS (id | name | lat, lon | notes) — enrich and correct 
 ${known.join('\n') || '(none yet)'}${fish}
 
 REPLY
-Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
-${schema}
+${replyRules(schema, ul)}
 Notes: plain text only, no HTML or markdown. The area summary is 2–4 sentences on the region's ${sp ? 'geothermal setting and soaking culture' : 'waters and fishing'}, with 3–5 key points. For each place: summary at most 50 words, at most 4 key points and 3 trivia; kind is a short label such as ${sp ? '"Wild hot spring", "River-edge seep", "Hot pool", "Onsen" or "Developed hot springs resort"' : '"Trout stream", "Alpine lake", "Reservoir", "Urban pond", "River access" or "Spring creek"'}; ${sp ? 'temperature like "104°F (40°C)"' : 'species lists the main fish'}; located says how precisely the spot is known and from what source; address is the nearest road, trailhead or access point, from a source where you can — I use it to place the pin when you have no coordinates. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function guidePrompt(deep, radius){
@@ -2697,8 +2695,7 @@ PLACES MY APP ALREADY KNOWS (id | name | lat, lon) — enrich these where you fi
 ${[...areas, ...near].join('\n') || '(none yet)'}
 
 REPLY
-Do not build a pamphlet, artifact, canvas or web page — I only need the data. Reply with one short sentence, then a single \`\`\`json code block containing only valid JSON (no comments, no trailing commas), in ${langName(ul)}, in exactly this shape:
-${schema}
+${replyRules(schema, ul)}
 Notes: plain text only, no HTML or markdown. The area summary is 3–5 sentences; give the area 3–5 key points and its major moments as the timeline, starting with the earliest human presence and the Indigenous peoples' history (not with colonial founding), with dates like "c. 8,000 years ago" where that is what sources give. indigenousName (for the area and for each place) is its Indigenous or earliest known name: the name, the people or language it comes from, and what it means where a source says, e.g. "Tāmaki Makaurau (Māori): Tāmaki desired by many"; leave it empty unless a source gives one. For each place: ${size[5] === 'town' ? 'summary at most 40 words, at most 3 key points, 3 timeline items and 2 trivia' : 'summary at most 60 words, at most 4 key points and 6 timeline items'}. kind is a short label such as "Shrine", "Bronze statue", "Mural", "Film location", "Merchant house", "Village site", "Shell midden", "Ancient trail" or "Site of an assassination"; seeToday says in one sentence what is there to look at now (or that nothing marks the spot); located says how precisely the spot is known and from what source; address is the street address or the nearest cross streets, with the city, taken from a source where you can — I use it to place the pin. terms lists up to 5 notable people, events, groups or ideas named in that entry's text, each with the exact words you used (text) and the title of the matching Wikipedia article (wiki) in the language you write in — or in the local language (lang) if only that has one; include only articles you are sure exist. Use the id from my list when a place is one of mine; use null for new places, with your best coordinates.`;
 }
 function updateGuideSheet(){
@@ -2731,14 +2728,36 @@ async function copyText(text, btn){
   const was = btn.textContent; btn.textContent = 'Copied'; setTimeout(()=>{ btn.textContent = was; }, 1500);
 }
 function importGuide(text){
-  const incoming = decodeGuidePayload(text), r = addGuide(incoming), g = r.guide, n = x => `${x} place${x===1?'':'s'}`;
+  const all = decodeGuidePayloads(text), incoming = all[0], n = x => `${x} place${x===1?'':'s'}`;   // one block, or several parts at once
+  let r = null, added = 0, updated = 0;
+  for(const x of all){ r = addGuide(x); added += r.added; updated += r.updated; }
+  const g = r.guide, cut = all.find(x => x.partial);
   const switched = (incoming.mode || 'history') !== state.mode;
   if(incoming.topic) state.hiddenSrc.delete(incoming.topic === 'springs' ? 'spring' : 'fish');
   if(switched) setMode(incoming.mode || 'history'); else render();
   geocodeGuide(g.id);
-  return (switched ? `Switched to ${incoming.mode === 'nature' ? 'Nature' : 'History'} mode for this guide. ` : '') + (incoming.partial ? `The reply was cut off, so only the ${n(incoming.places.length)} that arrived complete were kept. ` : '')
-    + (r.merged ? `Merged into ${g.area.name || 'your guide'}: ${n(r.added)} added, ${n(r.updated)} combined (${g.places.length} in total).`
-                : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`);
+  const head = (switched ? `Switched to ${incoming.mode === 'nature' ? 'Nature' : 'History'} mode for this guide. ` : '') + (cut ? `The reply was cut off, so only the ${n(cut.places.length)} that arrived complete were kept. ` : '');
+  // sent in parts: say which have arrived and what to do for the next
+  const total = Math.max(0, ...all.map(x => x.parts || 0)), seen = ((g.latest && g.latest.partsSeen) || []).slice().sort((a, b) => a - b);
+  if(total > 1){
+    const missing = Array.from({length: total}, (_, i) => i + 1).filter(k => !seen.includes(k)), name = g.area.name ? ' for ' + g.area.name : '';
+    return head + (missing.length
+      ? `Part${seen.length > 1 ? 's' : ''} ${seen.join(', ')} of ${total} added (${n(g.places.length)} so far${name}). Reply “next” in the chat for part ${missing[0]}, then paste it here.`
+      : `All ${total} parts added: ${n(g.places.length)}${name}.`);
+  }
+  return head + (r.merged ? `Merged into ${g.area.name || 'your guide'}: ${n(added)} added, ${n(updated)} combined (${g.places.length} in total).`
+                          : `Added ${n(g.places.length)}${g.area.name ? ' for ' + g.area.name : ''}.`);
+}
+/* The REPLY rules shared by every guide prompt: the data in parts of a few places each, so no single reply runs so long
+   that the assistant's stream times out (ChatGPT does this on long code blocks). Wander folds the parts back together. */
+const GUIDE_PART = 6;
+function replyRules(schema, ul){
+  return `Do not build a pamphlet, artifact, canvas or web page — I only need the data, in ${langName(ul)}. Send it in parts so that no single reply gets too long:
+- Do all the research first. Then each reply holds one short sentence and one \`\`\`json code block of valid JSON only (no comments, no trailing commas).
+- Part 1 has "part":1, "parts" (how many parts you will send in all), the full area and the first ${GUIDE_PART} places. Each later part has the next "part" number, the same "parts", an area with only its name, lat and lon, and up to ${GUIDE_PART} more places. With ${GUIDE_PART} places or fewer, send everything as part 1 with "parts":1.
+- After every part but the last, stop and end with: Reply "next" for part N of M.
+Each part has exactly this shape:
+${schema.replace('{"wander":1', '{"wander":1,"part":1,"parts":1')}`;
 }
 /* Assistants' coordinates are often off; addresses are usually right. Look each address up in OpenStreetMap
    (one a second, in the background) and move the pin there, unless the guide's pin came from a precise source. */
