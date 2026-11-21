@@ -43,7 +43,7 @@ const {chromium}=require('playwright');
   });
   unit.forEach(u=>console.log(u[0].padEnd(62), u[1]));
   async function go(v){ calls.length=0;
-    await pg.evaluate(()=>{ document.querySelector('#settings').open=true; });
+    await pg.evaluate(()=>{ document.querySelectorAll('details.sheet').forEach(x=>x.open=false); });   // the Go box sits under the map (or under the title before there is one)
     await pg.fill('#placeInput', v); await pg.click('#placeForm button[type=submit]'); await pg.waitForTimeout(3500);
     const r = await pg.evaluate(()=>({pos: state.pos && [+state.pos.lat.toFixed(4), +state.pos.lon.toFixed(4)], status: document.querySelector('#status').hidden ? '' : document.querySelector('#status').textContent.slice(0,90), settingsOpen: document.querySelector('#settings').open}));
     console.log('GO', JSON.stringify(v).slice(0,70), '->', JSON.stringify(r), calls.join(' | '));

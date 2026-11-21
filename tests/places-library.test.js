@@ -25,6 +25,7 @@ const SP=OUT;
   await pg.waitForTimeout(300);
   console.log('short list:', await pg.$$eval('#libShort .lib-go', bs=>bs.map(b=>b.innerText.replace(/\n/g,' — '))));
   await pg.screenshot({path:SP+'/lib-settings.png'});
+  await pg.evaluate(()=>{ document.querySelector('#settings').open = false; }); await pg.waitForTimeout(300);
   await pg.fill('#placeInput', 'Gion Kyoto'); await pg.click('#placeForm button[type=submit]'); await pg.waitForTimeout(6000);
   await info('after search');
   await pg.evaluate(()=>{ document.querySelector('#status').hidden = true; });
@@ -58,7 +59,7 @@ const SP=OUT;
   // turning off visits
   await pg.evaluate(()=>store.set('recordVisits', false));
   // reload: session keeps remote flag
-  await pg.evaluate(()=>{ document.querySelector('#settings').open = true; }); await pg.fill('#placeInput', '35.0037, 135.7788'); await pg.click('#placeForm button[type=submit]'); await pg.waitForTimeout(3000);
+  await pg.evaluate(()=>{ document.querySelector('#settings').open = false; }); await pg.fill('#placeInput', '35.0037, 135.7788'); await pg.click('#placeForm button[type=submit]'); await pg.waitForTimeout(3000);
   await pg.evaluate(()=>saveSession()); await pg.reload(); await pg.waitForTimeout(1500); await info('after reload');
   console.log('errors', errs); await b.close(); srv.close && srv.close(); process.exit(0);
 })();

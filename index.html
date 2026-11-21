@@ -76,11 +76,6 @@ svg{flex:none}
 #recenterBtn{display:none;color:var(--brass)}
 .legend{position:relative;display:flex;gap:8px;align-items:center;padding:10px 0 12px 16px;font-size:12.5px;color:var(--muted)}
 /* a row (You), then Types and Sources buttons that each open a small menu; Hot springs and Fishing are their own entries in Types */
-.lg-row{flex:1;min-width:0;display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:2px 14px 2px 0;
-  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
-.lg-row::-webkit-scrollbar{display:none}
-.lg-row>*{flex:none}
-.legend .lg-you{display:inline-flex;align-items:center;gap:6px;margin-right:4px;padding:0 4px}
 .legend .lg-btn{flex:none;gap:5px;padding:6px 11px;color:var(--ink)}
 .legend .lg-srcbtn{margin-right:16px}
 .lg-btn svg{width:15px;height:15px;color:var(--brass)}
@@ -394,7 +389,24 @@ select,input[type=text],input[type=password]{font:inherit;font-size:16px;padding
 .chk{font-size:14px;display:inline-flex;align-items:center;gap:8px;margin-right:14px}
 .chk input{width:18px;height:18px;accent-color:var(--brass)}
 .row .srcs{display:flex;flex-direction:column;gap:8px;flex:1}
-#placeForm button{color:var(--on-brass);background:var(--brass);border-radius:10px;padding:9px 16px;font-weight:500}
+/* The Go box: a small field right of "You" under the map; before there is a map (no position yet) a full-width one under the
+   welcome title (#goSlot). One form, moved by placeGoBox. */
+#placeForm{display:flex;gap:8px;align-items:center;margin:0}
+#placeForm button{color:var(--on-brass);background:var(--brass);border-radius:10px;width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;flex:none}
+#placeForm button svg{width:20px;height:20px}
+#goSlot{padding:0 24px 32px;max-width:560px}
+#goSlot:empty{display:none}
+.legend #placeForm{flex:1;min-width:0;gap:4px}
+.legend #placeForm input{height:36px;padding:4px 10px;border-radius:999px;font-size:16px}   /* 16px stops iPhones zooming in on focus */
+.legend #placeForm input::placeholder{font-size:13px}
+.legend #placeForm button{width:36px;height:36px;padding:0;border:0;border-radius:50%;justify-content:center;font-size:0}   /* a round arrow */
+.legend #placeForm button svg{width:16px;height:16px}
+.legend:has(#placeInput:focus) .lg-btn,.legend:has(#placeInput:focus) .lg-menu{display:none}   /* typing: the field takes the whole row; Types and Sources come back after */
+.legend:has(#placeInput:focus) #placeForm{margin-right:16px}
+.legend .lg-bt{display:none}   /* Types and Sources are icons (named for screen readers and on hover), so the Go box has room */
+.legend .lg-btn{position:relative;width:36px;height:36px;padding:0;justify-content:center;border-radius:50%}
+.legend .lg-btn svg{width:18px;height:18px}
+.legend .lg-btn .lg-dot{position:absolute;top:3px;right:3px}
 /* places library */
 .lib-row{display:flex;align-items:center;gap:2px;border-top:1px solid var(--rule)}
 .lib-list .lib-row:first-child{border-top:0}
@@ -514,7 +526,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
       <button type="button" data-layer="topo" aria-pressed="false"><i class="sw-topo"></i>Terrain</button>
       <button type="button" data-layer="geo" aria-pressed="false"><i class="sw-geo"></i>Geology</button>
     </div>
-    <div class="legend" aria-label="Filter the map and list"><div class="lg-row"><span class="lg-you"><i class="lg you"></i>You</span></div><button type="button" class="lg-btn lg-catbtn" aria-expanded="false" aria-controls="catMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Types<i class="lg-dot" hidden></i></button><button type="button" class="lg-btn lg-srcbtn" aria-expanded="false" aria-controls="lgMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Sources<i class="lg-dot" hidden></i></button><div class="lg-menu" id="catMenu" role="group" aria-label="Types of place" hidden><p class="lg-mh">Show these types</p><div class="lg-all"><button type="button" data-all="cat" data-show="1">Show all</button><button type="button" data-all="cat">Hide all</button></div><div class="lg-cats"></div><p class="lg-mh lg-farh" hidden>Excursions</p><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div><div class="lg-menu" id="lgMenu" role="group" aria-label="Sources" hidden><p class="lg-mh">Show places from</p><div class="lg-all"><button type="button" data-all="src" data-show="1">Show all</button><button type="button" data-all="src">Hide all</button></div><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div></div>
+    <div class="legend" aria-label="Go somewhere, or filter the map and list"><button type="button" class="lg-btn lg-catbtn" aria-expanded="false" aria-controls="catMenu" aria-label="Types" title="Types"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span class="lg-bt">Types</span><i class="lg-dot" hidden></i></button><button type="button" class="lg-btn lg-srcbtn" aria-expanded="false" aria-controls="lgMenu" aria-label="Sources" title="Sources"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="lg-bt">Sources</span><i class="lg-dot" hidden></i></button><div class="lg-menu" id="catMenu" role="group" aria-label="Types of place" hidden><p class="lg-mh">Show these types</p><div class="lg-all"><button type="button" data-all="cat" data-show="1">Show all</button><button type="button" data-all="cat">Hide all</button></div><div class="lg-cats"></div><p class="lg-mh lg-farh" hidden>Excursions</p><button type="button" class="g-far" data-src="spring" aria-pressed="true" hidden><i class="lg spring"></i><span class="lg-t">Hot springs</span><span class="lg-n"></span></button><button type="button" class="g-far" data-src="fish" aria-pressed="true" hidden><i class="lg fish"></i><span class="lg-t">Fishing</span><span class="lg-n"></span></button></div><div class="lg-menu" id="lgMenu" role="group" aria-label="Sources" hidden><p class="lg-mh">Show places from</p><div class="lg-all"><button type="button" data-all="src" data-show="1">Show all</button><button type="button" data-all="src">Hide all</button></div><button type="button" data-src="wiki" aria-pressed="true"><i class="lg wiki"></i><span class="lg-t">Wikipedia</span><span class="lg-n"></span></button><button type="button" data-src="osm" aria-pressed="true"><i class="lg osm"></i><span class="lg-t">Plaque or landmark</span><span class="lg-n"></span></button><button type="button" data-src="wd" aria-pressed="true"><i class="lg wd"></i><span class="lg-t">Heritage site</span><span class="lg-n"></span></button><button type="button" class="g-voy" data-src="voy" aria-pressed="true" hidden><i class="lg voy"></i><span class="lg-t">Wikivoyage</span><span class="lg-n"></span></button><button type="button" class="g-ebird" data-src="ebird" aria-pressed="true" hidden><i class="lg ebird"></i><span class="lg-t">Birding hotspot</span><span class="lg-n"></span></button><button type="button" class="g-ai" data-src="ai" aria-pressed="true" hidden><i class="lg ai"></i><span class="lg-t">AI guide</span><span class="lg-n"></span></button></div></div>
   </div>
   <section id="areaWrap"></section>
   <section id="listWrap">
@@ -523,6 +535,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
       <h1 id="heroTitle">Explore the history around you.</h1>
     </div>
   </section>
+  <div id="goSlot"><form id="placeForm"><input type="text" id="placeInput" placeholder="Go to a place…" enterkeyhint="go" autocomplete="off" aria-label="Go to a place, address, coordinates or a Maps link"><button type="submit" aria-label="Go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form></div>
 </main>
 
 <footer>
@@ -606,10 +619,6 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
         <span class="chk"><input type="checkbox" id="srcWd"> <span id="srcWdLbl">Heritage registers</span></span>
       </div>
     </div>
-    <form class="row" id="placeForm">
-      <input type="text" id="placeInput" placeholder="Place, address, coordinates or a Maps link" autocomplete="off">
-      <button type="submit">Go</button>
-    </form>
     <h4>Places</h4>
     <div class="lib-list" id="libShort"></div>
     <button type="button" id="libAll">See all places</button>
@@ -673,7 +682,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.21.1"></script>
+<script src="common.js?v=3.22.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -2110,13 +2119,13 @@ function onFix(lat, lon, acc){
 
 /* ---------- GPS ---------- */
 function startGPS(){
-  if(!('geolocation' in navigator)){ setStatus('This browser has no location access. Use Settings → manual location.'); return; }
-  if(!window.isSecureContext){ setStatus('GPS needs the page to be opened over https://. Use Settings → manual location, or host the file (see notes).'); $('#settings').open=true; return; }
+  if(!('geolocation' in navigator)){ setStatus('This browser has no location access. Type a place in the Go box instead.'); return; }
+  if(!window.isSecureContext){ setStatus('GPS needs the page to be opened over https://. Type a place in the Go box instead, or host the file (see notes).'); $('#placeInput').focus(); return; }
   stopGPS(); state.manual=false; state.remote=false; updateExplore();
   setStatus('<span class="spin"></span>Getting your location…');
   state.watchId = navigator.geolocation.watchPosition(
     p => onFix(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
-    err => { setStatus('Location: '+esc(err.message)+'. You can type a place in Settings.'); $('#settings').open=true; },
+    err => { setStatus('Location: '+esc(err.message)+'. You can type a place in the Go box.'); if(!state.pos) $('#placeInput').focus(); },
     {enableHighAccuracy:true, maximumAge:10000, timeout:30000}
   );
   label('#gpsBtn','Following'); $('#gpsBtn').classList.add('on'); $('#gpsBtn').classList.remove('primary');
@@ -2201,9 +2210,14 @@ function catOf(it){
 }
 const pinClass = it => 'c-' + catOf(it) + (srcClass(it) === 'ai' ? ' src-ai' : '');
 const srcClass = it => !it.src ? 'wiki' : it.src==='OpenStreetMap' ? 'osm' : it.src==='AI guide' ? 'ai' : it.src==='Wikivoyage' ? 'voy' : it.src==='eBird' ? 'ebird' : 'wd';
+function placeGoBox(){
+  const f = $('#placeForm'), lg = document.querySelector('.legend'), onMap = $('#mapWrap').classList.contains('show');
+  if(onMap && f.parentElement !== lg) lg.prepend(f);
+  else if(!onMap && f.parentElement !== $('#goSlot')) $('#goSlot').append(f);
+}
 function initMap(){
   if(M.map || typeof L==='undefined' || !state.pos) return;
-  $('#mapWrap').classList.add('show');
+  $('#mapWrap').classList.add('show'); placeGoBox();
   if(store.get('mapHidden', false)){ $('#mapWrap').classList.add('collapsed'); $('#mapToggle').textContent='Show map'; }
   M.map = L.map('map', {zoomControl:false, attributionControl:true}).setView([state.pos.lat, state.pos.lon], 16);
   setLayer(store.get('mapLayer', 'street'));
@@ -3436,6 +3450,7 @@ async function geocodeText(q){
   }catch(e){}
   return null;
 }
+$('#placeForm button').onpointerdown = e => e.preventDefault();   // keep the focus in the field, so the row doesn't shrink back under the finger before Go is pressed
 $('#placeForm').onsubmit = async e=>{
   e.preventDefault();
   const v = $('#placeInput').value.trim(); if(!v) return;
@@ -3443,7 +3458,8 @@ $('#placeForm').onsubmit = async e=>{
   const rest = (link ? v.replace(link, ' ') : v).replace(/\s+/g, ' ').trim();   // shared links often come with the place's name
   const got = link ? fromMapLink(link) : null;
   const ll = (got && got.ll) || coordsIn(rest) || (link && !got ? coordsIn(link) : null);
-  if(ll){ state.libPending = {kind: 'searched', text: rest || (got && got.text) || ''}; setManual(ll[0], ll[1]); return; }
+  const done = () => { $('#placeInput').value = ''; $('#placeInput').blur(); };   // the "Exploring …" bar shows where you went
+  if(ll){ state.libPending = {kind: 'searched', text: rest || (got && got.text) || ''}; done(); setManual(ll[0], ll[1]); return; }
   const text = rest || (got && got.text);
   if(!text){
     setStatus(got && got.short
@@ -3453,7 +3469,7 @@ $('#placeForm').onsubmit = async e=>{
   }
   setStatus('<span class="spin"></span>Finding “'+esc(text)+'”…');
   const hit = await geocodeText(text);
-  if(hit){ state.libPending = {kind: 'searched', text}; setManual(hit[0], hit[1]); }
+  if(hit){ state.libPending = {kind: 'searched', text}; done(); setManual(hit[0], hit[1]); }
   else setStatus('Couldn’t find “'+esc(text)+'”. Try adding the city, or paste coordinates.');
 };
 // Reopening: show what Wander last showed, then bring it up to date

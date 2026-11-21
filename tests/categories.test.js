@@ -88,7 +88,7 @@ const N = [
   await pg.click('#lgMenu [data-all="src"][data-show]'); await pg.waitForTimeout(150);
   ok('Sources: Show all brings them back, Types left alone', await pg.evaluate(() => state.hiddenSrc.size === 0 && state.hiddenCat.has('relig')));
   await pg.click('#lgMenu [data-src="ai"]'); await pg.waitForTimeout(150);
-  await pg.click('.lg-you'); await pg.waitForTimeout(150);
+  await pg.click('footer'); await pg.waitForTimeout(150);
   ok('tap elsewhere closes the menu', await pg.evaluate(() => document.querySelector('#lgMenu').hidden));
   await pg.click('#showAllSrc'); await pg.waitForTimeout(150);
   ok('Show all brings everything back', await pg.evaluate(() => !document.querySelector('.hidden-note') && state.hiddenCat.size === 0 && state.hiddenSrc.size === 0));
