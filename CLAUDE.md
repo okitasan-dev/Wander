@@ -27,7 +27,7 @@ Wander shows the history and nature around your GPS position, as you walk. It's 
 | `index.html` | The whole main app: CSS, HTML, and one big inline script. It covers the map (Leaflet 1.9.4 from cdnjs), list, dock, sheets (Settings, AI guide, Places), Look mode, both modes, all data loaders and the AI prompts. |
 | `place.html` | The detail page for a Wikidata item (`?id=Q…&lang=…`): hero, summary, facts, interactive timeline, gallery, and the AI guide's entry. It follows the mode's colours via the `wander.mode` key. |
 | `common.js` | Shared by both pages. It holds helpers (`fetchJSON`, `fmtDist`, `cap`, `esc`, `yearOf` including deep-time dates, `byDate`), Wikipedia/Wikidata helpers, translation, Wikipedia term links, and **AI guide storage**: `normalizeGuide`, `addGuide`, `mergeEntry`, `samePlace`, `loadGuides`. |
-| `sw.js` | The service worker. App files are network-first. Data APIs are network-first with a 6 s fallback to cache. Tiles, photos, fonts and libraries are cache-first. New data hosts must be added to its host lists. |
+| `sw.js` | The service worker. **App files are cache-first** (see Design decisions: Offline). Data APIs are network-first with a 6 s fallback to cache. Tiles, photos, fonts and libraries are cache-first. New data hosts must be added to its host lists. If the pages' Leaflet or Google Fonts URL changes, update `LIBS`/`FONTS` in `sw.js` too. |
 | `data/us-thermal-springs.json` | NOAA's US Thermal Springs List: 1,661 springs, compacted from PANGAEA (doi:10.1594/PANGAEA.981233, CC BY 4.0). Loaded only for US hot springs. |
 | `design/mockup-themes.js` | CSS for the theme mockups A–F. The app doesn't use it yet (see Open threads). |
 | `manifest.webmanifest`, `icons/` | The home-screen app definition and its icons. |
@@ -150,6 +150,13 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
 - **Photos rows:** tiles show 2 rows that scroll sideways (`speciesRow`); 6 or fewer show as a plain grid.
 - **Group chips:** counts come from iNaturalist and show "+" when GBIF adds more. Per-group GBIF counts would cost 10 more requests.
 - **Appearance** (Settings → Appearance: Auto / Light / Dark, `wander.appearance`): dark mode stays as `@media (prefers-color-scheme:dark)` blocks in each page's CSS. A small script in each page's `<head>` (`applyAppearance`) rewrites those blocks' conditions (`all` / `not all`) and the theme-color metas (`data-scheme`) before the first paint, so there's no flash. New dark-mode CSS must go in such a media block in the page's own `<style>` to be covered.
+- **Offline / weak signal (3.24.0):** the app used to ask GitHub for its own files first, so with one bar of signal the phone showed a white screen while it waited. Now:
+  - App files (`SHELL`), Leaflet and the fonts open from the saved copy, never waiting on the network. Leaflet and fonts are saved at install, so one visit is enough.
+  - A new version is saved whole when `sw.js` changes (the `APP` name): files are fetched with `?v=<version>` to get past GitHub's 10-minute server cache, and `common.js` must contain the new `WANDER_VERSION`, or the install fails and the old copy stays (the phone retries later). The old copy is deleted only after that.
+  - The new version runs from the next open (option B). Settings → App shows "Version x · saved for offline", or "Version y is ready" with **Reload** (option A, kept inside Settings by the owner's choice). The app also checks for a new version when brought back to the front (at most every 30 min).
+  - No saved copy and no signal: a small "No signal" page instead of white.
+  - Home-screen app only: `navigator.storage.persist()` asks the phone not to clear the saved data (other browsers can prompt for it).
+  - Edits to app files only reach phones with a version bump (the `sw.js` name), as the working rules already require.
 - **Persistence:** these settings are saved on the device: appearance, mode, radius, sight, layer, Excursion range, spring filter, group picks, guide topic/radius/depth (per mode), hidden sources and visit recording.
 
 ## Open threads and ideas
@@ -175,7 +182,7 @@ node tests/nature.test.js
 
 Each test prints its findings and ends with `errors []` (page errors). Screenshots go to `tests/out/` (gitignored).
 
-- **Local server:** tests that need real network answers start `tests/serve.js` (`http://localhost:<port>`). Several services (Nominatim, Open-Meteo) refuse pages opened from `file://`, and service workers need http. Tests run with `serviceWorkers: 'block'`, because requests made by a service worker bypass Playwright's routes.
+- **Local server:** tests that need real network answers start `tests/serve.js` (`http://localhost:<port>`). Several services (Nominatim, Open-Meteo) refuse pages opened from `file://`, and service workers need http. Tests run with `serviceWorkers: 'block'`, because requests made by a service worker bypass Playwright's routes (except `offline`, which needs it and uses its own server; Playwright's `setOffline` doesn't reach the service worker either).
 - **Simulated responses:** tests use `page.route` to let real hosts through and fulfil the rest with fixtures in the documented formats. Fixtures live in `tests/fixtures/`: stand-in photos, map tiles, and a sample Burbank guide. Wikimedia (429 from the sandbox) and Overpass (blocked) are always simulated.
 - **Live tests:** `geology-live`, `in-season`, `soil-climate-quakes`, `gbif`, `heritage-registers`, `skyline`, `excursions` and `ebird` can time out when a service rate-limits after many runs. Re-run later before suspecting the code.
 - **Network:** the cloud environment's allowlist already includes every data service above (Wikidata, Wikipedia, Commons, Macrostrat, GSJ, BGS, BRGM, Geoscience Australia, iNaturalist, GBIF, eBird, Open-Meteo and its archive, USGS, ISRIC, the HES/HED/NIAH/HE ArcGIS hosts, Wikivoyage en/ja, PANGAEA, Overpass, Kew, the French portal). The live tests need nothing extra.
@@ -194,6 +201,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `guide-reach` | AI guide Area has 3 mi; guide places out to 6 mi show with a ½ mi radius, in their own section; a 10 km one and another town's guide stay hidden; from elsewhere exactly those within 6 mi show |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
+| `offline` | Service worker on: first visit saves app, Leaflet and fonts; a 20 s-slow server still opens instantly; no connection opens app and place page; a half-published version is refused; a new version shows "ready · Reload" in Settings and Reload runs it offline; nothing saved → "No signal" page |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |
 | `excursion-chips` | Hot springs chip count matches the Excursions list under each Wild/Developed filter; a switched-off section is named in the hidden note; Hot springs inside the Types menu; temperature and Closed/Historic flags (live NOAA + Wikidata, stand-in Wikipedia intros, Burbank) |

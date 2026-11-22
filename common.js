@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.23.0';
+const WANDER_VERSION = '3.24.0';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -638,8 +638,34 @@ document.addEventListener('click', async e => {
 });
 
 /* ---------- Installable app: keep the app and what it has loaded for use offline ---------- */
+/* The app opens from its saved copy; a newer version downloads in the background and is used from the next open.
+   Settings → App shows the version and, once a newer one is saved, a Reload button to switch now (#appVer, #appReload). */
+const APPV = {saved: false, ready: ''};
+function appVerShow(){
+  const el = document.getElementById('appVer'), btn = document.getElementById('appReload'); if(!el) return;
+  const newer = APPV.ready && APPV.ready !== WANDER_VERSION;
+  el.textContent = newer ? `Version ${APPV.ready} is ready` : `Version ${WANDER_VERSION}${APPV.saved ? ' · saved for offline' : ''}`;
+  if(btn) btn.hidden = !newer;
+}
 if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
-  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  const sw = navigator.serviceWorker;
+  sw.addEventListener('message', e => { const v = e.data && e.data.wanderVersion; if(v){ APPV.saved = true; APPV.ready = v; appVerShow(); } });
+  addEventListener('load', () => {
+    sw.register('sw.js').then(reg => {
+      if(sw.controller) sw.controller.postMessage('wander-version');
+      // A phone app is often brought back rather than reopened: look for a new version then too (at most every 30 min)
+      let last = Date.now();
+      document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'visible' && Date.now() - last > 30 * 60e3){ last = Date.now(); reg.update().catch(() => {}); }
+      });
+    }).catch(() => {});
+    sw.addEventListener('controllerchange', () => sw.controller && sw.controller.postMessage('wander-version'));
+    // Ask the phone not to clear the saved app when space runs low (home-screen apps only: some browsers ask the user)
+    const installed = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    if(installed && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    appVerShow();
+  });
+  document.addEventListener('click', e => { if(e.target.closest && e.target.closest('#appReload')) location.reload(); });
 }
 
 /* ---------- Wikipedia links in text, with a preview panel ---------- */

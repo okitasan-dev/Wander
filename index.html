@@ -388,6 +388,7 @@ body.looking{padding-bottom:calc(env(safe-area-inset-bottom) + 300px)}
 select,input[type=text],input[type=password]{font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);flex:1;min-width:0}
 .chk{font-size:14px;display:inline-flex;align-items:center;gap:8px;margin-right:14px}
 .chk input{width:18px;height:18px;accent-color:var(--brass)}
+.row .app-ver{flex:1;font-size:15px}
 .row .srcs{display:flex;flex-direction:column;gap:8px;flex:1}
 /* The Go box: a small field right of "You" under the map; before there is a map (no position yet) a full-width one under the
    welcome title (#goSlot). One form, moved by placeGoBox. */
@@ -619,6 +620,11 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
         <span class="chk"><input type="checkbox" id="srcWd"> <span id="srcWdLbl">Heritage registers</span></span>
       </div>
     </div>
+    <div class="row">
+      <span class="lbl">App</span>
+      <span class="app-ver" id="appVer"></span>
+      <button type="button" class="mini" id="appReload" hidden>Reload</button>
+    </div>
     <h4>Places</h4>
     <div class="lib-list" id="libShort"></div>
     <button type="button" id="libAll">See all places</button>
@@ -683,7 +689,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.23.0"></script>
+<script src="common.js?v=3.24.0"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
