@@ -689,7 +689,7 @@ try{ applyAppearance(JSON.parse(localStorage.getItem('wander.appearance')) || 'a
 </details>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="common.js?v=3.24.0"></script>
+<script src="common.js?v=3.24.1"></script>
 <script>
 "use strict";
 const label = (sel, t) => { const b = document.querySelector(sel); if(b){ b.setAttribute('aria-label', t); b.title = t; } };   // dock buttons are icons only
@@ -3099,7 +3099,7 @@ function render(){
   try{ initMap(); }catch(e){ console.warn('map init', e); }
   const A = state.area, lvl = t => `<p class="area-lvl">${t}</p>`;   // two sections when there is more than one area: the closest first, the widest last
   const area = state.mode === 'nature' ? natureAreaHTML() : A.map((it,i)=>(A.length > 1 && i === 0 ? lvl('Right here') : A.length > 1 && i === A.length - 1 ? lvl('Wider area') : '') + areaHTML(it,i)).join('');
-  $('#areaWrap').innerHTML = area ? `<h2>${MD().areaHead}</h2>${area}` : '';
+  morphHTML($('#areaWrap'), area ? `<h2>${MD().areaHead}</h2>${area}` : '');   // only what changed: photos stay put, rows keep their scroll
   const rows = [...state.items.values()]
     .filter(it=>it.lat!=null && !it.chain && !it.checking).map(it=>({it, d:hav(state.pos,it), b:bearing(state.pos,it)}))
     .filter(x=>x.d <= state.radius*1.3 || (x.it.ai && x.d <= GUIDE_REACH)).sort((a,b)=>a.d-b.d);   // AI guide places show out to 6 mi, whatever the radius
@@ -3121,8 +3121,8 @@ function render(){
     ...['spring', 'fish'].filter(t=>farOff.some(r=>r.it.topic===t)).map(t=>MD().legend[t])];
   const offCount = hiddenCount + farOff.length;
   const note = offCount ? `<div class="hidden-note"><span>${offCount} place${offCount===1?'':'s'} hidden: ${esc(offNames.join(', '))}</span><button type="button" id="showAllSrc">Show all</button></div>` : '';
-  $('#listWrap').innerHTML = note + (rows.length ? html
-    : (state.loading ? '' : offCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far);
+  morphHTML($('#listWrap'), note + (rows.length ? html
+    : (state.loading ? '' : offCount ? '' : `<div class="empty">${esc(MD().empty.replace('{r}', radiusLabel()))}</div>`)) + farHTML(far));
   state.cards = new Map([...$('#listWrap').querySelectorAll('article[data-key]')].map(el=>[el.dataset.key, {el, arw:el.querySelector('.arw'), dl:el.querySelector('.dl')}]));
   const items = rows.map(r=>r.it);
   try{ updateMap(items); updateFarPins(far.filter(farShown)); }catch(e){ console.warn('map', e); }
@@ -3141,7 +3141,8 @@ function render(){
   const fh = document.querySelector('.lg-farh'); if(fh) fh.hidden = !far.length;
   // Excursion chips count what the list shows (after the Wild/Developed filter); they stay visible while any exist in range
   document.querySelectorAll('.legend .g-far').forEach(b => { const L = far.filter(r => r.it.topic === b.dataset.src); b.hidden = !L.length; b.querySelector('.lg-n').textContent = L.filter(farFilterOK).length; });
-  document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; });   // keep the picked group in view
+  document.querySelectorAll('.grp [aria-pressed="true"]').forEach(b => { const c = b.parentElement, id = b.dataset.g;   // bring a newly picked group into view (once, so a row you scrolled stays put)
+    if(c._centred !== id){ c._centred = id; c.scrollLeft = b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2; } });
   saveSessionSoon();
   applyWikiLinks();
 }

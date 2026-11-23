@@ -7,7 +7,7 @@
      seconds, otherwise the copy kept from last time.
    - Libraries, fonts, map tiles (street, satellite, terrain) and photos: kept copy first, since they rarely change.
      The map library and fonts are saved with the app, so the first visit is enough. */
-const APP = 'wander-app-v3.24.0', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
+const APP = 'wander-app-v3.24.1', DATA = 'wander-data-v1', STATIC = 'wander-static-v1', TILES = 'wander-tiles-v1', IMAGES = 'wander-img-v1';
 const VERSION = APP.replace('wander-app-v', '');
 const KEEP = [APP, DATA, STATIC, TILES, IMAGES];
 const SHELL = ['./', 'index.html', 'place.html', 'common.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

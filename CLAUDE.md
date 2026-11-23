@@ -26,7 +26,7 @@ Wander shows the history and nature around your GPS position, as you walk. It's 
 |---|---|
 | `index.html` | The whole main app: CSS, HTML, and one big inline script. It covers the map (Leaflet 1.9.4 from cdnjs), list, dock, sheets (Settings, AI guide, Places), Look mode, both modes, all data loaders and the AI prompts. |
 | `place.html` | The detail page for a Wikidata item (`?id=Q…&lang=…`): hero, summary, facts, interactive timeline, gallery, and the AI guide's entry. It follows the mode's colours via the `wander.mode` key. |
-| `common.js` | Shared by both pages. It holds helpers (`fetchJSON`, `fmtDist`, `cap`, `esc`, `yearOf` including deep-time dates, `byDate`), Wikipedia/Wikidata helpers, translation, Wikipedia term links, and **AI guide storage**: `normalizeGuide`, `addGuide`, `mergeEntry`, `samePlace`, `loadGuides`. |
+| `common.js` | Shared by both pages. It holds helpers (`fetchJSON`, `fmtDist`, `cap`, `esc`, `yearOf` including deep-time dates, `byDate`), Wikipedia/Wikidata helpers, translation, Wikipedia term links, `morphHTML` (change-only redraws), and **AI guide storage**: `normalizeGuide`, `addGuide`, `mergeEntry`, `samePlace`, `loadGuides`. |
 | `sw.js` | The service worker. **App files are cache-first** (see Design decisions: Offline). Data APIs are network-first with a 6 s fallback to cache. Tiles, photos, fonts and libraries are cache-first. New data hosts must be added to its host lists. If the pages' Leaflet or Google Fonts URL changes, update `LIBS`/`FONTS` in `sw.js` too. |
 | `data/us-thermal-springs.json` | NOAA's US Thermal Springs List: 1,661 springs, compacted from PANGAEA (doi:10.1594/PANGAEA.981233, CC BY 4.0). Loaded only for US hot springs. |
 | `design/mockup-themes.js` | CSS for the theme mockups A–F. The app doesn't use it yet (see Open threads). |
@@ -157,6 +157,10 @@ The dock's right-hand switch toggles **History** (columns icon) and **Nature** (
   - No saved copy and no signal: a small "No signal" page instead of white.
   - Home-screen app only: `navigator.storage.persist()` asks the phone not to clear the saved data (other browsers can prompt for it).
   - Edits to app files only reach phones with a version bump (the `sw.js` name), as the working rules already require.
+- **Redraws change only what differs** (3.24.1, `morphHTML` in `common.js`): `render()` updates `#areaWrap` and `#listWrap` in place rather than replacing their HTML, which made every photo reload (a flash) and sideways rows jump back to the first tile each time data arrived. Elements are matched by `data-key` (cards), a land-card section's `h4` (`.layer`), a species tile's `href` (`.sp`, repeats matched in order), otherwise by position. Consequences:
+  - Attributes not in the new HTML are removed, so mark elements with JS properties (`el._x`), not attributes or ids, if a mark must survive a redraw (the group chip row's `_centred`).
+  - Click handling is delegated from `document`, so kept elements need no new handlers. Don't attach handlers to list elements after each render: kept elements would collect duplicates.
+  - The group chip row scrolls to the picked group only when the pick changes, so a row the reader scrolled stays put.
 - **Persistence:** these settings are saved on the device: appearance, mode, radius, sight, layer, Excursion range, spring filter, group picks, guide topic/radius/depth (per mode), hidden sources and visit recording.
 
 ## Open threads and ideas
@@ -201,6 +205,7 @@ Each test prints its findings and ends with `errors []` (page errors). Screensho
 | `guide-reach` | AI guide Area has 3 mi; guide places out to 6 mi show with a ½ mi radius, in their own section; a 10 km one and another town's guide stay hidden; from elsewhere exactly those within 6 mi show |
 | `drop-pin` | Long press (right-click in the test) drops a pin; closing removes it; Look around here searches there, moves the map and records it in Places |
 | `area-levels` | History area cards closest first (hamlet, town, county near Lake Arrowhead; simulated Nominatim), the two sections, a city with one card |
+| `steady-rows` | Nature land card (live iNaturalist lists, stand-in photos): redraws keep photo elements and a sideways row's scroll; a section arriving above (simulated eBird) doesn't disturb it; a scrolled group chip row stays; list cards reorder keeping their elements |
 | `offline` | Service worker on: first visit saves app, Leaflet and fonts; a 20 s-slow server still opens instantly; no connection opens app and place page; a half-published version is refused; a new version shows "ready · Reload" in Settings and Reload runs it offline; nothing saved → "No signal" page |
 | `map-layers`, `source-chips` | Street/Satellite/Terrain layers (simulated tiles), chip counts |
 | `history-prompt`, `heritage-registers`, `wikivoyage-commons-he` | History prompt and archaeology, live registers (Edinburgh, Belfast, Dublin, Newgrange, London), Wikivoyage/Commons merge |

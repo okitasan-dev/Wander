@@ -1,6 +1,6 @@
 /* Wander version: major.minor.patch — major for big changes, minor for medium, patch for small.
    When it changes, also update ?v= on the common.js script tags in index.html and place.html, and APP in sw.js. */
-const WANDER_VERSION = '3.24.0';
+const WANDER_VERSION = '3.24.1';
 
 /* Wander: helpers shared by index.html and place.html.
    Pages must define `state.userLang` (the reader's language) before calling fmtNum or translateLink. */
@@ -498,6 +498,40 @@ function samePlace(a, b){
 const CONF = {high:3, medium:2, low:1};
 const normText = t => String(t||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const unionBy = (list, key, max) => { const seen = new Set(), out = []; for(const x of list){ const k = key(x); if(k && !seen.has(k)){ seen.add(k); out.push(x); } } return out.slice(0, max); };
+/* Redraw a part of the page from new HTML, changing only what differs. Rebuilding it whole made every photo reload
+   (a flash) and sideways rows jump back to their first tile each time more data arrived. Elements are matched by
+   data-key (cards), a section's heading (the land card's sections) or a species tile's link, otherwise by position. */
+function morphKey(el){
+  if(el.nodeType !== 1) return null;
+  const k = el.getAttribute('data-key'); if(k) return 'k:' + k;
+  if(el.classList.contains('layer')){ const h = el.querySelector('h4'); if(h) return 'layer:' + h.textContent; }
+  if(el.classList.contains('sp') && el.hasAttribute('href')) return 'sp:' + el.getAttribute('href');
+  return null;
+}
+function morphNode(old, neu){
+  if(old.nodeType !== 1){ if(old.nodeValue !== neu.nodeValue) old.nodeValue = neu.nodeValue; return; }
+  for(const a of [...old.attributes]) if(!neu.hasAttribute(a.name)) old.removeAttribute(a.name);
+  for(const a of neu.attributes) if(old.getAttribute(a.name) !== a.value) old.setAttribute(a.name, a.value);
+  morphChildren(old, neu);
+}
+function morphChildren(from, to){
+  const keyed = new Map();   // key → its elements in order (the same species can appear twice in a row)
+  for(const c of from.children){ const k = morphKey(c); if(k){ if(!keyed.has(k)) keyed.set(k, []); keyed.get(k).push(c); } }
+  let cur = from.firstChild;
+  for(const nc of [...to.childNodes]){
+    const k = morphKey(nc); let match = null;
+    if(k){ const q = keyed.get(k); match = q && q.shift() || null; }
+    else if(cur && !morphKey(cur) && cur.nodeType === nc.nodeType && cur.nodeName === nc.nodeName) match = cur;
+    if(!match){ from.insertBefore(nc, cur); continue; }
+    if(match === cur) cur = cur.nextSibling; else from.insertBefore(match, cur);
+    morphNode(match, nc);
+  }
+  while(cur){ const n = cur.nextSibling; cur.remove(); cur = n; }
+}
+function morphHTML(el, html){
+  if(!el.firstChild){ el.innerHTML = html; return; }
+  const t = document.createElement('template'); t.innerHTML = html; morphChildren(el, t.content);
+}
 const byDate = list => list.map((t, i) => ({t, i, y: (yearOf(t.date) || yearOf(t.text) || {}).y})).sort((a, b) => (a.y ?? 1e9) - (b.y ?? 1e9) || a.i - b.i).map(x => x.t);
 /* Combine two versions of a place or area; b is the newer one */
 // The newer guide's ground fields win where it has them
